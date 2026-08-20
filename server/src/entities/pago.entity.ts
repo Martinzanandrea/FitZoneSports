@@ -27,11 +27,11 @@ import { EstadoPago, MetodoPago } from './enums';
 )
 export class Pago {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Usuario, (usuario) => usuario.pagos, { nullable: false })
   @JoinColumn({ name: 'usuario_id' })
-  usuario: Usuario;
+  usuario!: Usuario;
 
   @ManyToOne(() => Membresia, (membresia) => membresia.pagos, {
     nullable: true,
@@ -52,14 +52,14 @@ export class Pago {
   reservaCancha?: ReservaCancha;
 
   @Column({ type: 'enum', enum: MetodoPago, enumName: 'metodo_pago' })
-  metodo: MetodoPago;
+  metodo!: MetodoPago;
 
   @Column('numeric', { precision: 10, scale: 2 })
-  monto: string;
+  monto!: string;
 
   // RNF02: solo se guarda el token de la pasarela, nunca datos de tarjeta.
   @Column({ name: 'token_pasarela', length: 255 })
-  tokenPasarela: string;
+  tokenPasarela!: string;
 
   @Column({
     type: 'enum',
@@ -67,13 +67,13 @@ export class Pago {
     enumName: 'estado_pago',
     default: EstadoPago.PENDIENTE,
   })
-  estado: EstadoPago;
+  estado!: EstadoPago;
 
   @Column({ name: 'pagado_en', type: 'timestamptz', nullable: true })
   pagadoEn?: Date;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
-  creadoEn: Date;
+  creadoEn!: Date;
 
   @OneToOne(() => Comprobante, (comprobante) => comprobante.pago)
   comprobante?: Comprobante;

@@ -23,20 +23,20 @@ import { Sede } from './sede.entity';
 })
 export class ControlAcceso {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Usuario, (usuario) => usuario.controlesAcceso, {
     nullable: false,
   })
   @JoinColumn({ name: 'usuario_id' })
-  usuario: Usuario;
+  usuario!: Usuario;
 
   @ManyToOne(() => Sede, (sede) => sede.controlesAcceso, { nullable: false })
   @JoinColumn({ name: 'sede_id' })
-  sede: Sede;
+  sede!: Sede;
 
   @CreateDateColumn({ name: 'hora_ingreso', type: 'timestamptz' })
-  horaIngreso: Date;
+  horaIngreso!: Date;
 
   // NULL = el usuario sigue "dentro" de la sede.
   @Column({ name: 'hora_egreso', type: 'timestamptz', nullable: true })
@@ -44,7 +44,7 @@ export class ControlAcceso {
 
   // true si el QR se validó offline (RNF01) y este registro se sincronizó después.
   @Column({ name: 'validado_offline', default: false })
-  validadoOffline: boolean;
+  validadoOffline!: boolean;
 
   @Column({ name: 'sincronizado_en', type: 'timestamptz', nullable: true })
   sincronizadoEn?: Date;

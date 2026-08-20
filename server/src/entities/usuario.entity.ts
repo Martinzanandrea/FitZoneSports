@@ -31,7 +31,7 @@ import { TipoActor } from './enums';
 )
 export class Usuario {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({
     type: 'enum',
@@ -39,16 +39,16 @@ export class Usuario {
     enumName: 'tipo_actor',
     name: 'tipo_actor',
   })
-  tipoActor: TipoActor;
+  tipoActor: TipoActor = TipoActor.SOCIO;
 
   @Column({ length: 20, unique: true, nullable: true })
   dni?: string;
 
   @Column({ length: 120 })
-  nombre: string;
+  nombre!: string;
 
   @Column({ length: 120 })
-  apellido: string;
+  apellido!: string;
 
   @Column({ length: 160, unique: true, nullable: true })
   email?: string;
@@ -59,10 +59,15 @@ export class Usuario {
   @Column({ name: 'foto_url', type: 'text', nullable: true })
   fotoUrl?: string;
 
-  // ⚠️ Nunca devolver este campo en una respuesta HTTP.
+  // Nunca devolver este campo en una respuesta HTTP.
   // Excluirlo con class-transformer (@Exclude()) en el DTO de salida,
   // o directamente con .select(false) / QueryBuilder que no lo traiga.
-  @Column({ name: 'password_hash', type: 'text', nullable: true, select: false })
+  @Column({
+    name: 'password_hash',
+    type: 'text',
+    nullable: true,
+    select: false,
+  })
   passwordHash?: string;
 
   // Sede de trabajo (A3 Recepcionista) o de alta (A2 Externo).
@@ -72,24 +77,24 @@ export class Usuario {
   sede?: Sede;
 
   @Column({ default: true })
-  activo: boolean;
+  activo: boolean = false;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
-  creadoEn: Date;
+  creadoEn!: Date;
 
   // --- Relaciones 1:N (lado "1") ---
   @OneToMany(() => Membresia, (membresia) => membresia.usuario)
-  membresias: Membresia[];
+  membresias!: Membresia[];
 
   @OneToMany(() => ControlAcceso, (acceso) => acceso.usuario)
-  controlesAcceso: ControlAcceso[];
+  controlesAcceso!: ControlAcceso[];
 
   @OneToMany(() => ReservaClase, (reserva) => reserva.usuario)
-  reservasClase: ReservaClase[];
+  reservasClase!: ReservaClase[];
 
   @OneToMany(() => ReservaCancha, (reserva) => reserva.usuario)
-  reservasCancha: ReservaCancha[];
+  reservasCancha!: ReservaCancha[];
 
   @OneToMany(() => Pago, (pago) => pago.usuario)
-  pagos: Pago[];
+  pagos!: Pago[];
 }

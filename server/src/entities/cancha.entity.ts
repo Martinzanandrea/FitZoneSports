@@ -15,20 +15,20 @@ import { TipoCancha, EstadoCancha } from './enums';
 @Entity('canchas')
 export class Cancha {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Sede, (sede) => sede.canchas, { nullable: false })
   @JoinColumn({ name: 'sede_id' })
-  sede: Sede;
+  sede!: Sede;
 
   @Column({ length: 80 })
-  nombre: string;
+  nombre!: string;
 
   @Column({ type: 'enum', enum: TipoCancha, enumName: 'tipo_cancha' })
-  tipo: TipoCancha;
+  tipo!: TipoCancha;
 
   @Column('numeric', { name: 'costo_hora_base', precision: 10, scale: 2 })
-  costoHoraBase: string;
+  costoHoraBase!: string;
 
   @Column({
     type: 'enum',
@@ -36,14 +36,14 @@ export class Cancha {
     enumName: 'estado_cancha',
     default: EstadoCancha.ACTIVA,
   })
-  estado: EstadoCancha;
+  estado!: EstadoCancha;
 
   @CreateDateColumn({ name: 'creada_en', type: 'timestamptz' })
-  creadaEn: Date;
+  creadaEn!: Date;
 
   @OneToMany(() => BloqueoCancha, (bloqueo) => bloqueo.cancha)
-  bloqueos: BloqueoCancha[];
+  bloqueos!: BloqueoCancha[];
 
   @OneToMany(() => ReservaCancha, (reserva) => reserva.cancha)
-  reservas: ReservaCancha[];
+  reservas!: ReservaCancha[];
 }

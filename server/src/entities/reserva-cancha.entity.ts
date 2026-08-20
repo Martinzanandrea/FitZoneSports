@@ -25,26 +25,26 @@ import { EstadoResCancha, TipoEstrategiaPrecio } from './enums';
 })
 export class ReservaCancha {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Cancha, (cancha) => cancha.reservas, { nullable: false })
   @JoinColumn({ name: 'cancha_id' })
-  cancha: Cancha;
+  cancha!: Cancha;
 
   @ManyToOne(() => Usuario, (usuario) => usuario.reservasCancha, {
     nullable: false,
   })
   @JoinColumn({ name: 'usuario_id' })
-  usuario: Usuario;
+  usuario!: Usuario;
 
   @Column({ type: 'date' })
-  fecha: string;
+  fecha!: string;
 
   @Column({ name: 'hora_inicio', type: 'time' })
-  horaInicio: string;
+  horaInicio!: string;
 
   @Column({ name: 'hora_fin', type: 'time' })
-  horaFin: string;
+  horaFin!: string;
 
   @Column({
     name: 'estrategia_precio',
@@ -52,10 +52,10 @@ export class ReservaCancha {
     enum: TipoEstrategiaPrecio,
     enumName: 'tipo_estrategia_precio',
   })
-  estrategiaPrecio: TipoEstrategiaPrecio;
+  estrategiaPrecio!: TipoEstrategiaPrecio;
 
   @Column('numeric', { name: 'precio_final', precision: 10, scale: 2 })
-  precioFinal: string;
+  precioFinal!: string;
 
   @Column({
     type: 'enum',
@@ -63,14 +63,14 @@ export class ReservaCancha {
     enumName: 'estado_res_cancha',
     default: EstadoResCancha.CONFIRMADA,
   })
-  estado: EstadoResCancha;
+  estado!: EstadoResCancha;
 
   @CreateDateColumn({ name: 'creada_en', type: 'timestamptz' })
-  creadaEn: Date;
+  creadaEn!: Date;
 
   @Column({ name: 'cancelada_en', type: 'timestamptz', nullable: true })
   canceladaEn?: Date;
 
   @OneToMany(() => Pago, (pago) => pago.reservaCancha)
-  pagos: Pago[];
+  pagos!: Pago[];
 }

@@ -10,17 +10,17 @@ import {
 export class CreateSedeDto {
   @IsString()
   @IsNotEmpty()
-  nombre: string;
+  nombre!: string;
 
   @IsString()
   @IsNotEmpty()
-  direccion: string;
+  direccion!: string;
 
   @IsInt()
   @Min(1)
-  aforoMaximo: number;
+  aforoMaximo!: number;
 
   @IsBoolean()
   @IsOptional()
-  activa?: boolean;
+  activa!: boolean;
 }

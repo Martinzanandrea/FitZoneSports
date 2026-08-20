@@ -4,10 +4,10 @@ import { Clase } from './clase.entity';
 @Entity('instructores')
 export class Instructor {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 120 })
-  nombre: string;
+  nombre!: string;
 
   @Column({ length: 120, nullable: true })
   especialidad?: string;
@@ -16,8 +16,8 @@ export class Instructor {
   telefono?: string;
 
   @Column({ default: true })
-  activo: boolean;
+  activo!: boolean;
 
   @OneToMany(() => Clase, (clase) => clase.instructor)
-  clases: Clase[];
+  clases!: Clase[];
 }

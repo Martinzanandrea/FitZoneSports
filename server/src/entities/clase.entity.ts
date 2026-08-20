@@ -18,33 +18,33 @@ import { ReservaClase } from './reserva-clase.entity';
 @Index('idx_clases_sede_horario', ['sede', 'horarioInicio'])
 export class Clase {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Sede, (sede) => sede.clases, { nullable: false })
   @JoinColumn({ name: 'sede_id' })
-  sede: Sede;
+  sede!: Sede;
 
   @Column({ name: 'tipo_clase', length: 80 })
-  tipoClase: string;
+  tipoClase!: string;
 
   @ManyToOne(() => Instructor, (instructor) => instructor.clases, {
     nullable: false,
   })
   @JoinColumn({ name: 'instructor_id' })
-  instructor: Instructor;
+  instructor!: Instructor;
 
   @Column({ name: 'horario_inicio', type: 'timestamptz' })
-  horarioInicio: Date;
+  horarioInicio!: Date;
 
   @Column({ name: 'horario_fin', type: 'timestamptz' })
-  horarioFin: Date;
+  horarioFin!: Date;
 
   @Column('int')
-  capacidad: number;
+  capacidad!: number;
 
   @CreateDateColumn({ name: 'creada_en', type: 'timestamptz' })
-  creadaEn: Date;
+  creadaEn!: Date;
 
   @OneToMany(() => ReservaClase, (reserva) => reserva.clase)
-  reservas: ReservaClase[];
+  reservas!: ReservaClase[];
 }

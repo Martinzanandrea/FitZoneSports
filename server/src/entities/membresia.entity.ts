@@ -17,17 +17,17 @@ import { TipoPlan, EstadoMembresia } from './enums';
 @Check('chk_fechas_membresia', `"fecha_fin" > "fecha_inicio"`)
 export class Membresia {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Usuario, (usuario) => usuario.membresias, {
     nullable: false,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'usuario_id' })
-  usuario: Usuario;
+  usuario!: Usuario;
 
   @Column({ type: 'enum', enum: TipoPlan, enumName: 'tipo_plan' })
-  plan: TipoPlan;
+  plan!: TipoPlan;
 
   @Column({
     type: 'enum',
@@ -35,24 +35,24 @@ export class Membresia {
     enumName: 'estado_membresia',
     default: EstadoMembresia.ACTIVO,
   })
-  estado: EstadoMembresia;
+  estado!: EstadoMembresia;
 
   @Column({ name: 'fecha_inicio', type: 'date' })
-  fechaInicio: string;
+  fechaInicio!: string;
 
   @Column({ name: 'fecha_fin', type: 'date' })
-  fechaFin: string;
+  fechaFin!: string;
 
   @Column({ name: 'renovacion_auto', default: false })
-  renovacionAuto: boolean;
+  renovacionAuto!: boolean;
 
   @ManyToOne(() => Sede, (sede) => sede.membresias, { nullable: false })
   @JoinColumn({ name: 'sede_alta_id' })
-  sedeAlta: Sede;
+  sedeAlta!: Sede;
 
   @CreateDateColumn({ name: 'creada_en', type: 'timestamptz' })
-  creadaEn: Date;
+  creadaEn!: Date;
 
   @OneToMany(() => Pago, (pago) => pago.membresia)
-  pagos: Pago[];
+  pagos!: Pago[];
 }

@@ -25,8 +25,6 @@ import { ReservaCancha } from './reserva-cancha.entity';
 import { Pago } from './pago.entity';
 import { Comprobante } from './comprobante.entity';
 
-// Usalo directo en TypeOrmModule.forRoot({ ..., entities: ALL_ENTITIES })
-// o en cada feature module: TypeOrmModule.forFeature([Usuario, Membresia])
 export const ALL_ENTITIES = [
   Sede,
   Usuario,

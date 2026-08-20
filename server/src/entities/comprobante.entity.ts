@@ -11,7 +11,7 @@ import { Pago } from './pago.entity';
 @Entity('comprobantes')
 export class Comprobante {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   // @JoinColumn en el lado dueño de la FK + unique:true en la columna
   // es lo que convierte esta relación en 1:1 real (en vez de 1:N).
@@ -20,11 +20,11 @@ export class Comprobante {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'pago_id' })
-  pago: Pago;
+  pago!: Pago;
 
   @Column({ name: 'pdf_path', type: 'text' })
-  pdfPath: string;
+  pdfPath!: string;
 
   @CreateDateColumn({ name: 'generado_en', type: 'timestamptz' })
-  generadoEn: Date;
+  generadoEn!: Date;
 }

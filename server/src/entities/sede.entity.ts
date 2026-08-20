@@ -14,36 +14,36 @@ import { Cancha } from './cancha.entity';
 @Entity('sedes')
 export class Sede {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 120 })
-  nombre: string;
+  nombre!: string;
 
   @Column({ length: 255 })
-  direccion: string;
+  direccion!: string;
 
   @Column('int', { name: 'aforo_maximo' })
-  aforoMaximo: number;
+  aforoMaximo!: number;
 
   @Column({ default: true })
-  activa: boolean;
+  activa!: boolean;
 
   @CreateDateColumn({ name: 'creada_en', type: 'timestamptz' })
-  creadaEn: Date;
+  creadaEn!: Date;
 
   // --- Relaciones 1:N (lado "1") ---
   @OneToMany(() => Usuario, (usuario) => usuario.sede)
-  usuarios: Usuario[];
+  usuarios!: Usuario[];
 
   @OneToMany(() => Membresia, (membresia) => membresia.sedeAlta)
-  membresias: Membresia[];
+  membresias!: Membresia[];
 
   @OneToMany(() => ControlAcceso, (acceso) => acceso.sede)
-  controlesAcceso: ControlAcceso[];
+  controlesAcceso!: ControlAcceso[];
 
   @OneToMany(() => Clase, (clase) => clase.sede)
-  clases: Clase[];
+  clases!: Clase[];
 
   @OneToMany(() => Cancha, (cancha) => cancha.sede)
-  canchas: Cancha[];
+  canchas!: Cancha[];
 }

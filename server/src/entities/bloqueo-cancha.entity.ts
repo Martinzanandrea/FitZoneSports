@@ -15,24 +15,24 @@ import { Cancha } from './cancha.entity';
 @Index('idx_bloqueos_cancha_rango', ['cancha', 'desde', 'hasta'])
 export class BloqueoCancha {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Cancha, (cancha) => cancha.bloqueos, {
     nullable: false,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'cancha_id' })
-  cancha: Cancha;
+  cancha!: Cancha;
 
   @Column({ type: 'timestamptz' })
-  desde: Date;
+  desde!: Date;
 
   @Column({ type: 'timestamptz' })
-  hasta: Date;
+  hasta!: Date;
 
   @Column({ length: 255, nullable: true })
   motivo?: string;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
-  creadoEn: Date;
+  creadoEn!: Date;
 }
