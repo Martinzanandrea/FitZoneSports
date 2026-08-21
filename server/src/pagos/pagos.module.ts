@@ -8,10 +8,12 @@ import {
   ReservaClase,
   ReservaCancha,
 } from '../entities';
+import { StorageModule } from '../storage/storage.module';
 import { PagosService } from './pagos.service';
 import { PagosController } from './pagos.controller';
 import { PasarelaMockService } from './gateway/pasarela-mock.service';
 import { ComprobantesService } from './comprobantes.service';
+import { PdfGeneratorService } from './comprobantes/pdf-generator.service';
 
 @Module({
   imports: [
@@ -23,9 +25,15 @@ import { ComprobantesService } from './comprobantes.service';
       ReservaClase,
       ReservaCancha,
     ]),
+    StorageModule,
   ],
   controllers: [PagosController],
-  providers: [PagosService, PasarelaMockService, ComprobantesService],
+  providers: [
+    PagosService,
+    PasarelaMockService,
+    ComprobantesService,
+    PdfGeneratorService,
+  ],
   exports: [PagosService],
 })
 export class PagosModule {}

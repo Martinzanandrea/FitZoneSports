@@ -5,6 +5,8 @@ import * as bcrypt from 'bcrypt';
 import { Usuario } from '../entities';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
+import { ConfigService } from '@nestjs/config';
 
 const SALT_ROUNDS = 10; // "costo" del hasheo: más alto = más lento pero más seguro. 10 es el estándar razonable hoy.
 
@@ -13,13 +15,29 @@ export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuariosRepo: Repository<Usuario>,
+    private readonly storageService: SupabaseStorageService,
+    private readonly config: ConfigService,
   ) {}
 
-  async create(dto: CreateUsuarioDto): Promise<Usuario> {
+  async create(
+    dto: CreateUsuarioDto,
+    foto?: Express.Multer.File,
+  ): Promise<Usuario> {
     const { password, sedeId, ...resto } = dto;
+    const fotoUrl = foto
+      ? await this.storageService.subirArchivo(
+          this.config.getOrThrow<string>('SUPABASE_BUCKET_FOTOS'),
 
+          foto.buffer,
+
+          foto.originalname.split('.').pop() ?? 'jpg',
+
+          foto.mimetype,
+        )
+      : undefined;
     const usuario = this.usuariosRepo.create({
       ...resto,
+      fotoUrl,
       sede: sedeId ? { id: sedeId } : undefined,
       passwordHash: await bcrypt.hash(password, SALT_ROUNDS),
     });

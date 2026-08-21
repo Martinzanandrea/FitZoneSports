@@ -13,7 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { AccesoModule } from './acceso/acceso.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-
+import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
@@ -21,6 +21,7 @@ import { APP_GUARD } from '@nestjs/core';
     EventEmitterModule.forRoot(),
     SedesModule,
     InstructoresModule,
+    ScheduleModule.forRoot(),
     UsuariosModule,
     MembresiasModule,
     ClasesModule,

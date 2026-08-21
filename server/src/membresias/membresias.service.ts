@@ -5,6 +5,8 @@ import { Membresia, Usuario, Sede } from '../entities';
 import { TipoPlan, EstadoMembresia } from '../entities/enums';
 import { CreateMembresiaDto } from './dto/create-membresia.dto';
 import { UpdateMembresiaDto } from './dto/update-membresia.dto';
+import { Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 // Duración de cada plan en meses. Vive acá porque es lógica de negocio
 // de este módulo, no una regla de la base de datos.
@@ -16,6 +18,7 @@ const DURACION_MESES: Record<TipoPlan, number> = {
 
 @Injectable()
 export class MembresiasService {
+  private readonly logger = new Logger(MembresiasService.name);
   constructor(
     @InjectRepository(Membresia)
     private readonly membresiasRepo: Repository<Membresia>,
@@ -24,7 +27,25 @@ export class MembresiasService {
     @InjectRepository(Sede)
     private readonly sedesRepo: Repository<Sede>,
   ) {}
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async marcarVencidasSiCorresponde(): Promise<number> {
+    const hoy = new Date().toISOString().split('T')[0];
+    const result = await this.membresiasRepo
+      .createQueryBuilder()
+      .update(Membresia)
+      .set({ estado: EstadoMembresia.VENCIDO })
+      .where('fecha_fin < :hoy', { hoy })
+      .andWhere('estado = :estado', { estado: EstadoMembresia.ACTIVO })
+      .execute();
 
+    const cantidad = result.affected ?? 0;
+    if (cantidad > 0) {
+      this.logger.log(
+        `${cantidad} membresía(s) marcadas como vencidas automáticamente`,
+      );
+    }
+    return cantidad;
+  }
   async create(dto: CreateMembresiaDto): Promise<Membresia> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id: dto.usuarioId },
@@ -87,19 +108,5 @@ export class MembresiasService {
     const membresia = await this.findOne(id);
     Object.assign(membresia, dto);
     return this.membresiasRepo.save(membresia);
-  }
-
-  // Job programado (cron) llamaría a este método diariamente para marcar
-  // vencidas las membresías cuya fechaFin ya pasó. Por ahora, método manual.
-  async marcarVencidasSiCorresponde(): Promise<number> {
-    const hoy = new Date().toISOString().split('T')[0];
-    const result = await this.membresiasRepo
-      .createQueryBuilder()
-      .update(Membresia)
-      .set({ estado: EstadoMembresia.VENCIDO })
-      .where('fecha_fin < :hoy', { hoy })
-      .andWhere('estado = :estado', { estado: EstadoMembresia.ACTIVO })
-      .execute();
-    return result.affected ?? 0;
   }
 }

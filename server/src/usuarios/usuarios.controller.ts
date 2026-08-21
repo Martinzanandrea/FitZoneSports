@@ -19,13 +19,19 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { TipoActor } from 'src/entities';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedFile, UseInterceptors } from '@nestjs/common';
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post()
-  create(@Body() dto: CreateUsuarioDto) {
-    return this.usuariosService.create(dto);
+  @UseInterceptors(FileInterceptor('foto'))
+  create(
+    @Body() dto: CreateUsuarioDto,
+    @UploadedFile() foto?: Express.Multer.File,
+  ) {
+    return this.usuariosService.create(dto, foto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

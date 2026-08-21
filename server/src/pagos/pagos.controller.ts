@@ -17,6 +17,7 @@ import { TipoActor } from 'src/entities';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('pagos')
@@ -33,7 +34,7 @@ export class PagosController {
   @Post('efectivo')
   registrarEfectivo(
     @Body() dto: RegistrarPagoEfectivoDto,
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: UsuarioAutenticado,
   ) {
     return this.pagosService.registrarPagoEfectivo(dto, user.id);
   }
@@ -49,7 +50,10 @@ export class PagosController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.pagosService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.pagosService.findOne(id, user);
   }
 }

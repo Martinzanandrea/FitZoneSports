@@ -17,6 +17,8 @@ import { PasarelaMockService } from './gateway/pasarela-mock.service';
 import { ComprobantesService } from './comprobantes.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { RegistrarPagoEfectivoDto } from './dto/registrar-pago-efectivo.dto';
+import { assertOwnerOrStaff } from 'src/auth/helpers/ownership.helper';
+import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 
 @Injectable()
 export class PagosService {
@@ -119,7 +121,7 @@ export class PagosService {
 
   async registrarPagoEfectivo(
     dto: RegistrarPagoEfectivoDto,
-    id: string,
+    registradoPorId: string,
   ): Promise<Pago> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id: dto.usuarioId },
@@ -128,12 +130,10 @@ export class PagosService {
       throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
 
     const registradoPor = await this.usuariosRepo.findOne({
-      where: { id: dto.registradoPorId },
+      where: { id: registradoPorId },
     });
     if (!registradoPor)
-      throw new NotFoundException(
-        `Usuario ${dto.registradoPorId} no encontrado`,
-      );
+      throw new NotFoundException(`Usuario ${registradoPorId} no encontrado`);
 
     if (
       registradoPor.tipoActor !== TipoActor.RECEPCIONISTA &&
@@ -169,12 +169,14 @@ export class PagosService {
     });
   }
 
-  async findOne(id: string): Promise<Pago> {
+  async findOne(id: string, currentUser: UsuarioAutenticado): Promise<Pago> {
     const pago = await this.pagosRepo.findOne({
       where: { id },
       relations: { comprobante: true, usuario: true, registradoPor: true },
     });
     if (!pago) throw new NotFoundException(`Pago ${id} no encontrado`);
+
+    assertOwnerOrStaff(currentUser, pago.usuario.id); // solo el socio dueño del pago o staff puede ver el detalle
     return pago;
   }
 }
