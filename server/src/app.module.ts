@@ -10,6 +10,7 @@ import { ClasesModule } from './clases/clases.module';
 import { CanchasModule } from './canchas/canchas.module';
 import { PagosModule } from './pagos/pagos.module';
 import { AuthModule } from './auth/auth.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from './auth/auth.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    EventEmitterModule.forRoot(),
     DatabaseModule,
     SedesModule,
     UsuariosModule,
@@ -27,6 +29,7 @@ import { AuthModule } from './auth/auth.module';
     CanchasModule,
     PagosModule,
     AuthModule,
+    EventEmitterModule,
   ],
 })
 export class AppModule {}

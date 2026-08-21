@@ -16,14 +16,20 @@ import { Comprobante } from './comprobante.entity';
 import { EstadoPago, MetodoPago } from './enums';
 
 @Entity('pagos')
-// Exclusive arc: exactamente UNA de las 3 referencias debe estar presente.
-// Preferido sobre una FK polimórfica (tipo + id) porque acá Postgres SÍ
-// valida la existencia real de la fila referenciada en cada caso.
+// Exclusive arc #1: exactamente UNA de las 3 referencias (membresía/clase/cancha).
 @Check(
   'chk_pago_referencia_unica',
   `(CASE WHEN "membresia_id" IS NOT NULL THEN 1 ELSE 0 END) +
    (CASE WHEN "reserva_clase_id" IS NOT NULL THEN 1 ELSE 0 END) +
    (CASE WHEN "reserva_cancha_id" IS NOT NULL THEN 1 ELSE 0 END) = 1`,
+)
+// Exclusive arc #2: EFECTIVO va con registrado_por (sin token);
+// MERCADOPAGO/MODO van con token (sin registrado_por).
+@Check(
+  'chk_pago_metodo_datos',
+  `("metodo" = 'EFECTIVO' AND "registrado_por_id" IS NOT NULL AND "token_pasarela" IS NULL)
+   OR
+   ("metodo" != 'EFECTIVO' AND "token_pasarela" IS NOT NULL AND "registrado_por_id" IS NULL)`,
 )
 export class Pago {
   @PrimaryGeneratedColumn('uuid')
@@ -39,9 +45,7 @@ export class Pago {
   @JoinColumn({ name: 'membresia_id' })
   membresia?: Membresia;
 
-  @ManyToOne(() => ReservaClase, (reserva) => reserva.pagos, {
-    nullable: true,
-  })
+  @ManyToOne(() => ReservaClase, (reserva) => reserva.pagos, { nullable: true })
   @JoinColumn({ name: 'reserva_clase_id' })
   reservaClase?: ReservaClase;
 
@@ -57,9 +61,15 @@ export class Pago {
   @Column('numeric', { precision: 10, scale: 2 })
   monto!: string;
 
-  // RNF02: solo se guarda el token de la pasarela, nunca datos de tarjeta.
-  @Column({ name: 'token_pasarela', length: 255 })
-  tokenPasarela!: string;
+  // Obligatorio solo si metodo != EFECTIVO (ver @Check chk_pago_metodo_datos).
+  @Column({ name: 'token_pasarela', length: 255, nullable: true })
+  tokenPasarela?: string;
+
+  // Quién (recepcionista/gerente) registró el cobro manual.
+  // Obligatorio solo si metodo = EFECTIVO.
+  @ManyToOne(() => Usuario, { nullable: true })
+  @JoinColumn({ name: 'registrado_por_id' })
+  registradoPor?: Usuario;
 
   @Column({
     type: 'enum',
@@ -78,10 +88,13 @@ export class Pago {
   @OneToOne(() => Comprobante, (comprobante) => comprobante.pago)
   comprobante?: Comprobante;
 
-  // Getter de conveniencia: infiere el tipo sin duplicar el dato en BD.
   get tipoReferencia(): 'MEMBRESIA' | 'CLASE' | 'CANCHA' {
     if (this.membresia) return 'MEMBRESIA';
     if (this.reservaClase) return 'CLASE';
     return 'CANCHA';
+  }
+
+  get esPagoManual(): boolean {
+    return this.metodo === MetodoPago.EFECTIVO;
   }
 }

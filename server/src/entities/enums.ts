@@ -53,6 +53,7 @@ export enum EstadoPago {
 export enum MetodoPago {
   MERCADOPAGO = 'MERCADOPAGO',
   MODO = 'MODO',
+  EFECTIVO = 'EFECTIVO',
 }
 
 export enum TipoEstrategiaPrecio {

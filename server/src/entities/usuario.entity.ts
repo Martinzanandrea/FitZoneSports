@@ -77,7 +77,7 @@ export class Usuario {
   sede?: Sede;
 
   @Column({ default: true })
-  activo: boolean = false;
+  activo!: boolean;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn!: Date;
