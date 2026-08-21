@@ -7,11 +7,14 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { SedesService } from './sedes.service';
 import { CreateSedeDto } from './dto/create-sede.dto';
 import { UpdateSedeDto } from './dto/update-sede.dto';
-
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('sedes')
 export class SedesController {
   constructor(private readonly sedesService: SedesService) {}
