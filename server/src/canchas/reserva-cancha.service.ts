@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cancha, Usuario, ReservaCancha } from '../entities';
@@ -7,6 +11,8 @@ import { MembresiasService } from '../membresias/membresias.service';
 import { BookingCanchaRepository } from './booking-cancha.repository';
 import { PricingCalculatorService } from './pricing/pricing-calculator.service';
 import { CreateReservaCanchaDto } from './dto/create-reserva-cancha.dto';
+import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 
 @Injectable()
 export class ReservasCanchaService {
@@ -76,12 +82,19 @@ export class ReservasCanchaService {
     });
   }
 
-  async cancelar(reservaId: string): Promise<ReservaCancha> {
+  async cancelar(
+    reservaId: string,
+    currentUser: UsuarioAutenticado,
+  ): Promise<ReservaCancha> {
     const reserva = await this.reservasRepo.findOne({
       where: { id: reservaId },
+      relations: { usuario: true },
     });
     if (!reserva)
       throw new NotFoundException(`Reserva ${reservaId} no encontrada`);
+
+    assertOwnerOrStaff(currentUser, reserva.usuario.id);
+
     reserva.estado = EstadoResCancha.CANCELADA;
     reserva.canceladaEn = new Date();
     return this.reservasRepo.save(reserva);
