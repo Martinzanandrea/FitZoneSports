@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ReservaClase, Clase, Usuario } from '../entities';
 import { EstadoResClase } from '../entities/enums';
+import { assertOwnerOrStaff } from 'src/auth/helpers/ownership.helper';
 
 const HORAS_LIMITE_RESERVA = 48; // RF07: reserva hasta 48h antes
 const HORAS_LIMITE_CANCELACION = 2; // RF07: cancelación libre hasta 2h antes
@@ -58,13 +59,18 @@ export class ReservasClaseService {
     return this.reservasRepo.save(reserva);
   }
 
-  async cancelar(reservaId: string): Promise<ReservaClase> {
+  async cancelar(
+    reservaId: string,
+    currentUser: { id: string; tipoActor: string },
+  ): Promise<ReservaClase> {
     const reserva = await this.reservasRepo.findOne({
       where: { id: reservaId },
-      relations: { clase: true },
+      relations: { clase: true, usuario: true },
     });
     if (!reserva)
       throw new NotFoundException(`Reserva ${reservaId} no encontrada`);
+
+    assertOwnerOrStaff(currentUser, reserva.usuario.id);
 
     // Solo se valida el límite de 2hs si tenía un cupo real tomado.
     // Cancelar desde lista de espera es libre, no le saca el lugar a nadie.

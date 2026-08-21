@@ -12,28 +12,29 @@ import { TipoActor } from '../../entities/enums';
 
 export class CreateUsuarioDto {
   @IsEnum(TipoActor)
-  tipoActor: TipoActor;
+  tipoActor!: TipoActor;
 
-  //Si es socio o externo, el dni es obligatorio
+  // DNI sigue condicional: obligatorio solo para SOCIO/EXTERNO
   @ValidateIf(
     (dto) =>
       dto.tipoActor === TipoActor.SOCIO || dto.tipoActor === TipoActor.EXTERNO,
   )
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   dni?: string;
 
   @IsString()
   @IsNotEmpty()
-  nombre?: string;
+  nombre!: string;
 
   @IsString()
   @IsNotEmpty()
-  apellido?: string;
+  apellido!: string;
 
+  // Obligatorio para TODOS: es el usuario de login.
   @IsEmail()
-  @IsOptional()
-  email?: string;
+  email!: string;
+
   @IsString()
   @IsOptional()
   telefono?: string;
@@ -42,18 +43,11 @@ export class CreateUsuarioDto {
   @IsOptional()
   fotoUrl?: string;
 
-  // Obligatorio solo si es RECEPCIONISTA o GERENTE .
-  // el hasheo lo hace el service ANTES de guardar. Nunca llega hasheada desde acá.
-  @ValidateIf(
-    (dto) =>
-      dto.tipoActor === TipoActor.RECEPCIONISTA ||
-      dto.tipoActor === TipoActor.GERENTE,
-  )
+  // Obligatorio para TODOS: es la contraseña de login.
   @IsString()
   @MinLength(8)
-  password?: string;
+  password!: string;
 
-  // Sede de trabajo (recepcionista) o de alta (externo). No aplica a socio/gerente.
   @IsUUID()
   @IsOptional()
   sedeId?: string;

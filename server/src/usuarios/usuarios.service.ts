@@ -21,11 +21,7 @@ export class UsuariosService {
     const usuario = this.usuariosRepo.create({
       ...resto,
       sede: sedeId ? { id: sedeId } : undefined,
-      // Nunca se guarda "password" tal cual: se hashea acá, en el borde
-      // más cercano posible a la base de datos.
-      passwordHash: password
-        ? await bcrypt.hash(password, SALT_ROUNDS)
-        : undefined,
+      passwordHash: await bcrypt.hash(password, SALT_ROUNDS),
     });
 
     return this.usuariosRepo.save(usuario);
@@ -58,6 +54,7 @@ export class UsuariosService {
         tipoActor: true,
         nombre: true,
         apellido: true,
+        activo: true,
       },
     });
   }

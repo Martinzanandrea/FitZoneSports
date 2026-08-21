@@ -14,6 +14,7 @@ import { ControlAcceso } from './control-acceso.entity';
 import { ReservaClase } from './reserva-clase.entity';
 import { ReservaCancha } from './reserva-cancha.entity';
 import { Pago } from './pago.entity';
+import { Exclude } from 'class-transformer';
 import { TipoActor } from './enums';
 
 @Entity('usuarios')
@@ -62,6 +63,7 @@ export class Usuario {
   // Nunca devolver este campo en una respuesta HTTP.
   // Excluirlo con class-transformer (@Exclude()) en el DTO de salida,
   // o directamente con .select(false) / QueryBuilder que no lo traiga.
+  @Exclude()
   @Column({
     name: 'password_hash',
     type: 'text',

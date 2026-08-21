@@ -29,6 +29,7 @@ export class BookingCanchaRepository {
   constructor(private readonly dataSource: DataSource) {}
 
   async crearReservaSegura(datos: DatosNuevaReserva): Promise<ReservaCancha> {
+    //transacction abre un bloque de código que se ejecuta de manera atómica, si algo falla se hace rollback
     return this.dataSource.transaction(async (manager) => {
       // 1) Lock pesimista sobre la FILA DE LA CANCHA (no del horario puntual).
       // Esto serializa cualquier otra transacción que intente reservar
@@ -36,7 +37,7 @@ export class BookingCanchaRepository {
       // abierta. Es lo que cierra la carrera "leer disponibilidad -> insertar":
       // sin este lock, dos requests simultáneas podrían leer "libre" ambas
       // y las dos intentarían insertar.
-      const cancha = await manager
+      const cancha = await manager //manager sirve para hacer queries dentro de la transacción,todo sucede dentro de la transacción, si algo falla se hace rollback
         .createQueryBuilder(Cancha, 'cancha')
         .setLock('pessimistic_write') // esto es el "FOR UPDATE"
         .where('cancha.id = :id', { id: datos.canchaId })

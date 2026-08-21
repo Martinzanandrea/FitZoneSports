@@ -18,6 +18,7 @@ import { ALL_ENTITIES } from '../entities';
         entities: ALL_ENTITIES,
         synchronize: false, // nunca poner en true,la db ya la creamos.
         logging: false,
+        ssl: { rejectUnauthorized: false },
       }),
     }),
   ],

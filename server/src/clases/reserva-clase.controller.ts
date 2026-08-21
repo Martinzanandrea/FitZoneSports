@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { ReservasClaseService } from './reserva-clase.service';
 import { CreateReservaClaseDto } from './dto/create-reserva-clase.dto';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import type { UsuarioAutenticado } from 'src/auth/types/usuario-autenticado.type';
 
 @Controller('clases')
 export class ReservasClaseController {
@@ -27,7 +29,10 @@ export class ReservasClaseController {
   }
 
   @Post('reservas/:reservaId/cancelar')
-  cancelar(@Param('reservaId', ParseUUIDPipe) reservaId: string) {
-    return this.reservasService.cancelar(reservaId);
+  cancelar(
+    @Param('reservaId', ParseUUIDPipe) reservaId: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.reservasService.cancelar(reservaId, user);
   }
 }
