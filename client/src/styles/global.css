@@ -1,0 +1,185 @@
+@import './variables.css';
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* --- Header --- */
+.app-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  padding: 0 16px;
+  background: #0a0a0a;
+  color: white;
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.app-header__toggle {
+  display: block;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.app-header__nav {
+  display: none;
+  position: absolute;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  flex-direction: column;
+  gap: 4px;
+  background: #0a0a0a;
+  padding: 12px 16px 20px;
+}
+
+.app-header__nav.is-open {
+  display: flex;
+}
+
+.app-header__nav a {
+  color: #d1d5db;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.app-header__nav a.active {
+  color: var(--color-violet);
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  font-size: 13px;
+}
+
+.app-header__user button {
+  background: transparent;
+  border: 1px solid #374151;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .app-header__toggle {
+    display: none;
+  }
+
+  .app-header__nav {
+    display: flex;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    background: transparent;
+    padding: 0;
+    gap: 24px;
+  }
+
+  .app-header__nav a {
+    border-bottom: none;
+    padding: 0;
+  }
+
+  .app-header__user {
+    padding-top: 0;
+    margin-left: 24px;
+  }
+}
+
+/* --- Contenido --- */
+.app-content {
+  padding: 20px 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .app-content {
+    padding: 32px 24px;
+  }
+}
+
+/* --- Login --- */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0a;
+  padding: 16px;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 340px;
+  padding: 28px 24px;
+  background: white;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.login-card h1 { font-size: 20px; margin: 0 0 8px; }
+
+.login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-gray);
+}
+
+.login-card input {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.login-card button {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--color-violet);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-card button:disabled { opacity: 0.6; cursor: not-allowed; }
+.login-card__error { color: #dc2626; font-size: 13px; margin: 0; }
+
+.page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--color-gray);
+}
