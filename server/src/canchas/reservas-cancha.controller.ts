@@ -27,7 +27,7 @@ export class ReservasCanchaController {
     @CurrentUser() user: UsuarioAutenticado,
   ) {
     assertOwnerOrStaff(user, dto.usuarioId);
-    return this.reservasService.reservar(dto);
+    return this.reservasService.reservar(dto, user);
   }
 
   @Get('cancha/:canchaId')

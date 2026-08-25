@@ -8,6 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ControlAcceso, Usuario, Sede } from '../entities';
+import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
+import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 
 interface QrPayload {
   usuarioId: string;
@@ -26,8 +28,7 @@ export class AccesoService {
     private readonly jwtService: JwtService,
   ) {}
 
-  // RF04: QR dinámico que rota cada minuto. Se firma con el mismo secret
-  // de JWT_SECRET, pero con expiración corta e independiente del login.
+  // RF04: QR dinámico que rota cada minuto.
   async generarQr(
     usuarioId: string,
   ): Promise<{ qrToken: string; expiraEn: number }> {
@@ -57,10 +58,15 @@ export class AccesoService {
     return { actual, maximo: sede.aforoMaximo };
   }
 
+  // RN01 + RF04/RF05: valida el QR, chequea aforo, y ahora también
+  // que el recepcionista que valida pertenezca a ESA sede (o sea Gerente).
   async validarIngreso(
     qrToken: string,
     sedeId: string,
+    currentUser: UsuarioAutenticado,
   ): Promise<ControlAcceso> {
+    assertSedeScope(currentUser, sedeId);
+
     let payload: QrPayload;
     try {
       payload = this.jwtService.verify<QrPayload>(qrToken);
@@ -80,15 +86,11 @@ export class AccesoService {
     const sede = await this.sedesRepo.findOne({ where: { id: sedeId } });
     if (!sede) throw new NotFoundException(`Sede ${sedeId} no encontrada`);
 
-    // Chequeo de aforo (RF05): no dejar entrar si ya está al máximo.
     const { actual, maximo } = await this.obtenerAforo(sedeId);
     if (actual >= maximo) {
       throw new ConflictException('La sede alcanzó su aforo máximo');
     }
 
-    // RN01: el índice único parcial de la base es la garantía real; acá
-    // hacemos además un chequeo explícito para devolver un error claro
-    // (en vez de que el usuario reciba un 500 crudo de Postgres).
     const sesionAbierta = await this.accesoRepo
       .createQueryBuilder('a')
       .where('a.usuario_id = :usuarioId', { usuarioId: usuario.id })
@@ -105,9 +107,16 @@ export class AccesoService {
     return this.accesoRepo.save(registro);
   }
 
-  async registrarEgreso(usuarioId: string): Promise<ControlAcceso> {
+  // Ahora recibe currentUser para validar que el recepcionista que cierra
+  // la sesión pertenezca a la sede donde el usuario está registrado como
+  // "dentro". Un Gerente puede hacerlo desde cualquier sede.
+  async registrarEgreso(
+    usuarioId: string,
+    currentUser: UsuarioAutenticado,
+  ): Promise<ControlAcceso> {
     const sesionAbierta = await this.accesoRepo
       .createQueryBuilder('a')
+      .leftJoinAndSelect('a.sede', 'sede')
       .where('a.usuario_id = :usuarioId', { usuarioId })
       .andWhere('a.hora_egreso IS NULL')
       .getOne();
@@ -115,6 +124,8 @@ export class AccesoService {
     if (!sesionAbierta) {
       throw new NotFoundException('El usuario no tiene ningún ingreso abierto');
     }
+
+    assertSedeScope(currentUser, sesionAbierta.sede.id);
 
     sesionAbierta.horaEgreso = new Date();
     return this.accesoRepo.save(sesionAbierta);

@@ -8,6 +8,7 @@ export interface JwtPayload {
   sub: string;
   tipoActor: string;
   email: string;
+  sedeId: string | null;
 }
 
 @Injectable()
@@ -41,6 +42,7 @@ export class AuthService {
       sub: usuario.id,
       tipoActor: usuario.tipoActor,
       email: usuario.email ?? '',
+      sedeId: usuario.sede?.id ?? null,
     };
     return this.jwtService.sign(payload);
   }

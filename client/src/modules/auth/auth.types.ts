@@ -5,6 +5,7 @@ export interface UsuarioAutenticado {
   nombre: string;
   apellido: string;
   tipoActor: TipoActor;
+  sedeId: string | null;
 }
 
 export interface LoginPayload {

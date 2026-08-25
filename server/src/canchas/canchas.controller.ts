@@ -22,7 +22,7 @@ import { CreateBloqueoDto } from './dto/create-bloqueo.dto';
 export class CanchasController {
   constructor(private readonly canchasService: CanchasService) {}
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE)
   @Post()
   create(@Body() dto: CreateCanchaDto) {
     return this.canchasService.create(dto);
@@ -38,13 +38,13 @@ export class CanchasController {
     return this.canchasService.findOne(id);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE)
   @Patch(':id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCanchaDto) {
     return this.canchasService.update(id, dto);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE)
   @Post(':id/bloqueos')
   crearBloqueo(
     @Param('id', ParseUUIDPipe) id: string,

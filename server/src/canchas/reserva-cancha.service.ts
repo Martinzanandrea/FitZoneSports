@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cancha, Usuario, ReservaCancha } from '../entities';
@@ -11,8 +7,9 @@ import { MembresiasService } from '../membresias/membresias.service';
 import { BookingCanchaRepository } from './booking-cancha.repository';
 import { PricingCalculatorService } from './pricing/pricing-calculator.service';
 import { CreateReservaCanchaDto } from './dto/create-reserva-cancha.dto';
-import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
+import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
+import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 
 @Injectable()
 export class ReservasCanchaService {
@@ -28,12 +25,24 @@ export class ReservasCanchaService {
     private readonly membresiasService: MembresiasService,
   ) {}
 
-  async reservar(dto: CreateReservaCanchaDto): Promise<ReservaCancha> {
+  async reservar(
+    dto: CreateReservaCanchaDto,
+    currentUser: UsuarioAutenticado,
+  ): Promise<ReservaCancha> {
     const cancha = await this.canchasRepo.findOne({
       where: { id: dto.canchaId },
+      relations: { sede: true },
     });
     if (!cancha)
       throw new NotFoundException(`Cancha ${dto.canchaId} no encontrada`);
+
+    // Un Recepcionista solo puede operar reservas de SU sede.
+    // Un Gerente no tiene restricción. Un Socio/Externo reservando para
+    // sí mismo tampoco (puede reservar en cualquier sede, RF03).
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser.tipoActor === TipoActor.RECEPCIONISTA) {
+      assertSedeScope(currentUser, cancha.sede.id);
+    }
 
     const usuario = await this.usuariosRepo.findOne({
       where: { id: dto.usuarioId },
@@ -42,8 +51,7 @@ export class ReservasCanchaService {
       throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
 
     // RN03: el descuento de socio solo aplica si es SOCIO y su membresía
-    // vigente está ACTIVA (no vencida). Un externo, o un socio vencido,
-    // paga el precio "estándar" (con recargo pico si corresponde).
+    // vigente está ACTIVA (no vencida).
     let esSocioActivo = false;
     if (usuario.tipoActor === TipoActor.SOCIO) {
       const membresia = await this.membresiasService.obtenerMembresiaVigente(
@@ -59,8 +67,6 @@ export class ReservasCanchaService {
       { esSocioActivo, esHoraPico },
     );
 
-    // A partir de acá, el BookingCanchaRepository maneja la transacción
-    // y el lock — este service no sabe nada de eso, solo le pide el resultado.
     return this.bookingRepo.crearReservaSegura({
       canchaId: dto.canchaId,
       usuario,

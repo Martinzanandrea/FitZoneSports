@@ -16,6 +16,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { TipoActor } from 'src/entities';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import type { UsuarioAutenticado } from 'src/auth/types/usuario-autenticado.type';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('acceso')
@@ -33,14 +34,20 @@ export class AccesoController {
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Post('validar')
-  validarIngreso(@Body() dto: ValidarQrDto) {
-    return this.accesoService.validarIngreso(dto.qrToken, dto.sedeId);
+  validarIngreso(
+    @Body() dto: ValidarQrDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.accesoService.validarIngreso(dto.qrToken, dto.sedeId, user);
   }
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Post('egreso')
-  registrarEgreso(@Body() dto: RegistrarEgresoDto) {
-    return this.accesoService.registrarEgreso(dto.usuarioId);
+  registrarEgreso(
+    @Body() dto: RegistrarEgresoDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.accesoService.registrarEgreso(dto.usuarioId, user);
   }
 
   @Get('aforo/:sedeId') // sin ownership: es info de la sede, no de un usuario

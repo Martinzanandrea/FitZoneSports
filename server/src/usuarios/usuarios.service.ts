@@ -74,6 +74,7 @@ export class UsuariosService {
         apellido: true,
         activo: true,
       },
+      relations: { sede: true },
     });
   }
 

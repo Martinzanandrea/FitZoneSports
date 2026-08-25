@@ -21,7 +21,7 @@ import { UpdateClaseDto } from './dto/update-clase.dto';
 export class ClasesController {
   constructor(private readonly clasesService: ClasesService) {}
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE)
   @Post()
   create(@Body() dto: CreateClaseDto) {
     return this.clasesService.create(dto);
@@ -37,7 +37,7 @@ export class ClasesController {
     return this.clasesService.findOne(id);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE)
   @Patch(':id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateClaseDto) {
     return this.clasesService.update(id, dto);

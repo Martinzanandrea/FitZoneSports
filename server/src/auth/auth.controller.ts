@@ -13,7 +13,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly config: ConfigService,
   ) {}
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 intentos por minuto por IP
   @Post('login')
   async login(
@@ -38,6 +38,7 @@ export class AuthController {
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       tipoActor: usuario.tipoActor,
+      sedeId: usuario.sede?.id ?? null,
     };
   }
 

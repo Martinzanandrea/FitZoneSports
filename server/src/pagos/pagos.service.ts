@@ -17,7 +17,8 @@ import { PasarelaMockService } from './gateway/pasarela-mock.service';
 import { ComprobantesService } from './comprobantes.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { RegistrarPagoEfectivoDto } from './dto/registrar-pago-efectivo.dto';
-import { assertOwnerOrStaff } from 'src/auth/helpers/ownership.helper';
+import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
+import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 
 @Injectable()
@@ -87,6 +88,37 @@ export class PagosService {
     return { reservaCancha };
   }
 
+  // Determina a qué sede pertenece la operación que se está pagando,
+  // para poder validar el sede-scope de un Recepcionista.
+  private async obtenerSedeDeReferencia(referencia: {
+    membresia?: Membresia;
+    reservaClase?: ReservaClase;
+    reservaCancha?: ReservaCancha;
+  }): Promise<string | null> {
+    if (referencia.membresia) {
+      const m = await this.membresiasRepo.findOne({
+        where: { id: referencia.membresia.id },
+        relations: { sedeAlta: true },
+      });
+      return m?.sedeAlta.id ?? null;
+    }
+    if (referencia.reservaClase) {
+      const r = await this.reservasClaseRepo.findOne({
+        where: { id: referencia.reservaClase.id },
+        relations: { clase: { sede: true } },
+      });
+      return r?.clase.sede.id ?? null;
+    }
+    if (referencia.reservaCancha) {
+      const r = await this.reservasCanchaRepo.findOne({
+        where: { id: referencia.reservaCancha.id },
+        relations: { cancha: { sede: true } },
+      });
+      return r?.cancha.sede.id ?? null;
+    }
+    return null;
+  }
+
   async pagarConPasarela(dto: CreatePagoDto): Promise<Pago> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id: dto.usuarioId },
@@ -131,6 +163,7 @@ export class PagosService {
 
     const registradoPor = await this.usuariosRepo.findOne({
       where: { id: registradoPorId },
+      relations: { sede: true },
     });
     if (!registradoPor)
       throw new NotFoundException(`Usuario ${registradoPorId} no encontrado`);
@@ -145,6 +178,19 @@ export class PagosService {
     }
 
     const referencia = await this.resolverReferencia(dto);
+
+    if (registradoPor.tipoActor === TipoActor.RECEPCIONISTA) {
+      const sedeDeLaOperacion = await this.obtenerSedeDeReferencia(referencia);
+      if (sedeDeLaOperacion) {
+        const currentUser: UsuarioAutenticado = {
+          id: registradoPor.id,
+          tipoActor: registradoPor.tipoActor,
+          email: registradoPor.email ?? '',
+          sedeId: registradoPor.sede?.id ?? null,
+        };
+        assertSedeScope(currentUser, sedeDeLaOperacion);
+      }
+    }
 
     const pago = this.pagosRepo.create({
       usuario,
@@ -176,7 +222,8 @@ export class PagosService {
     });
     if (!pago) throw new NotFoundException(`Pago ${id} no encontrado`);
 
-    assertOwnerOrStaff(currentUser, pago.usuario.id); // solo el socio dueño del pago o staff puede ver el detalle
+    assertOwnerOrStaff(currentUser, pago.usuario.id);
+
     return pago;
   }
 }

@@ -5,7 +5,7 @@ import type { UsuarioAutenticado } from './auth.types';
 interface AuthContextValue {
   user: UsuarioAutenticado | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UsuarioAutenticado>; // 👈 ahora devuelve el usuario
   logout: () => Promise<void>;
 }
 
@@ -23,9 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string): Promise<UsuarioAutenticado> {
     const usuario = await authApi.login({ email, password });
     setUser(usuario);
+    return usuario;
   }
 
   async function logout() {
@@ -40,7 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth debe usarse dentro de AuthProvider');
