@@ -7,6 +7,7 @@ import { AdminIndex } from '../modules/admin/AdminIndex';
 import { GerenteDashboard } from '../modules/admin/pages/GerenteDashboard';
 import { RecepcionistaDashboard } from '../modules/admin/pages/RecepcionistaDashboard';
 import { CrearStaff } from '../modules/usuarios/pages/CrearStaff';
+import { SedesPage } from '../modules/sedes/pages/SedesPage';
 import { TipoActor } from '../shared/types/enums';
 
 function Home() {
@@ -66,6 +67,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login">
               <CrearStaff />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="sedes"
+          element={
+            <ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login">
+              <SedesPage />
             </ProtectedRoute>
           }
         />

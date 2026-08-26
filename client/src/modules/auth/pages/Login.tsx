@@ -10,8 +10,8 @@ interface LoginProps {
   redirectTo: string;
 }
 
-const ROLES_STAFF = [TipoActor.RECEPCIONISTA, TipoActor.GERENTE];
-const ROLES_CLIENTE = [TipoActor.SOCIO, TipoActor.EXTERNO];
+const ROLES_STAFF: TipoActor[] = [TipoActor.RECEPCIONISTA, TipoActor.GERENTE];
+const ROLES_CLIENTE: TipoActor[] = [TipoActor.SOCIO, TipoActor.EXTERNO];
 
 export function Login({ audience, redirectTo }: LoginProps) {
   const { login, logout } = useAuth();

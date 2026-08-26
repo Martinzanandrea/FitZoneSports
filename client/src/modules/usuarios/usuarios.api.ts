@@ -5,4 +5,6 @@ export const usuariosApi = {
   getAll: () => api.get<Usuario[]>('/usuarios').then((res) => res.data),
   crearStaff: (payload: CrearStaffPayload) =>
     api.post<Usuario>('/usuarios/staff', payload).then((res) => res.data),
+  asignarRol: (id: string, tipoActor: CrearStaffPayload['tipoActor'], password: string) =>
+    api.patch<Usuario>(`/usuarios/${id}/rol`, { tipoActor, password }).then((res) => res.data),
 };

@@ -12,6 +12,7 @@ import {
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -24,6 +25,13 @@ import { UploadedFile, UseInterceptors } from '@nestjs/common';
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoActor.GERENTE)
+  @Post('staff')
+  createStaff(@Body() dto: CreateUsuarioDto) {
+    return this.usuariosService.create(dto);
+  }
 
   @Post()
   @UseInterceptors(FileInterceptor('foto'))
@@ -57,6 +65,16 @@ export class UsuariosController {
   ) {
     assertOwnerOrStaff(user, id);
     return this.usuariosService.update(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoActor.GERENTE)
+  @Patch(':id/rol')
+  assignRole(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AssignRoleDto,
+  ) {
+    return this.usuariosService.assignRole(id, dto);
   }
 
   @UseGuards(JwtAuthGuard)

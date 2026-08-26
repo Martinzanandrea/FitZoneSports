@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { Usuario } from '../entities';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -85,6 +86,13 @@ export class UsuariosService {
     if (sedeId !== undefined) {
       usuario.sede = sedeId ? ({ id: sedeId } as any) : undefined;
     }
+    return this.usuariosRepo.save(usuario);
+  }
+
+  async assignRole(id: string, dto: AssignRoleDto): Promise<Usuario> {
+    const usuario = await this.findOne(id);
+    usuario.tipoActor = dto.tipoActor;
+    usuario.passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
     return this.usuariosRepo.save(usuario);
   }
 
