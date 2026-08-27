@@ -8,8 +8,6 @@ import { UpdateMembresiaDto } from './dto/update-membresia.dto';
 import { Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-// Duración de cada plan en meses. Vive acá porque es lógica de negocio
-// de este módulo, no una regla de la base de datos.
 const DURACION_MESES: Record<TipoPlan, number> = {
   [TipoPlan.MENSUAL]: 1,
   [TipoPlan.TRIMESTRAL]: 3,
@@ -27,6 +25,7 @@ export class MembresiasService {
     @InjectRepository(Sede)
     private readonly sedesRepo: Repository<Sede>,
   ) {}
+
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async marcarVencidasSiCorresponde(): Promise<number> {
     const hoy = new Date().toISOString().split('T')[0];
@@ -46,6 +45,7 @@ export class MembresiasService {
     }
     return cantidad;
   }
+
   async create(dto: CreateMembresiaDto): Promise<Membresia> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id: dto.usuarioId },
@@ -71,7 +71,7 @@ export class MembresiasService {
       plan: dto.plan,
       renovacionAuto: dto.renovacionAuto ?? false,
       estado: EstadoMembresia.ACTIVO,
-      fechaInicio: fechaInicio.toISOString().split('T')[0], // formato DATE (YYYY-MM-DD)
+      fechaInicio: fechaInicio.toISOString().split('T')[0],
       fechaFin: fechaFin.toISOString().split('T')[0],
     });
 
@@ -95,12 +95,14 @@ export class MembresiasService {
     return membresia;
   }
 
-  // Usado por otros módulos (canchas, clases) para aplicar RN03:
-  // "cuota vencida => sin descuento, pero puede pagar tarifa externo".
+  // Usado por otros módulos (canchas, clases) para RN03, y por el
+  // endpoint GET /membresias/vigente/:usuarioId. Incluye sedeAlta para
+  // que el frontend pueda mostrar dónde se dio de alta sin otra llamada.
   async obtenerMembresiaVigente(usuarioId: string): Promise<Membresia | null> {
     return this.membresiasRepo.findOne({
       where: { usuario: { id: usuarioId } },
-      order: { fechaFin: 'DESC' }, // la más reciente
+      relations: { sedeAlta: true },
+      order: { fechaFin: 'DESC' },
     });
   }
 

@@ -33,14 +33,30 @@ export class MembresiasController {
     return this.membresiasService.create(dto);
   }
 
+  // Debe ir ANTES que ':id' para que Nest no lo confunda con un parámetro.
+  @Get('vigente/:usuarioId')
+  vigente(
+    @Param('usuarioId', ParseUUIDPipe) usuarioId: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    assertOwnerOrStaff(user, usuarioId);
+    return this.membresiasService.obtenerMembresiaVigente(usuarioId);
+  }
+
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Get()
   findAll() {
     return this.membresiasService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.membresiasService.findOne(id);
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    const membresia = await this.membresiasService.findOne(id);
+    assertOwnerOrStaff(user, membresia.usuario.id);
+    return membresia;
   }
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)

@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
-import { Layout } from '../shared/components/Layout';
 import { AdminLayout } from '../shared/components/AdminLayout';
 import { Login } from '../modules/auth/pages/Login';
 import { Inicio } from '../modules/inicio/pages/Inicio';
@@ -16,6 +15,10 @@ import { ClienteLayout } from '../shared/components/ClienteLayout';
 import { Dashboard } from '../modules/inicio/pages/Dashboard';
 import { MiQr } from '../modules/acceso/pages/MiQr';
 import { CompletarMembresia } from '../modules/membresias/pages/CompletarMembresia';
+import { ReservarClases } from '../modules/clases/pages/ReservarClases';
+import { ReservarCanchas } from '../modules/canchas/pages/ReservarCanchas';
+import { MisPagos } from '../modules/pagos/pages/MisPagos';
+import { MiMembresia } from '../modules/membresias/pages/MiMembresia';
 
 
 export function AppRoutes() {
@@ -43,6 +46,11 @@ export function AppRoutes() {
       >
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/mi-qr" element={<MiQr />} />
+        <Route path="/qr" element={<MiQr />} />
+        <Route path="/clases" element={<ReservarClases />} />
+        <Route path="/canchas" element={<ReservarCanchas />} />
+        <Route path="/pagos" element={<MisPagos />} />
+        <Route path="/membresia" element={<MiMembresia />} />
       </Route>
 
       <Route

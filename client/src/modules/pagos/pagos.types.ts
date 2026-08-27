@@ -12,4 +12,9 @@ export interface Pago {
   metodo: string;
   monto: string;
   estado: "PENDIENTE" | "APROBADO" | "RECHAZADO";
+  creadoEn: string;
+  comprobante?: { id: string; pdfPath: string; generadoEn: string } | null;
+  membresia?: { id: string } | null;
+  reservaClase?: { id: string } | null;
+  reservaCancha?: { id: string } | null;
 }
