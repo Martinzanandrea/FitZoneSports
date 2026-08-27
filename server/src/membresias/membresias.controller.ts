@@ -15,15 +15,21 @@ import { TipoActor } from '../entities/enums';
 import { MembresiasService } from './membresias.service';
 import { CreateMembresiaDto } from './dto/create-membresia.dto';
 import { UpdateMembresiaDto } from './dto/update-membresia.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('membresias')
 export class MembresiasController {
   constructor(private readonly membresiasService: MembresiasService) {}
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Post()
-  create(@Body() dto: CreateMembresiaDto) {
+  create(
+    @Body() dto: CreateMembresiaDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    assertOwnerOrStaff(user, dto.usuarioId);
     return this.membresiasService.create(dto);
   }
 

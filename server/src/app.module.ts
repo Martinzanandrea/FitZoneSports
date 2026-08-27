@@ -29,12 +29,12 @@ import { ScheduleModule } from '@nestjs/schedule';
     PagosModule,
     AuthModule,
     AccesoModule,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     ThrottlerModule.forRoot({
       throttlers: [
         {
           ttl: 60000, // tiempo en segundos para el límite de solicitudes
-          limit: 10, // número máximo de solicitudes permitidas en el período de tiempo
+          limit: 200, // número máximo de solicitudes permitidas en el período de tiempo
         },
       ],
     }),
@@ -42,7 +42,7 @@ import { ScheduleModule } from '@nestjs/schedule';
   providers: [
     {
       provide: APP_GUARD,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       useClass: ThrottlerGuard,
     },
   ],

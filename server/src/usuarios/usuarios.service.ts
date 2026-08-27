@@ -1,8 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { Usuario } from '../entities';
+import { TipoActor, Usuario } from '../entities';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
@@ -50,7 +54,39 @@ export class UsuariosService {
     // passwordHash no viene igual, porque en la entidad tiene select:false.
     return this.usuariosRepo.find({ relations: { sede: true } });
   }
+  // Lista solo el personal interno (RECEPCIONISTA/GERENTE), con su sede
+  // cargada, para el panel de "Personal" del Gerente.
+  findStaff(): Promise<Usuario[]> {
+    return this.usuariosRepo.find({
+      where: [
+        { tipoActor: TipoActor.RECEPCIONISTA },
+        { tipoActor: TipoActor.GERENTE },
+      ],
+      relations: { sede: true },
+      order: { creadoEn: 'DESC' },
+    });
+  }
 
+  // Reasigna la sede de un Recepcionista. No aplica a Gerente (no tiene
+  // sede fija) ni a Socio/Externo (no corresponde).
+  async asignarSede(usuarioId: string, sedeId: string): Promise<Usuario> {
+    const usuario = await this.usuariosRepo.findOne({
+      where: { id: usuarioId },
+    });
+    if (!usuario)
+      throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
+
+    if (usuario.tipoActor !== TipoActor.RECEPCIONISTA) {
+      throw new BadRequestException(
+        'Solo se puede asignar sede a un Recepcionista',
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    usuario.sede = { id: sedeId } as any;
+    await this.usuariosRepo.save(usuario);
+    return this.findOne(usuarioId); // recarga con la relación sede ya poblada
+  }
   async findOne(id: string): Promise<Usuario> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id },

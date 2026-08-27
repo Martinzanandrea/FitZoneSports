@@ -22,6 +22,7 @@ import { TipoActor } from 'src/entities';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadedFile, UseInterceptors } from '@nestjs/common';
+import { AsignarSedeDto } from './dto/asignar-sede.dto';
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
@@ -31,6 +32,24 @@ export class UsuariosController {
   @Post('staff')
   createStaff(@Body() dto: CreateUsuarioDto) {
     return this.usuariosService.create(dto);
+  }
+  // IMPORTANTE: 'staff' tiene que ir ANTES de ':id' en el archivo,
+  // para que Nest no lo interprete como un parámetro.
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoActor.GERENTE)
+  @Get('staff')
+  findStaff() {
+    return this.usuariosService.findStaff();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoActor.GERENTE)
+  @Patch(':id/sede')
+  asignarSede(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AsignarSedeDto,
+  ) {
+    return this.usuariosService.asignarSede(id, dto.sedeId);
   }
 
   @Post()

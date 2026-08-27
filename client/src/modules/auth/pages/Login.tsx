@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react';
-import { Eye, EyeOff, AlertCircle, Zap } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Zap,ArrowLeft } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { TipoActor } from '../../../shared/types/enums';
 import { useNavigate, Link } from 'react-router-dom';
@@ -62,7 +62,13 @@ export function Login({ audience, redirectTo }: LoginProps) {
           backgroundSize: '40px 40px',
         }}
       />
-
+       <Link
+        to="/"
+        className="relative mb-6 flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
+      >
+        <ArrowLeft size={15} />
+        Volver al inicio
+      </Link>
       <div className="relative w-full max-w-[340px] bg-white rounded-2xl p-8 shadow-2xl shadow-black/40">
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center justify-center rounded-xl bg-[#8B2EFF] shrink-0 w-12 h-12">

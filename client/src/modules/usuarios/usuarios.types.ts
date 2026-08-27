@@ -1,4 +1,4 @@
-import { TipoActor } from '../../shared/types/enums';
+import { TipoActor } from "../../shared/types/enums";
 
 export interface Usuario {
   id: string;
@@ -11,6 +11,7 @@ export interface Usuario {
   fotoUrl: string | null;
   activo: boolean;
   creadoEn: string;
+  sede?: { id: string; nombre: string } | null;
 }
 
 export interface CrearStaffPayload {

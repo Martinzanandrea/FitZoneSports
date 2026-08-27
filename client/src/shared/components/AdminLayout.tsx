@@ -89,7 +89,6 @@ export function AdminLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#FAFAFA]">
       <aside className="hidden md:flex flex-col w-60 bg-[#0A0A0A] shrink-0 overflow-hidden">
-        // eslint-disable-next-line react-hooks/static-components
         <SidebarContent />
       </aside>
 

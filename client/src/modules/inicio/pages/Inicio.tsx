@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Zap,
-  Dumbbell,
   Users,
   MapPin,
   QrCode,

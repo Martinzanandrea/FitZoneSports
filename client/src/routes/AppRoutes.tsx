@@ -9,32 +9,40 @@ import { GerenteDashboard } from '../modules/admin/pages/GerenteDashboard';
 import { RecepcionistaDashboard } from '../modules/admin/pages/RecepcionistaDashboard';
 import { CrearStaff } from '../modules/usuarios/pages/CrearStaff';
 import { TipoActor } from '../shared/types/enums';
+import { SedesPage } from '../modules/sedes/pages/SedesPage';
+import { PersonalPage } from '../modules/usuarios/pages/PersonalPage';
+import { RegistroPage } from '../modules/usuarios/pages/RegistroPage';
+import { ClienteLayout } from '../shared/components/ClienteLayout';
+import { Dashboard } from '../modules/inicio/pages/Dashboard';
+import { MiQr } from '../modules/acceso/pages/MiQr';
+import { CompletarMembresia } from '../modules/membresias/pages/CompletarMembresia';
 
-function Dashboard() {
-  return <h1>Bienvenido a FitZone Sports</h1>;
-}
-
-function RegistroPlaceholder() {
-  return <h1>Registro (próximamente)</h1>;
-}
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Inicio />} />
-      <Route path="/registro" element={<RegistroPlaceholder />} />
+      <Route path="/registro" element={<RegistroPage />} />
 
       <Route path="/login" element={<Login audience="cliente" redirectTo="/dashboard" />} />
       <Route path="/admin/login" element={<Login audience="staff" redirectTo="/admin" />} />
-
+      <Route
+        path="/completar-membresia"
+        element={
+          <ProtectedRoute loginPath="/login">
+            <CompletarMembresia />
+          </ProtectedRoute>
+        }
+      />
       <Route
         element={
           <ProtectedRoute loginPath="/login">
-            <Layout />
+            <ClienteLayout />
           </ProtectedRoute>
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/mi-qr" element={<MiQr />} />
       </Route>
 
       <Route
@@ -67,13 +75,29 @@ export function AppRoutes() {
           }
         />
         <Route
-          path="personal"
+          path="sedes"
           element={
-            <ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login">
-              <CrearStaff />
-            </ProtectedRoute>
+          <ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login">
+            <SedesPage />
+          </ProtectedRoute>
           }
         />
+       <Route
+  path="personal"
+  element={
+    <ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login">
+      <PersonalPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="personal/nuevo"
+  element={
+    <ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login">
+      <CrearStaff />
+    </ProtectedRoute>
+  }
+/>
       </Route>
     </Routes>
   );
