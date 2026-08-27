@@ -17,33 +17,44 @@ import { SedesService } from './sedes.service';
 import { CreateSedeDto } from './dto/create-sede.dto';
 import { UpdateSedeDto } from './dto/update-sede.dto';
 
-@UseGuards(JwtAuthGuard, RolesGuard) // exige login para TODO el controller
 @Controller('sedes')
 export class SedesController {
   constructor(private readonly sedesService: SedesService) {}
 
+  // Público, sin auth — usado por la landing/página de inicio.
+  // Va ANTES que ':id' para que Nest no lo confunda con un parámetro.
+  @Get('publico')
+  findAllPublico() {
+    return this.sedesService.findAll();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Post()
   create(@Body() dto: CreateSedeDto) {
     return this.sedesService.create(dto);
   }
 
-  @Get() // sin @Roles: cualquier usuario logueado (de cualquier rol) puede leer
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get()
   findAll() {
     return this.sedesService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.sedesService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Patch(':id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSedeDto) {
     return this.sedesService.update(id, dto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {

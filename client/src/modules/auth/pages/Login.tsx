@@ -1,8 +1,8 @@
 import { type FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Zap } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { TipoActor } from '../../../shared/types/enums';
+import { useNavigate, Link } from 'react-router-dom';
 
 interface LoginProps {
   // 'cliente' = Socio/Externo, 'staff' = Recepcionista/Gerente
@@ -145,6 +145,16 @@ export function Login({ audience, redirectTo }: LoginProps) {
             )}
           </button>
         </form>
+        {audience === 'cliente' && (
+          <div className="mt-6 pt-5 border-t border-[#E5E7EB] text-center">
+            <Link
+              to="/admin/login"
+              className="text-xs text-[#6B7280] hover:text-[#8B2EFF] transition-colors"
+            >
+              Operarios y administradores →
+            </Link>
+          </div>
+        )}
       </div>
 
       <p className="mt-6 text-xs text-white/20">© 2026 FitZone Sports. Todos los derechos reservados.</p>

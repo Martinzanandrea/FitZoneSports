@@ -2,6 +2,7 @@ import { api } from "../../api/axios";
 import type { Sede, CreateSedePayload } from "./sedes.types";
 
 export const sedesApi = {
+  getAllPublico:()=> api.get<Sede[]>("/sedes/publico").then((res) => res.data),
   getAll: () => api.get<Sede[]>("/sedes").then((res) => res.data),
   getOne: (id: string) => api.get<Sede>(`/sedes/${id}`).then((res) => res.data),
   create: (payload: CreateSedePayload) =>
