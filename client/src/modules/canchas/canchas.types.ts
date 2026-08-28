@@ -34,6 +34,13 @@ export interface Cancha {
   creadaEn?: string;
 }
 
+export interface CanchaPayload {
+  sedeId: string;
+  nombre: string;
+  tipo: TipoCancha;
+  costoHoraBase: number;
+}
+
 export interface ReservaCancha {
   id: string;
   cancha: Cancha;

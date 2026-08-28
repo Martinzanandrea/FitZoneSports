@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
+import { Pencil, UserPlus, X } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Usuario } from '../usuarios.types';
@@ -11,6 +11,10 @@ export function PersonalPage() {
   const [staff, setStaff] = useState<Usuario[]>([]);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [cambiando, setCambiando] = useState<string | null>(null);
+  const [editando, setEditando] = useState<Usuario | null>(null);
+  const [formulario, setFormulario] = useState({ nombre: '', apellido: '', email: '', telefono: '', dni: '' });
+  const [guardando, setGuardando] = useState(false);
+  const [errorEdicion, setErrorEdicion] = useState('');
 
   useEffect(() => {
     cargar();
@@ -31,6 +35,38 @@ export function PersonalPage() {
       alert('No se pudo reasignar la sede.');
     } finally {
       setCambiando(null);
+    }
+  }
+
+  function abrirEdicion(usuario: Usuario) {
+    setEditando(usuario);
+    setErrorEdicion('');
+    setFormulario({
+      nombre: usuario.nombre,
+      apellido: usuario.apellido,
+      email: usuario.email,
+      telefono: usuario.telefono ?? '',
+      dni: usuario.dni ?? '',
+    });
+  }
+
+  async function guardarEdicion(event: React.FormEvent) {
+    event.preventDefault();
+    if (!editando) return;
+    setGuardando(true);
+    setErrorEdicion('');
+    try {
+      await usuariosApi.actualizar(editando.id, {
+        ...formulario,
+        telefono: formulario.telefono || undefined,
+        dni: formulario.dni || undefined,
+      });
+      setEditando(null);
+      cargar();
+    } catch {
+      setErrorEdicion('No se pudieron guardar los cambios. Revisá los datos.');
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -56,6 +92,7 @@ export function PersonalPage() {
               <th className="px-5 py-3 font-medium">Nombre</th>
               <th className="px-5 py-3 font-medium">Rol</th>
               <th className="px-5 py-3 font-medium">Sede</th>
+              <th className="px-5 py-3 font-medium">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -94,6 +131,15 @@ export function PersonalPage() {
                     </select>
                   )}
                 </td>
+                <td className="px-5 py-3.5">
+                  <button
+                    type="button"
+                    onClick={() => abrirEdicion(u)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#E5E7EB] px-2.5 py-1.5 text-xs font-semibold text-[#374151] hover:border-[#8B2EFF] hover:text-[#8B2EFF]"
+                  >
+                    <Pencil size={14} /> Editar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -102,6 +148,95 @@ export function PersonalPage() {
           <p className="p-8 text-center text-sm text-[#6B7280]">Todavía no hay personal cargado.</p>
         )}
       </div>
+
+      {editando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-[#111111]">Editar personal</h2>
+                <p className="mt-1 text-xs text-[#6B7280]">Actualizá los datos de la cuenta.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditando(null)}
+                className="rounded-lg p-2 text-[#6B7280] hover:bg-[#F3F4F6]"
+                aria-label="Cerrar edición"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={guardarEdicion} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1.5">
+                  <span className="text-sm font-medium text-[#374151]">Nombre</span>
+                  <input
+                    required
+                    value={formulario.nombre}
+                    onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
+                    className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]"
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="text-sm font-medium text-[#374151]">Apellido</span>
+                  <input
+                    required
+                    value={formulario.apellido}
+                    onChange={(e) => setFormulario({ ...formulario, apellido: e.target.value })}
+                    className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]"
+                  />
+                </label>
+              </div>
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-[#374151]">Email</span>
+                <input
+                  type="email"
+                  required
+                  value={formulario.email}
+                  onChange={(e) => setFormulario({ ...formulario, email: e.target.value })}
+                  className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1.5">
+                  <span className="text-sm font-medium text-[#374151]">DNI</span>
+                  <input
+                    value={formulario.dni}
+                    onChange={(e) => setFormulario({ ...formulario, dni: e.target.value })}
+                    className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]"
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="text-sm font-medium text-[#374151]">Teléfono</span>
+                  <input
+                    value={formulario.telefono}
+                    onChange={(e) => setFormulario({ ...formulario, telefono: e.target.value })}
+                    className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]"
+                  />
+                </label>
+              </div>
+              {errorEdicion && <p className="text-sm text-[#DC2626]">{errorEdicion}</p>}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditando(null)}
+                  className="rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-sm font-semibold text-[#374151]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardando}
+                  className="rounded-lg bg-[#8B2EFF] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {guardando ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

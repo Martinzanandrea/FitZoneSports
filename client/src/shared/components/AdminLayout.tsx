@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/static-components */
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Menu, LogOut, Zap, Users, Building2, ScanLine, BookOpen, CreditCard, TrendingUp, QrCode, Calendar, CalendarCheck, Banknote } from 'lucide-react';
+import { Menu, LogOut, Zap, Users, Building2, ScanLine, BookOpen, CreditCard, TrendingUp, QrCode, Calendar, CalendarCheck, Banknote, ClipboardList } from 'lucide-react';
 import { useAuth } from '../../modules/auth/AuthContext';
 import { TipoActor } from '../../shared/types/enums';
 
@@ -12,6 +12,7 @@ const MANAGER_NAV = [
   { to: '/admin/canchas', icon: ScanLine, label: 'Canchas' },
   { to: '/admin/clases', icon: BookOpen, label: 'Clases' },
   { to: '/admin/membresias', icon: CreditCard, label: 'Membresías' },
+  { to: '/admin/reservas', icon: ClipboardList, label: 'Reservas' },
 ];
 
 const RECEPTION_NAV = [

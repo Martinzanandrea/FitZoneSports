@@ -10,6 +10,8 @@ export const usuariosApi = {
     api
       .patch<Usuario>(`/usuarios/${id}/sede`, { sedeId })
       .then((res) => res.data),
+  actualizar: (id: string, payload: Partial<Pick<Usuario, 'dni' | 'nombre' | 'apellido' | 'email' | 'telefono'>>) =>
+    api.patch<Usuario>(`/usuarios/${id}`, payload).then((res) => res.data),
   registrarPublico: (data: FormData) =>
     api.post<Usuario>("/usuarios", data).then((res) => res.data),
 };

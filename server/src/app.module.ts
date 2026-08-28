@@ -14,6 +14,7 @@ import { AccesoModule } from './acceso/acceso.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AdminModule } from './admin/admin.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
@@ -29,6 +30,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     PagosModule,
     AuthModule,
     AccesoModule,
+    AdminModule,
 
     ThrottlerModule.forRoot({
       throttlers: [

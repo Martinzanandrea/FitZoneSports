@@ -18,6 +18,15 @@ export interface Clase {
   creadaEn?: string;
 }
 
+export interface ClasePayload {
+  sedeId: string;
+  tipoClase: string;
+  instructorId: string;
+  horarioInicio: string;
+  horarioFin: string;
+  capacidad: number;
+}
+
 export interface ReservaClase {
   id: string;
   clase: Clase;

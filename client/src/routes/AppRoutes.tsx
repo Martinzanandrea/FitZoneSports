@@ -19,6 +19,9 @@ import { ReservarClases } from '../modules/clases/pages/ReservarClases';
 import { ReservarCanchas } from '../modules/canchas/pages/ReservarCanchas';
 import { MisPagos } from '../modules/pagos/pages/MisPagos';
 import { MiMembresia } from '../modules/membresias/pages/MiMembresia';
+import { ReservasPage } from '../modules/admin/pages/ReservasPage';
+import { CanchasPage } from '../modules/admin/pages/CanchasPage';
+import { ClasesPage } from '../modules/admin/pages/ClasesPage';
 
 
 export function AppRoutes() {
@@ -106,6 +109,16 @@ export function AppRoutes() {
     </ProtectedRoute>
   }
 />
+        <Route
+          path="reservas"
+          element={
+            <ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login">
+              <ReservasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="canchas" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><CanchasPage /></ProtectedRoute>} />
+        <Route path="clases" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><ClasesPage /></ProtectedRoute>} />
       </Route>
     </Routes>
   );
