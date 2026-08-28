@@ -38,7 +38,6 @@ export function MiMembresia() {
           <Link to="/completar-membresia"><Button fullWidth>Renovar</Button></Link>
         </Card>
       )}
-      <p className="text-xs text-[#6B7280]">Nota: el backend no expone GET /membresias/vigente/:usuarioId; se filtra en cliente desde GET /membresias. Recomendado agregar endpoint dedicado.</p>
     </div>
   );
 }

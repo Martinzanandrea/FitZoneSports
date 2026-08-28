@@ -11,6 +11,7 @@ export * from './bloqueo-cancha.entity';
 export * from './reserva-cancha.entity';
 export * from './pago.entity';
 export * from './comprobante.entity';
+export * from './precio-plan-entity';
 
 import { Sede } from './sede.entity';
 import { Usuario } from './usuario.entity';
@@ -24,7 +25,7 @@ import { BloqueoCancha } from './bloqueo-cancha.entity';
 import { ReservaCancha } from './reserva-cancha.entity';
 import { Pago } from './pago.entity';
 import { Comprobante } from './comprobante.entity';
-
+import { PrecioPlan } from './precio-plan-entity';
 export const ALL_ENTITIES = [
   Sede,
   Usuario,
@@ -38,4 +39,5 @@ export const ALL_ENTITIES = [
   ReservaCancha,
   Pago,
   Comprobante,
+  PrecioPlan,
 ];

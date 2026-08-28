@@ -17,7 +17,7 @@ import { InstructoresService } from './instructores.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 
-@UseGuards(JwtAuthGuard, RolesGuard) // exige login para TODO el controller
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('instructores')
 export class InstructoresController {
   constructor(private readonly instructoresService: InstructoresService) {}
@@ -28,7 +28,7 @@ export class InstructoresController {
     return this.instructoresService.create(dto);
   }
 
-  @Get() // sin @Roles: cualquier usuario logueado puede leer
+  @Get()
   findAll() {
     return this.instructoresService.findAll();
   }
@@ -47,7 +47,9 @@ export class InstructoresController {
     return this.instructoresService.update(id, dto);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  // El borrado (baja lógica) queda exclusivo de Gerente — dar de baja
+  // un instructor es una decisión más sensible que darlo de alta.
+  @Roles(TipoActor.GERENTE)
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.instructoresService.remove(id);

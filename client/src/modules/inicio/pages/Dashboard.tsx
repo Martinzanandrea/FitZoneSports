@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, MapPin, QrCode, Receipt } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
+import { membresiasApi } from '../../membresias/membresias.api';
+import type { Membresia } from '../../membresias/membresias.types';
 import { Badge, Card, SectionTitle } from '../../../shared/components/ui';
 
 const quickActions = [
@@ -10,18 +13,25 @@ const quickActions = [
   { label: 'Mis pagos', to: '/pagos', icon: Receipt },
 ];
 
-// Placeholder hasta que conectemos el módulo de membresías en el frontend.
-const membresiaMock = { plan: 'Mensual', estado: 'ACTIVO', vence: '2026-09-15' };
+const statusMap: Record<string, { label: string; variant: 'green' | 'red' | 'amber' }> = {
+  ACTIVO: { label: 'Activo', variant: 'green' },
+  VENCIDO: { label: 'Vencido', variant: 'red' },
+  SUSPENDIDO: { label: 'Suspendido', variant: 'amber' },
+};
 
 export function Dashboard() {
   const { user } = useAuth();
+  const [membresia, setMembresia] = useState<Membresia | null>(null);
+  const [cargando, setCargando] = useState(true);
 
-  const statusMap: Record<string, { label: string; variant: 'green' | 'red' | 'amber' }> = {
-    ACTIVO: { label: 'Activo', variant: 'green' },
-    VENCIDO: { label: 'Vencido', variant: 'red' },
-    SUSPENDIDO: { label: 'Suspendido', variant: 'amber' },
-  };
-  const status = statusMap[membresiaMock.estado];
+  useEffect(() => {
+    if (!user) return;
+    membresiasApi
+      .getVigente(user.id)
+      .then(setMembresia)
+      .catch(() => setMembresia(null))
+      .finally(() => setCargando(false));
+  }, [user]);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
@@ -32,26 +42,41 @@ export function Dashboard() {
         </h1>
       </div>
 
-      <Link
-        to="/membresia"
-        className="block w-full text-left rounded-2xl p-5 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #5B0FBF 0%, #8B2EFF 60%, #A855F7 100%)', minHeight: 44 }}
-      >
-        <div className="absolute -right-8 -top-8 rounded-full opacity-10 w-32 h-32 bg-white" />
-        <div className="relative z-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-purple-200 mb-1">Mi Membresía</p>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl font-bold text-white">Plan {membresiaMock.plan}</span>
-            <Badge variant={status.variant}>{status.label}</Badge>
+      {cargando ? (
+        <div className="rounded-2xl p-5 bg-[#F3F4F6] animate-pulse h-28" />
+      ) : membresia ? (
+        <Link
+          to="/membresia"
+          className="block w-full text-left rounded-2xl p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #5B0FBF 0%, #8B2EFF 60%, #A855F7 100%)', minHeight: 44 }}
+        >
+          <div className="absolute -right-8 -top-8 rounded-full opacity-10 w-32 h-32 bg-white" />
+          <div className="relative z-10">
+            <p className="text-xs font-semibold uppercase tracking-widest text-purple-200 mb-1">Mi Membresía</p>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl font-bold text-white">
+                Plan {membresia.plan.charAt(0) + membresia.plan.slice(1).toLowerCase()}
+              </span>
+              <Badge variant={statusMap[membresia.estado]?.variant ?? 'gray'}>
+                {statusMap[membresia.estado]?.label ?? membresia.estado}
+              </Badge>
+            </div>
+            <p className="text-sm text-purple-200">
+              Vence el{' '}
+              <span className="font-semibold text-white">
+                {new Date(membresia.fechaFin).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            </p>
           </div>
-          <p className="text-sm text-purple-200">
-            Vence el{' '}
-            <span className="font-semibold text-white">
-              {new Date(membresiaMock.vence).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
-          </p>
-        </div>
-      </Link>
+        </Link>
+      ) : (
+        <Card className="text-center py-6">
+          <p className="text-sm text-[#6B7280]">Todavía no tenés una membresía activa.</p>
+          <Link to="/completar-membresia" className="text-sm font-semibold text-[#8B2EFF] hover:underline mt-2 inline-block">
+            Elegir un plan →
+          </Link>
+        </Card>
+      )}
 
       <div>
         <SectionTitle>Acceso rápido</SectionTitle>

@@ -15,6 +15,7 @@ import {
 import { EstadoPago, MetodoPago, TipoActor } from '../entities/enums';
 import { PasarelaMockService } from './gateway/pasarela-mock.service';
 import { ComprobantesService } from './comprobantes.service';
+import { PreciosService } from '../precios/precios.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { RegistrarPagoEfectivoDto } from './dto/registrar-pago-efectivo.dto';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -36,6 +37,7 @@ export class PagosService {
     private readonly reservasCanchaRepo: Repository<ReservaCancha>,
     private readonly pasarela: PasarelaMockService,
     private readonly comprobantes: ComprobantesService,
+    private readonly preciosService: PreciosService,
   ) {}
 
   private async resolverReferencia(dto: {
@@ -88,8 +90,28 @@ export class PagosService {
     return { reservaCancha };
   }
 
-  // Determina a qué sede pertenece la operación que se está pagando,
-  // para poder validar el sede-scope de un Recepcionista.
+  private async calcularMonto(
+    montoRecibido: number | undefined,
+    referencia: {
+      membresia?: Membresia;
+      reservaClase?: ReservaClase;
+      reservaCancha?: ReservaCancha;
+    },
+  ): Promise<number> {
+    if (referencia.membresia) {
+      return this.preciosService.obtenerPrecio(referencia.membresia.plan);
+    }
+    if (referencia.reservaCancha) {
+      return Number(referencia.reservaCancha.precioFinal);
+    }
+    if (montoRecibido === undefined) {
+      throw new BadRequestException(
+        'Debe indicarse el monto para este tipo de pago',
+      );
+    }
+    return montoRecibido;
+  }
+
   private async obtenerSedeDeReferencia(referencia: {
     membresia?: Membresia;
     reservaClase?: ReservaClase;
@@ -127,9 +149,10 @@ export class PagosService {
       throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
 
     const referencia = await this.resolverReferencia(dto);
+    const monto = await this.calcularMonto(dto.monto, referencia);
 
     const { aprobado, token } = await this.pasarela.procesarPago(
-      dto.monto,
+      monto,
       dto.metodo,
     );
 
@@ -137,7 +160,7 @@ export class PagosService {
       usuario,
       ...referencia,
       metodo: dto.metodo,
-      monto: String(dto.monto),
+      monto: String(monto),
       tokenPasarela: token,
       estado: aprobado ? EstadoPago.APROBADO : EstadoPago.RECHAZADO,
       pagadoEn: aprobado ? new Date() : undefined,
@@ -178,6 +201,7 @@ export class PagosService {
     }
 
     const referencia = await this.resolverReferencia(dto);
+    const monto = await this.calcularMonto(dto.monto, referencia);
 
     if (registradoPor.tipoActor === TipoActor.RECEPCIONISTA) {
       const sedeDeLaOperacion = await this.obtenerSedeDeReferencia(referencia);
@@ -197,7 +221,7 @@ export class PagosService {
       registradoPor,
       ...referencia,
       metodo: MetodoPago.EFECTIVO,
-      monto: String(dto.monto),
+      monto: String(monto),
       estado: EstadoPago.APROBADO,
       pagadoEn: new Date(),
     });
@@ -221,9 +245,7 @@ export class PagosService {
       relations: { comprobante: true, usuario: true, registradoPor: true },
     });
     if (!pago) throw new NotFoundException(`Pago ${id} no encontrado`);
-
     assertOwnerOrStaff(currentUser, pago.usuario.id);
-
     return pago;
   }
 }

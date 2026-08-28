@@ -17,6 +17,7 @@ export class RegistrarPagoEfectivoDto {
   reservaCanchaId?: string;
 
   @IsNumber()
+  @IsOptional()
   @Min(0.01)
-  monto: number;
+  monto?: number;
 }

@@ -5,20 +5,23 @@ import { useAuth } from '../../auth/AuthContext';
 import { sedesApi } from '../../sedes/sedes.api';
 import { membresiasApi } from '../membresias.api';
 import { pagosApi } from '../../pagos/pagos.api';
+import { preciosApi } from '../../precios/precios.api';
 import type { Sede } from '../../sedes/sedes.types';
 import type { TipoPlan } from '../membresias.types';
+import type { PrecioPlan } from '../../precios/precios.types';
 import { Button } from '../../../shared/components/ui';
 
-const PLANES: { value: TipoPlan; label: string; precio: number; descripcion: string }[] = [
-  { value: 'MENSUAL', label: 'Mensual', precio: 12500, descripcion: 'Ideal para empezar' },
-  { value: 'TRIMESTRAL', label: 'Trimestral', precio: 34500, descripcion: 'Ahorrás un 8%' },
-  { value: 'ANUAL', label: 'Anual', precio: 120000, descripcion: 'Ahorrás un 20%' },
-];
+const DESCRIPCIONES: Record<string, string> = {
+  MENSUAL: 'Ideal para empezar',
+  TRIMESTRAL: 'Ahorrás un 8%',
+  ANUAL: 'Ahorrás un 20%',
+};
 
 export function CompletarMembresia() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [sedes, setSedes] = useState<Sede[]>([]);
+  const [precios, setPrecios] = useState<PrecioPlan[]>([]);
   const [sedeId, setSedeId] = useState('');
   const [plan, setPlan] = useState<TipoPlan>('MENSUAL');
   const [metodo, setMetodo] = useState<'MERCADOPAGO' | 'MODO'>('MERCADOPAGO');
@@ -27,9 +30,19 @@ export function CompletarMembresia() {
 
   useEffect(() => {
     sedesApi.getAllPublico().then(setSedes).catch(() => setSedes([]));
+    preciosApi.getMembresiasPublico().then(setPrecios).catch(() => setPrecios([]));
   }, []);
 
-  const planSeleccionado = PLANES.find((p) => p.value === plan)!;
+  // Reemplaza al array PLANES hardcodeado: ahora sale de precios_plan
+  // (backend), editable por el Gerente sin tocar código.
+  const planes = precios.map((p) => ({
+    value: p.plan,
+    label: p.plan.charAt(0) + p.plan.slice(1).toLowerCase(),
+    precio: Number(p.precio),
+    descripcion: DESCRIPCIONES[p.plan] ?? '',
+  }));
+
+  const planSeleccionado = planes.find((p) => p.value === plan);
 
   async function handleConfirmar() {
     if (!user || !sedeId) {
@@ -44,7 +57,8 @@ export function CompletarMembresia() {
         usuarioId: user.id,
         membresiaId: membresia.id,
         metodo,
-        monto: planSeleccionado.precio,
+        // Sin "monto": el backend recalcula el precio real desde
+        // precios_plan, ignorando cualquier valor que mandemos acá.
       });
       navigate('/dashboard');
     } catch {
@@ -61,24 +75,28 @@ export function CompletarMembresia() {
         <p className="mt-1 text-sm text-[#6B7280]">Para activar tu membresía necesitamos que elijas un plan y una sede.</p>
 
         <div className="mt-6 space-y-2.5">
-          {PLANES.map((p) => (
-            <button
-              key={p.value}
-              onClick={() => setPlan(p.value)}
-              className={`w-full flex items-center justify-between p-4 rounded-xl border-2 text-left transition-colors ${
-                plan === p.value ? 'border-[#8B2EFF] bg-[#F3E8FF]/40' : 'border-[#E5E7EB] hover:border-[#8B2EFF]/40'
-              }`}
-            >
-              <div>
-                <p className="text-sm font-semibold text-[#111111]">{p.label}</p>
-                <p className="text-xs text-[#6B7280]">{p.descripcion}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-[#111111]">${p.precio.toLocaleString('es-AR')}</span>
-                {plan === p.value && <Check size={16} className="text-[#8B2EFF]" />}
-              </div>
-            </button>
-          ))}
+          {planes.length === 0 ? (
+            <p className="text-sm text-[#6B7280] py-4 text-center">Cargando planes…</p>
+          ) : (
+            planes.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setPlan(p.value as TipoPlan)}
+                className={`w-full flex items-center justify-between p-4 rounded-xl border-2 text-left transition-colors ${
+                  plan === p.value ? 'border-[#8B2EFF] bg-[#F3E8FF]/40' : 'border-[#E5E7EB] hover:border-[#8B2EFF]/40'
+                }`}
+              >
+                <div>
+                  <p className="text-sm font-semibold text-[#111111]">{p.label}</p>
+                  <p className="text-xs text-[#6B7280]">{p.descripcion}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-[#111111]">${p.precio.toLocaleString('es-AR')}</span>
+                  {plan === p.value && <Check size={16} className="text-[#8B2EFF]" />}
+                </div>
+              </button>
+            ))
+          )}
         </div>
 
         <div className="mt-5 space-y-1.5">
@@ -115,8 +133,14 @@ export function CompletarMembresia() {
 
         {error && <p className="mt-4 text-sm text-[#DC2626]">{error}</p>}
 
-        <Button fullWidth size="lg" className="mt-6" onClick={handleConfirmar} disabled={loading}>
-          {loading ? 'Procesando pago…' : `Pagar $${planSeleccionado.precio.toLocaleString('es-AR')}`}
+        <Button
+          fullWidth
+          size="lg"
+          className="mt-6"
+          onClick={handleConfirmar}
+          disabled={loading || !planSeleccionado}
+        >
+          {loading ? 'Procesando pago…' : `Pagar $${(planSeleccionado?.precio ?? 0).toLocaleString('es-AR')}`}
         </Button>
       </div>
     </div>

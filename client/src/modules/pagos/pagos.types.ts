@@ -4,7 +4,7 @@ export interface PagoPasarelaPayload {
   reservaClaseId?: string;
   reservaCanchaId?: string;
   metodo: "MERCADOPAGO" | "MODO";
-  monto: number;
+  monto?: number;
 }
 
 export interface Pago {

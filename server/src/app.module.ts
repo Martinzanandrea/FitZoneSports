@@ -15,6 +15,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AdminModule } from './admin/admin.module';
+import { PreciosModule } from './precios/precios.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
@@ -31,6 +32,7 @@ import { AdminModule } from './admin/admin.module';
     AuthModule,
     AccesoModule,
     AdminModule,
+    PreciosModule,
 
     ThrottlerModule.forRoot({
       throttlers: [

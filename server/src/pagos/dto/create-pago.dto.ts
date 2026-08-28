@@ -21,6 +21,7 @@ export class CreatePagoDto {
   metodo!: MetodoPago;
 
   @IsNumber()
+  @IsOptional()
   @Min(0.01)
-  monto!: number;
+  monto?: number;
 }

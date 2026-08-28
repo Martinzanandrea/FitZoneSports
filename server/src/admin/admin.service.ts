@@ -9,6 +9,8 @@ import {
   ReservaCancha,
   ReservaClase,
 } from '../entities';
+import { TipoActor } from '../entities/enums';
+import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 
 export interface DashboardResumen {
   clasesHoy: number;
@@ -56,19 +58,29 @@ export class AdminService {
     private readonly reservasCanchaRepo: Repository<ReservaCancha>,
   ) {}
 
-  async obtenerDashboardResumen(): Promise<DashboardResumen> {
+  async obtenerDashboardResumen(
+    currentUser: UsuarioAutenticado,
+  ): Promise<DashboardResumen> {
     const inicioHoy = new Date();
     inicioHoy.setHours(0, 0, 0, 0);
     const finHoy = new Date(inicioHoy);
     finHoy.setDate(finHoy.getDate() + 1);
 
-    const clasesHoy = await this.clasesRepo
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const filtrarPorSede = currentUser.tipoActor === TipoActor.RECEPCIONISTA;
+
+    const clasesQuery = this.clasesRepo
       .createQueryBuilder('clase')
       .where('clase.horarioInicio >= :inicioHoy', { inicioHoy })
-      .andWhere('clase.horarioInicio < :finHoy', { finHoy })
-      .getCount();
+      .andWhere('clase.horarioInicio < :finHoy', { finHoy });
+    if (filtrarPorSede) {
+      clasesQuery.andWhere('clase.sede_id = :sedeId', {
+        sedeId: currentUser.sedeId,
+      });
+    }
+    const clasesHoy = await clasesQuery.getCount();
 
-    const horasAgendadas = await this.canchasRepo
+    const horasQuery = this.canchasRepo
       .createQueryBuilder('cancha')
       .innerJoin('cancha.reservas', 'reserva')
       .select(
@@ -78,8 +90,13 @@ export class AdminService {
       .where('reserva.fecha = CURRENT_DATE')
       .andWhere('reserva.estado = :estado', {
         estado: EstadoResCancha.CONFIRMADA,
-      })
-      .getRawOne<{ horas: string }>();
+      });
+    if (filtrarPorSede) {
+      horasQuery.andWhere('cancha.sede_id = :sedeId', {
+        sedeId: currentUser.sedeId,
+      });
+    }
+    const horasAgendadas = await horasQuery.getRawOne<{ horas: string }>();
 
     return {
       clasesHoy,
@@ -87,20 +104,46 @@ export class AdminService {
     };
   }
 
-  async obtenerReservas(): Promise<ReservasAdmin> {
-    const reservasClase = await this.reservasClaseRepo.find({
-      relations: { clase: { sede: true }, usuario: true },
-      order: { creadaEn: 'DESC' },
-    });
-    const reservasCancha = await this.reservasCanchaRepo.find({
-      relations: { cancha: { sede: true }, usuario: true },
-      order: { fecha: 'DESC', horaInicio: 'DESC' },
-    });
+  async obtenerReservas(
+    currentUser: UsuarioAutenticado,
+  ): Promise<ReservasAdmin> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const filtrarPorSede = currentUser.tipoActor === TipoActor.RECEPCIONISTA;
+
+    const reservasClaseQuery = this.reservasClaseRepo
+      .createQueryBuilder('reserva')
+      .leftJoinAndSelect('reserva.clase', 'clase')
+      .leftJoinAndSelect('clase.sede', 'sede')
+      .leftJoinAndSelect('reserva.usuario', 'usuario')
+      .orderBy('reserva.creadaEn', 'DESC');
+    if (filtrarPorSede) {
+      reservasClaseQuery.andWhere('sede.id = :sedeId', {
+        sedeId: currentUser.sedeId,
+      });
+    }
+    const reservasClase = await reservasClaseQuery.getMany();
+
+    const reservasCanchaQuery = this.reservasCanchaRepo
+      .createQueryBuilder('reserva')
+      .leftJoinAndSelect('reserva.cancha', 'cancha')
+      .leftJoinAndSelect('cancha.sede', 'sede')
+      .leftJoinAndSelect('reserva.usuario', 'usuario')
+      .orderBy('reserva.fecha', 'DESC')
+      .addOrderBy('reserva.horaInicio', 'DESC');
+    if (filtrarPorSede) {
+      reservasCanchaQuery.andWhere('sede.id = :sedeId', {
+        sedeId: currentUser.sedeId,
+      });
+    }
+    const reservasCancha = await reservasCanchaQuery.getMany();
 
     const ocupacion = new Map<string, number>();
     for (const reserva of reservasClase) {
       if (reserva.estado === EstadoResClase.RESERVADA) {
-        ocupacion.set(reserva.clase.id, (ocupacion.get(reserva.clase.id) ?? 0) + 1);
+        ocupacion.set(
+          reserva.clase.id,
+          (ocupacion.get(reserva.clase.id) ?? 0) + 1,
+        );
       }
     }
 
@@ -138,7 +181,9 @@ export class AdminService {
 
     return {
       resumen: {
-        canchasReservadas: canchas.filter((reserva) => reserva.estado === EstadoResCancha.CONFIRMADA).length,
+        canchasReservadas: canchas.filter(
+          (r) => r.estado === EstadoResCancha.CONFIRMADA,
+        ).length,
         clasesConOcupacionAlta,
       },
       clases,

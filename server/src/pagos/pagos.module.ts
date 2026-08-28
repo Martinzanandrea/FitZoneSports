@@ -14,6 +14,7 @@ import { PagosController } from './pagos.controller';
 import { PasarelaMockService } from './gateway/pasarela-mock.service';
 import { ComprobantesService } from './comprobantes.service';
 import { PdfGeneratorService } from './comprobantes/pdf-generator.service';
+import { PreciosModule } from 'src/precios/precios.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PdfGeneratorService } from './comprobantes/pdf-generator.service';
       ReservaCancha,
     ]),
     StorageModule,
+    PreciosModule,
   ],
   controllers: [PagosController],
   providers: [
