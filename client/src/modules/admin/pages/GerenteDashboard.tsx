@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Building2, ScanLine, BookOpen, CreditCard, TrendingUp, CalendarDays, Clock3, RefreshCw } from 'lucide-react';
+import { Users, Building2, ScanLine, BookOpen, CreditCard, TrendingUp, CalendarDays, Clock3, RefreshCw, GraduationCap, Tag } from 'lucide-react';
 import { adminApi, type DashboardResumen } from '../admin.api';
 
 const CARDS = [
@@ -8,9 +8,11 @@ const CARDS = [
   { to: '/admin/sedes', icon: Building2, title: 'Sedes', description: 'Crear y administrar sucursales' },
   { to: '/admin/canchas', icon: ScanLine, title: 'Canchas', description: 'Alta, precios y mantenimiento (todas las sedes)' },
   { to: '/admin/clases', icon: BookOpen, title: 'Clases', description: 'Crear clases y asignar instructores (todas las sedes)' },
+  { to: '/admin/instructores', icon: GraduationCap, title: 'Instructores', description: 'Dar de alta instructores para clases' },
   { to: '/admin/membresias', icon: CreditCard, title: 'Membresías', description: 'Ver y gestionar membresías de socios' },
   { to: '/admin/reportes', icon: TrendingUp, title: 'Reportes', description: 'Vista consolidada de pagos y ocupación' },
   { to: '/admin/reservas', icon: CalendarDays, title: 'Reservas', description: 'Consultar reservas de clases y canchas' },
+  { to: '/admin/precios', icon: Tag, title: 'Precios', description: 'Editar precios de planes de membresía' },
 ];
 
 export function GerenteDashboard() {

@@ -9,4 +9,7 @@ export const membresiasApi = {
     api
       .get<Membresia | null>(`/membresias/vigente/${usuarioId}`)
       .then((res) => res.data),
+  cancelar: (id: string) => api.patch<Membresia>(`/membresias/${id}/cancelar`).then((res) => res.data),
+  renovar: (payload: CreateMembresiaPayload) =>
+    api.post<Membresia>('/membresias/renovar', payload).then((res) => res.data),
 };

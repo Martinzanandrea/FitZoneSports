@@ -23,13 +23,14 @@ export function Dashboard() {
   const { user } = useAuth();
   const [membresia, setMembresia] = useState<Membresia | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [errorMembresia, setErrorMembresia] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     membresiasApi
       .getVigente(user.id)
       .then(setMembresia)
-      .catch(() => setMembresia(null))
+      .catch(() => setErrorMembresia(true))
       .finally(() => setCargando(false));
   }, [user]);
 
@@ -44,6 +45,10 @@ export function Dashboard() {
 
       {cargando ? (
         <div className="rounded-2xl p-5 bg-[#F3F4F6] animate-pulse h-28" />
+      ) : errorMembresia ? (
+        <Card className="text-center py-6">
+          <p className="text-sm text-[#DC2626]">No pudimos cargar tu membresía. Recargá la página.</p>
+        </Card>
       ) : membresia ? (
         <Link
           to="/membresia"

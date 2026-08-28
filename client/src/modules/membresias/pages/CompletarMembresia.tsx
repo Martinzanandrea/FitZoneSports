@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, CreditCard } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { sedesApi } from '../../sedes/sedes.api';
@@ -20,6 +20,8 @@ const DESCRIPCIONES: Record<string, string> = {
 export function CompletarMembresia() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const esRenovacion = searchParams.get('renovar') === 'true';
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [precios, setPrecios] = useState<PrecioPlan[]>([]);
   const [sedeId, setSedeId] = useState('');
@@ -27,6 +29,7 @@ export function CompletarMembresia() {
   const [metodo, setMetodo] = useState<'MERCADOPAGO' | 'MODO'>('MERCADOPAGO');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [simularRechazo, setSimularRechazo] = useState(false);
 
   useEffect(() => {
     sedesApi.getAllPublico().then(setSedes).catch(() => setSedes([]));
@@ -52,14 +55,22 @@ export function CompletarMembresia() {
     setLoading(true);
     setError('');
     try {
-      const membresia = await membresiasApi.create({ usuarioId: user.id, sedeAltaId: sedeId, plan });
-      await pagosApi.pagarConPasarela({
+      const membresia = esRenovacion
+        ? await membresiasApi.renovar({ usuarioId: user.id, sedeAltaId: sedeId, plan })
+        : await membresiasApi.create({ usuarioId: user.id, sedeAltaId: sedeId, plan });
+      const pago = await pagosApi.pagarConPasarela({
         usuarioId: user.id,
         membresiaId: membresia.id,
         metodo,
+        simularRechazo,
         // Sin "monto": el backend recalcula el precio real desde
         // precios_plan, ignorando cualquier valor que mandemos acá.
       });
+      if (pago.estado !== 'APROBADO') {
+        await membresiasApi.cancelar(membresia.id);
+        setError('El pago fue rechazado. Podés reintentar con otro método.');
+        return;
+      }
       navigate('/dashboard');
     } catch {
       setError('No se pudo completar el pago. Intentá de nuevo.');
@@ -71,7 +82,7 @@ export function CompletarMembresia() {
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-lg bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8">
-        <h1 className="text-xl font-bold text-[#111111]">¡Ya casi! Elegí tu plan</h1>
+        <h1 className="text-xl font-bold text-[#111111]">{esRenovacion ? 'Renovar tu membresía' : '¡Ya casi! Elegí tu plan'}</h1>
         <p className="mt-1 text-sm text-[#6B7280]">Para activar tu membresía necesitamos que elijas un plan y una sede.</p>
 
         <div className="mt-6 space-y-2.5">
@@ -129,6 +140,15 @@ export function CompletarMembresia() {
               </button>
             ))}
           </div>
+          <label className="flex items-center gap-2 text-xs text-[#6B7280] mt-2">
+            <input
+              type="checkbox"
+              checked={simularRechazo}
+              onChange={(e) => setSimularRechazo(e.target.checked)}
+              className="rounded"
+            />
+            🧪 Simular pago rechazado (solo testing)
+          </label>
         </div>
 
         {error && <p className="mt-4 text-sm text-[#DC2626]">{error}</p>}

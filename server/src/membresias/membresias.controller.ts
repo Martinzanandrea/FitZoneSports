@@ -33,6 +33,12 @@ export class MembresiasController {
     return this.membresiasService.create(dto);
   }
 
+  @Post('renovar')
+  renovar(@Body() dto: CreateMembresiaDto, @CurrentUser() user: UsuarioAutenticado) {
+    assertOwnerOrStaff(user, dto.usuarioId);
+    return this.membresiasService.renovar(dto);
+  }
+
   // Debe ir ANTES que ':id' para que Nest no lo confunda con un parámetro.
   @Get('vigente/:usuarioId')
   vigente(
@@ -73,5 +79,15 @@ export class MembresiasController {
   async marcarVencidas() {
     const cantidad = await this.membresiasService.marcarVencidasSiCorresponde();
     return { message: `${cantidad} membresía(s) marcadas como vencidas` };
+  }
+
+  @Patch(':id/cancelar')
+  async cancelar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    const membresia = await this.membresiasService.findOne(id);
+    assertOwnerOrStaff(user, membresia.usuario.id);
+    return this.membresiasService.cancelar(id);
   }
 }

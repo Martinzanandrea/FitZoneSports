@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 import { MetodoPago } from '../../entities/enums';
 
 export class CreatePagoDto {
@@ -24,4 +24,9 @@ export class CreatePagoDto {
   @IsOptional()
   @Min(0.01)
   monto?: number;
+
+  // Solo para testing: fuerza que el mock rechace el pago.
+  @IsBoolean()
+  @IsOptional()
+  simularRechazo?: boolean;
 }

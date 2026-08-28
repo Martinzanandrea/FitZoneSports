@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Membresia, Usuario, Sede } from '../entities';
@@ -52,6 +52,13 @@ export class MembresiasService {
     });
     if (!usuario) {
       throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
+    }
+
+    const existente = await this.membresiasRepo.findOne({
+      where: { usuario: { id: dto.usuarioId }, estado: EstadoMembresia.ACTIVO },
+    });
+    if (existente) {
+      throw new BadRequestException('El usuario ya tiene una membresía activa');
     }
 
     const sedeAlta = await this.sedesRepo.findOne({
@@ -110,5 +117,40 @@ export class MembresiasService {
     const membresia = await this.findOne(id);
     Object.assign(membresia, dto);
     return this.membresiasRepo.save(membresia);
+  }
+
+  async cancelar(id: string): Promise<Membresia> {
+    const membresia = await this.findOne(id);
+    membresia.estado = EstadoMembresia.SUSPENDIDO;
+    return this.membresiasRepo.save(membresia);
+  }
+
+  async renovar(dto: CreateMembresiaDto): Promise<Membresia> {
+    const usuario = await this.usuariosRepo.findOne({ where: { id: dto.usuarioId } });
+    if (!usuario) throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
+
+    const actual = await this.membresiasRepo.findOne({
+      where: { usuario: { id: dto.usuarioId }, estado: EstadoMembresia.ACTIVO },
+    });
+    if (!actual) throw new BadRequestException('No tenés una membresía activa para renovar');
+
+    const sedeAlta = await this.sedesRepo.findOne({ where: { id: dto.sedeAltaId } });
+    if (!sedeAlta) throw new NotFoundException(`Sede ${dto.sedeAltaId} no encontrada`);
+
+    const fechaInicio = new Date(actual.fechaFin);
+    const fechaFin = new Date(fechaInicio);
+    fechaFin.setMonth(fechaFin.getMonth() + DURACION_MESES[dto.plan]);
+
+    const nueva = this.membresiasRepo.create({
+      usuario,
+      sedeAlta,
+      plan: dto.plan,
+      renovacionAuto: dto.renovacionAuto ?? false,
+      estado: EstadoMembresia.ACTIVO,
+      fechaInicio: fechaInicio.toISOString().split('T')[0],
+      fechaFin: fechaFin.toISOString().split('T')[0],
+    });
+
+    return this.membresiasRepo.save(nueva);
   }
 }

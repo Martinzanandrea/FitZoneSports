@@ -154,6 +154,7 @@ export class PagosService {
     const { aprobado, token } = await this.pasarela.procesarPago(
       monto,
       dto.metodo,
+      dto.simularRechazo ?? false,
     );
 
     const pago = this.pagosRepo.create({

@@ -5,6 +5,7 @@ export interface PagoPasarelaPayload {
   reservaCanchaId?: string;
   metodo: "MERCADOPAGO" | "MODO";
   monto?: number;
+  simularRechazo?: boolean;
 }
 
 export interface Pago {

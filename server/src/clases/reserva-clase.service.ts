@@ -109,7 +109,7 @@ export class ReservasClaseService {
   findPorClase(claseId: string): Promise<ReservaClase[]> {
     return this.reservasRepo.find({
       where: { clase: { id: claseId } },
-      relations: { usuario: true },
+      relations: { usuario: true, clase: { sede: true, instructor: true } },
       order: { creadaEn: 'ASC' },
     });
   }

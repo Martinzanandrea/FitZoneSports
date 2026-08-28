@@ -35,7 +35,7 @@ export function MiMembresia() {
           </div>
           <p className="text-sm text-[#6B7280]">Vigencia: {new Date(membresia.fechaInicio).toLocaleDateString('es-AR')} — {new Date(membresia.fechaFin).toLocaleDateString('es-AR')}</p>
           <p className="text-xs text-[#6B7280]">Sede alta: {membresia.sedeAlta.nombre}</p>
-          <Link to="/completar-membresia"><Button fullWidth>Renovar</Button></Link>
+          <Link to="/completar-membresia?renovar=true"><Button fullWidth>Renovar</Button></Link>
         </Card>
       )}
     </div>

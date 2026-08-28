@@ -9,4 +9,6 @@ export interface Instructor {
 
 export const instructoresApi = {
   getAll: () => api.get<Instructor[]>('/instructores').then((response) => response.data),
+  create: (payload: { nombre: string; especialidad?: string; telefono?: string }) =>
+    api.post<Instructor>('/instructores', payload).then((response) => response.data),
 };

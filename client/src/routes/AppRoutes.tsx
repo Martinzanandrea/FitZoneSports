@@ -22,6 +22,8 @@ import { MiMembresia } from '../modules/membresias/pages/MiMembresia';
 import { ReservasPage } from '../modules/admin/pages/ReservasPage';
 import { CanchasPage } from '../modules/admin/pages/CanchasPage';
 import { ClasesPage } from '../modules/admin/pages/ClasesPage';
+import { CrearInstructor } from '../modules/instructores/pages/CrearInstructor';
+import { EditarPrecios } from '../modules/precios/pages/EditarPrecios';
 
 
 export function AppRoutes() {
@@ -119,6 +121,8 @@ export function AppRoutes() {
         />
         <Route path="canchas" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><CanchasPage /></ProtectedRoute>} />
         <Route path="clases" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><ClasesPage /></ProtectedRoute>} />
+        <Route path="instructores" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE, TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><CrearInstructor /></ProtectedRoute>} />
+        <Route path="precios" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><EditarPrecios /></ProtectedRoute>} />
       </Route>
     </Routes>
   );
