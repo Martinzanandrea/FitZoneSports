@@ -24,6 +24,10 @@ import { CanchasPage } from '../modules/admin/pages/CanchasPage';
 import { ClasesPage } from '../modules/admin/pages/ClasesPage';
 import { CrearInstructor } from '../modules/instructores/pages/CrearInstructor';
 import { EditarPrecios } from '../modules/precios/pages/EditarPrecios';
+import { ControlAcceso } from '../modules/acceso/pages/ControlAcceso';
+import { GestionReservasClases } from '../modules/clases/pages/GestionReservasClases';
+import { GestionReservasCanchas } from '../modules/canchas/pages/GestionReservasCanchas';
+import { CobrarEfectivo } from '../modules/pagos/pages/CobrarEfectivo';
 
 
 export function AppRoutes() {
@@ -123,6 +127,10 @@ export function AppRoutes() {
         <Route path="clases" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><ClasesPage /></ProtectedRoute>} />
         <Route path="instructores" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE, TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><CrearInstructor /></ProtectedRoute>} />
         <Route path="precios" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><EditarPrecios /></ProtectedRoute>} />
+        <Route path="acceso" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><ControlAcceso /></ProtectedRoute>} />
+        <Route path="reservas-clases" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasClases /></ProtectedRoute>} />
+        <Route path="reservas-canchas" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasCanchas /></ProtectedRoute>} />
+        <Route path="cobrar" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><CobrarEfectivo /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

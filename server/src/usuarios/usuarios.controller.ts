@@ -23,6 +23,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadedFile, UseInterceptors } from '@nestjs/common';
 import { AsignarSedeDto } from './dto/asignar-sede.dto';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
@@ -30,6 +31,7 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Post('staff')
+  @Auditable('CREAR_PERSONAL', 'Usuario')
   createStaff(@Body() dto: CreateUsuarioDto) {
     return this.usuariosService.create(dto);
   }
@@ -45,6 +47,7 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Patch(':id/sede')
+  @Auditable('REASIGNAR_SEDE', 'Usuario')
   asignarSede(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AsignarSedeDto,
@@ -111,6 +114,7 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Delete(':id')
+  @Auditable('DESACTIVAR_USUARIO', 'Usuario')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usuariosService.remove(id);
   }

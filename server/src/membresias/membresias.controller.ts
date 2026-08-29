@@ -18,6 +18,7 @@ import { UpdateMembresiaDto } from './dto/update-membresia.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('membresias')
@@ -82,6 +83,7 @@ export class MembresiasController {
   }
 
   @Patch(':id/cancelar')
+  @Auditable('CANCELAR_MEMBRESIA', 'Membresia')
   async cancelar(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UsuarioAutenticado,

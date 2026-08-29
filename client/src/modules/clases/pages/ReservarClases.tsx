@@ -66,8 +66,9 @@ export function ReservarClases() {
       setMisReservas((prev) => [...prev, reserva]);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'No se pudo reservar.';
-      const ax = e as { response?: { data?: { message?: string } } };
-      setError(ax.response?.data?.message ?? msg);
+      const ax = e as { response?: { data?: { message?: string | string[] } } };
+      const raw = ax.response?.data?.message;
+      setError(Array.isArray(raw) ? raw.join(', ') : (raw ?? msg));
     } finally {
       setAccionId(null);
     }
@@ -85,8 +86,9 @@ export function ReservarClases() {
         return next;
       });
     } catch (e: unknown) {
-      const ax = e as { response?: { data?: { message?: string } } };
-      setError(ax.response?.data?.message ?? 'No se pudo cancelar.');
+      const ax = e as { response?: { data?: { message?: string | string[] } } };
+      const raw = ax.response?.data?.message;
+      setError(Array.isArray(raw) ? raw.join(', ') : (raw ?? 'No se pudo cancelar.'));
     } finally {
       setAccionId(null);
     }

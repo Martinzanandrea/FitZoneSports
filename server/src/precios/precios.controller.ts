@@ -5,6 +5,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { TipoActor, TipoPlan } from '../entities/enums';
 import { PreciosService } from './precios.service';
 import { UpdatePrecioDto } from './dto/update-precio.dto';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @Controller('precios/membresias')
 export class PreciosController {
@@ -20,6 +21,7 @@ export class PreciosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Patch(':plan')
+  @Auditable('ACTUALIZAR_PRECIO', 'PrecioPlan')
   actualizar(@Param('plan') plan: TipoPlan, @Body() dto: UpdatePrecioDto) {
     return this.preciosService.actualizarPrecio(plan, dto.precio);
   }

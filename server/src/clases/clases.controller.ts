@@ -18,6 +18,7 @@ import { ClasesService } from './clases.service';
 import { CreateClaseDto } from './dto/create-clase.dto';
 import { UpdateClaseDto } from './dto/update-clase.dto';
 import { AsignarInstructorDto } from './dto/asignar-instructor.dto';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('clases')
@@ -26,6 +27,7 @@ export class ClasesController {
 
   @Roles(TipoActor.GERENTE)
   @Post()
+  @Auditable('CREAR_CLASE', 'Clase')
   create(@Body() dto: CreateClaseDto) {
     return this.clasesService.create(dto);
   }
@@ -42,6 +44,7 @@ export class ClasesController {
 
   @Roles(TipoActor.GERENTE)
   @Patch(':id')
+  @Auditable('ACTUALIZAR_CLASE', 'Clase')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateClaseDto) {
     return this.clasesService.update(id, dto);
   }
@@ -51,6 +54,7 @@ export class ClasesController {
   // (validado dentro del service con assertSedeScope).
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Patch(':id/instructor')
+  @Auditable('ASIGNAR_INSTRUCTOR', 'Clase')
   asignarInstructor(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AsignarInstructorDto,

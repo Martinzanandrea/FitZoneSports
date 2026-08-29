@@ -12,6 +12,7 @@ export * from './reserva-cancha.entity';
 export * from './pago.entity';
 export * from './comprobante.entity';
 export * from './precio-plan-entity';
+export * from './auditoria.entity';
 
 import { Sede } from './sede.entity';
 import { Usuario } from './usuario.entity';
@@ -26,6 +27,7 @@ import { ReservaCancha } from './reserva-cancha.entity';
 import { Pago } from './pago.entity';
 import { Comprobante } from './comprobante.entity';
 import { PrecioPlan } from './precio-plan-entity';
+import { Auditoria } from './auditoria.entity';
 export const ALL_ENTITIES = [
   Sede,
   Usuario,
@@ -40,4 +42,5 @@ export const ALL_ENTITIES = [
   Pago,
   Comprobante,
   PrecioPlan,
+  Auditoria,
 ];

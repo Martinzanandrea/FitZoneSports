@@ -8,4 +8,8 @@ export const accesoApi = {
     api
       .get<{ qrToken: string; expiraEn: number }>(`/acceso/qr/${usuarioId}`)
       .then((res) => res.data),
+  validarIngreso: (payload: { qrToken: string; sedeId: string }) =>
+    api.post("/acceso/validar", payload).then((res) => res.data),
+  registrarEgreso: (payload: { usuarioId: string }) =>
+    api.post("/acceso/egreso", payload).then((res) => res.data),
 };

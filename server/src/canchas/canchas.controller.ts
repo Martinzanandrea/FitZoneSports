@@ -16,6 +16,7 @@ import { CanchasService } from './canchas.service';
 import { CreateCanchaDto } from './dto/create-cancha.dto';
 import { UpdateCanchaDto } from './dto/update-cancha.dto';
 import { CreateBloqueoDto } from './dto/create-bloqueo.dto';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('canchas')
@@ -24,6 +25,7 @@ export class CanchasController {
 
   @Roles(TipoActor.GERENTE)
   @Post()
+  @Auditable('CREAR_CANCHA', 'Cancha')
   create(@Body() dto: CreateCanchaDto) {
     return this.canchasService.create(dto);
   }
@@ -40,12 +42,14 @@ export class CanchasController {
 
   @Roles(TipoActor.GERENTE)
   @Patch(':id')
+  @Auditable('ACTUALIZAR_CANCHA', 'Cancha')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCanchaDto) {
     return this.canchasService.update(id, dto);
   }
 
   @Roles(TipoActor.GERENTE)
   @Post(':id/bloqueos')
+  @Auditable('BLOQUEAR_CANCHA', 'BloqueoCancha')
   crearBloqueo(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateBloqueoDto,

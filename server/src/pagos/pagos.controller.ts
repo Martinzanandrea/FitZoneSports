@@ -18,6 +18,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('pagos')
@@ -32,6 +33,7 @@ export class PagosController {
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Post('efectivo')
+  @Auditable('COBRAR_EFECTIVO', 'Pago')
   registrarEfectivo(
     @Body() dto: RegistrarPagoEfectivoDto,
     @CurrentUser() user: UsuarioAutenticado,

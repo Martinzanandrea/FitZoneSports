@@ -16,6 +16,7 @@ import { TipoActor } from '../entities/enums';
 import { SedesService } from './sedes.service';
 import { CreateSedeDto } from './dto/create-sede.dto';
 import { UpdateSedeDto } from './dto/update-sede.dto';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @Controller('sedes')
 export class SedesController {
@@ -31,6 +32,7 @@ export class SedesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Post()
+  @Auditable('CREAR_SEDE', 'Sede')
   create(@Body() dto: CreateSedeDto) {
     return this.sedesService.create(dto);
   }
@@ -50,6 +52,7 @@ export class SedesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Patch(':id')
+  @Auditable('ACTUALIZAR_SEDE', 'Sede')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSedeDto) {
     return this.sedesService.update(id, dto);
   }

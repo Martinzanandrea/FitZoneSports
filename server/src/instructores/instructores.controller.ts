@@ -16,6 +16,7 @@ import { TipoActor } from '../entities/enums';
 import { InstructoresService } from './instructores.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('instructores')
@@ -24,6 +25,7 @@ export class InstructoresController {
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Post()
+  @Auditable('CREAR_INSTRUCTOR', 'Instructor')
   create(@Body() dto: CreateInstructorDto) {
     return this.instructoresService.create(dto);
   }

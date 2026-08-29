@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -47,6 +48,13 @@ export class ReservasClaseService {
     });
     if (!usuario)
       throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
+
+    const yaReservada = await this.reservasRepo.findOne({
+      where: { clase: { id: claseId }, usuario: { id: usuarioId } },
+    });
+    if (yaReservada) {
+      throw new ConflictException('Este usuario ya tiene una reserva para esta clase');
+    }
 
     const horasHastaClase =
       (clase.horarioInicio.getTime() - Date.now()) / (1000 * 60 * 60);

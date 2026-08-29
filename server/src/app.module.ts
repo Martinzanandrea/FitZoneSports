@@ -16,6 +16,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AdminModule } from './admin/admin.module';
 import { PreciosModule } from './precios/precios.module';
+import { AuditoriaModule } from './auditoria/auditoria.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
@@ -33,6 +34,7 @@ import { PreciosModule } from './precios/precios.module';
     AccesoModule,
     AdminModule,
     PreciosModule,
+    AuditoriaModule,
 
     ThrottlerModule.forRoot({
       throttlers: [
