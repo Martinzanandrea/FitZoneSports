@@ -14,6 +14,7 @@ const MANAGER_NAV = [
   { to: '/admin/instructores', icon: GraduationCap, label: 'Instructores' },
   { to: '/admin/membresias', icon: CreditCard, label: 'Membresías' },
   { to: '/admin/reservas', icon: ClipboardList, label: 'Reservas' },
+  { to: '/admin/reportes', icon: TrendingUp, label: 'Reportes' },
   { to: '/admin/precios', icon: Tag, label: 'Precios' },
 ];
 
