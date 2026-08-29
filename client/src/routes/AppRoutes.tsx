@@ -28,6 +28,9 @@ import { ControlAcceso } from '../modules/acceso/pages/ControlAcceso';
 import { GestionReservasClases } from '../modules/clases/pages/GestionReservasClases';
 import { GestionReservasCanchas } from '../modules/canchas/pages/GestionReservasCanchas';
 import { CobrarEfectivo } from '../modules/pagos/pages/CobrarEfectivo';
+import { Reportes } from '../modules/admin/pages/Reportes';
+import { SedeDetalle } from '../modules/sedes/pages/SedeDetalle';
+import { InstructorDetalle } from '../modules/instructores/pages/InstructorDetalle';
 
 
 export function AppRoutes() {
@@ -131,6 +134,9 @@ export function AppRoutes() {
         <Route path="reservas-clases" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasClases /></ProtectedRoute>} />
         <Route path="reservas-canchas" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasCanchas /></ProtectedRoute>} />
         <Route path="cobrar" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><CobrarEfectivo /></ProtectedRoute>} />
+        <Route path="reportes" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><Reportes /></ProtectedRoute>} />
+        <Route path="sedes/:id" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><SedeDetalle /></ProtectedRoute>} />
+        <Route path="instructores/:id" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE, TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><InstructorDetalle /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

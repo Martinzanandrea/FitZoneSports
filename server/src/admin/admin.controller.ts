@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -22,5 +22,23 @@ export class AdminController {
   @Roles(TipoActor.GERENTE, TipoActor.RECEPCIONISTA)
   obtenerReservas(@CurrentUser() user: UsuarioAutenticado) {
     return this.adminService.obtenerReservas(user);
+  }
+
+  @Get('reportes/financiero')
+  @Roles(TipoActor.GERENTE)
+  obtenerReporteFinanciero() {
+    return this.adminService.obtenerReporteFinanciero();
+  }
+
+  @Get('reportes/membresias')
+  @Roles(TipoActor.GERENTE)
+  obtenerMembresiasPorSede(@Query('sedeId') sedeId?: string) {
+    return this.adminService.obtenerMembresiasPorSede(sedeId);
+  }
+
+  @Get('reportes/precios-popularidad')
+  @Roles(TipoActor.GERENTE)
+  obtenerPopularidadPlanes() {
+    return this.adminService.obtenerPopularidadPlanes();
   }
 }

@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { Building2, Check, Pencil, Plus, Power, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { sedesApi } from '../sedes.api';
 import type { CreateSedePayload, Sede } from '../sedes.types';
 
@@ -151,7 +152,7 @@ export function SedesPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {sedes.map((sede) => (
-            <article key={sede.id} className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+            <Link key={sede.id} to={`/admin/sedes/${sede.id}`} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 block hover:border-[#8B2EFF] hover:shadow-md transition-colors">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F3E8FF] text-[#8B2EFF]"><Building2 size={18} /></div>
@@ -167,15 +168,15 @@ export function SedesPage() {
               <div className="mt-5 flex items-center justify-between border-t border-[#F3F4F6] pt-3 text-xs text-[#6B7280]">
                 <span>Aforo máximo: <strong className="text-[#111111]">{sede.aforoMaximo}</strong></span>
                 <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => editSede(sede)} className="inline-flex items-center gap-1.5 font-semibold text-[#6B7280] hover:text-[#8B2EFF]">
+                  <button type="button" onClick={(e) => { e.preventDefault(); editSede(sede); }} className="inline-flex items-center gap-1.5 font-semibold text-[#6B7280] hover:text-[#8B2EFF]">
                     <Pencil size={14} /> Editar
                   </button>
-                  <button type="button" onClick={() => void toggleSede(sede)} className="inline-flex items-center gap-1.5 font-semibold text-[#6B7280] hover:text-[#8B2EFF]">
+                  <button type="button" onClick={(e) => { e.preventDefault(); void toggleSede(sede); }} className="inline-flex items-center gap-1.5 font-semibold text-[#6B7280] hover:text-[#8B2EFF]">
                     <Power size={14} /> {sede.activa ? 'Desactivar' : 'Activar'}
                   </button>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       )}

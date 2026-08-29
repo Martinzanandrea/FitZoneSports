@@ -6,6 +6,11 @@ import {
   Clase,
   EstadoResCancha,
   EstadoResClase,
+  EstadoMembresia,
+  EstadoPago,
+  Membresia,
+  Pago,
+  Sede,
   ReservaCancha,
   ReservaClase,
 } from '../entities';
@@ -45,6 +50,35 @@ export interface ReservasAdmin {
   }>;
 }
 
+export interface ReporteFinanciero {
+  ingresosHoy: number;
+  ingresosMes: number;
+  ingresosMesAnterior: number;
+  porMetodo: Array<{ metodo: string; total: number }>;
+  porSede: Array<{ sedeId: string; sede: string; total: number }>;
+}
+
+export interface MembresiaPorSede {
+  sedeId: string;
+  sede: string;
+  activas: number;
+  vencidas: number;
+  suspendidas: number;
+  socios: Array<{
+    usuarioId: string;
+    nombre: string;
+    dni: string | null;
+    plan: string;
+    estado: EstadoMembresia;
+    fechaFin: string;
+  }>;
+}
+
+export interface PlanPopularidad {
+  plan: string;
+  socios: number;
+}
+
 @Injectable()
 export class AdminService {
   constructor(
@@ -56,6 +90,12 @@ export class AdminService {
     private readonly reservasClaseRepo: Repository<ReservaClase>,
     @InjectRepository(ReservaCancha)
     private readonly reservasCanchaRepo: Repository<ReservaCancha>,
+    @InjectRepository(Pago)
+    private readonly pagosRepo: Repository<Pago>,
+    @InjectRepository(Membresia)
+    private readonly membresiasRepo: Repository<Membresia>,
+    @InjectRepository(Sede)
+    private readonly sedesRepo: Repository<Sede>,
   ) {}
 
   async obtenerDashboardResumen(
@@ -107,7 +147,6 @@ export class AdminService {
   async obtenerReservas(
     currentUser: UsuarioAutenticado,
   ): Promise<ReservasAdmin> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     const filtrarPorSede = currentUser.tipoActor === TipoActor.RECEPCIONISTA;
 
     const reservasClaseQuery = this.reservasClaseRepo
@@ -189,5 +228,137 @@ export class AdminService {
       clases,
       canchas,
     };
+  }
+
+  async obtenerReporteFinanciero(): Promise<ReporteFinanciero> {
+    const inicioHoy = new Date();
+    inicioHoy.setHours(0, 0, 0, 0);
+
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    inicioMes.setHours(0, 0, 0, 0);
+
+    const inicioMesAnterior = new Date(inicioMes);
+    inicioMesAnterior.setMonth(inicioMesAnterior.getMonth() - 1);
+    const finMesAnterior = new Date(inicioMes);
+
+    const base = () =>
+      this.pagosRepo
+        .createQueryBuilder('pago')
+        .where('pago.estado = :estado', { estado: EstadoPago.APROBADO });
+
+    const ingresosHoyRaw = await base()
+      .andWhere('pago.pagado_en >= :inicioHoy', { inicioHoy })
+      .select('COALESCE(SUM(pago.monto), 0)', 'total')
+      .getRawOne<{ total: string }>();
+
+    const ingresosMesRaw = await base()
+      .andWhere('pago.pagado_en >= :inicioMes', { inicioMes })
+      .select('COALESCE(SUM(pago.monto), 0)', 'total')
+      .getRawOne<{ total: string }>();
+
+    const ingresosMesAnteriorRaw = await base()
+      .andWhere('pago.pagado_en >= :inicioMesAnterior', { inicioMesAnterior })
+      .andWhere('pago.pagado_en < :finMesAnterior', { finMesAnterior })
+      .select('COALESCE(SUM(pago.monto), 0)', 'total')
+      .getRawOne<{ total: string }>();
+
+    const porMetodoRaw = await base()
+      .andWhere('pago.pagado_en >= :inicioMes', { inicioMes })
+      .select('pago.metodo', 'metodo')
+      .addSelect('COALESCE(SUM(pago.monto), 0)', 'total')
+      .groupBy('pago.metodo')
+      .getRawMany<{ metodo: string; total: string }>();
+
+    const porSedeRaw = await this.pagosRepo.manager
+      .createQueryBuilder()
+      .select('sede.id', 'sedeId')
+      .addSelect('sede.nombre', 'sede')
+      .addSelect('COALESCE(SUM(pago.monto), 0)', 'total')
+      .from(Pago, 'pago')
+      .leftJoin('pago.membresia', 'membresia')
+      .leftJoin('membresia.sedeAlta', 'sedeMembresia')
+      .leftJoin('pago.reservaClase', 'reservaClase')
+      .leftJoin('reservaClase.clase', 'claseDeReserva')
+      .leftJoin('claseDeReserva.sede', 'sedeClase')
+      .leftJoin('pago.reservaCancha', 'reservaCancha')
+      .leftJoin('reservaCancha.cancha', 'canchaDeReserva')
+      .leftJoin('canchaDeReserva.sede', 'sedeCancha')
+      .leftJoin(
+        Sede,
+        'sede',
+        'sede.id = COALESCE(sedeMembresia.id, sedeClase.id, sedeCancha.id)',
+      )
+      .where('pago.estado = :estado', { estado: EstadoPago.APROBADO })
+      .andWhere('pago.pagado_en >= :inicioMes', { inicioMes })
+      .andWhere('sede.id IS NOT NULL')
+      .groupBy('sede.id')
+      .addGroupBy('sede.nombre')
+      .getRawMany<{ sedeId: string; sede: string; total: string }>();
+
+    return {
+      ingresosHoy: Number(ingresosHoyRaw?.total ?? 0),
+      ingresosMes: Number(ingresosMesRaw?.total ?? 0),
+      ingresosMesAnterior: Number(ingresosMesAnteriorRaw?.total ?? 0),
+      porMetodo: porMetodoRaw.map((r) => ({
+        metodo: r.metodo,
+        total: Number(r.total),
+      })),
+      porSede: porSedeRaw.map((r) => ({
+        sedeId: r.sedeId,
+        sede: r.sede,
+        total: Number(r.total),
+      })),
+    };
+  }
+
+  async obtenerMembresiasPorSede(sedeId?: string): Promise<MembresiaPorSede[]> {
+    const sedes = sedeId
+      ? await this.sedesRepo.find({ where: { id: sedeId } })
+      : await this.sedesRepo.find();
+
+    const resultado: MembresiaPorSede[] = [];
+
+    for (const sede of sedes) {
+      const membresias = await this.membresiasRepo.find({
+        where: { sedeAlta: { id: sede.id } },
+        relations: { usuario: true },
+        order: { fechaFin: 'DESC' },
+      });
+
+      resultado.push({
+        sedeId: sede.id,
+        sede: sede.nombre,
+        activas: membresias.filter((m) => m.estado === EstadoMembresia.ACTIVO)
+          .length,
+        vencidas: membresias.filter((m) => m.estado === EstadoMembresia.VENCIDO)
+          .length,
+        suspendidas: membresias.filter(
+          (m) => m.estado === EstadoMembresia.SUSPENDIDO,
+        ).length,
+        socios: membresias.map((m) => ({
+          usuarioId: m.usuario.id,
+          nombre: `${m.usuario.nombre} ${m.usuario.apellido}`,
+          dni: m.usuario.dni ?? null,
+          plan: m.plan,
+          estado: m.estado,
+          fechaFin: m.fechaFin,
+        })),
+      });
+    }
+
+    return resultado;
+  }
+
+  async obtenerPopularidadPlanes(): Promise<PlanPopularidad[]> {
+    const raw = await this.membresiasRepo
+      .createQueryBuilder('m')
+      .select('m.plan', 'plan')
+      .addSelect('COUNT(*)', 'socios')
+      .where('m.estado = :estado', { estado: EstadoMembresia.ACTIVO })
+      .groupBy('m.plan')
+      .getRawMany<{ plan: string; socios: string }>();
+
+    return raw.map((r) => ({ plan: r.plan, socios: Number(r.socios) }));
   }
 }
