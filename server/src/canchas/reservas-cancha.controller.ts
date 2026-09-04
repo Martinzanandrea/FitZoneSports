@@ -30,6 +30,14 @@ export class ReservasCanchaController {
     return this.reservasService.reservar(dto, user);
   }
 
+  @Post('cotizar')
+  cotizar(
+    @Body() dto: CreateReservaCanchaDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.reservasService.cotizar(dto, user);
+  }
+
   @Get('cancha/:canchaId')
   findPorCancha(
     @Param('canchaId', ParseUUIDPipe) canchaId: string,

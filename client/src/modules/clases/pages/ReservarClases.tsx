@@ -54,7 +54,11 @@ export function ReservarClases() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filtradas = tipoFiltro === 'TODOS' ? clases : clases.filter((c) => c.tipoClase === tipoFiltro);
+  const limiteReserva = Date.now() + 48 * 60 * 60 * 1000;
+  const filtradas = clases.filter((c) => {
+    const cumpleHorario = new Date(c.horarioInicio).getTime() >= limiteReserva;
+    return cumpleHorario && (tipoFiltro === 'TODOS' || c.tipoClase === tipoFiltro);
+  });
 
   async function handleReservar(claseId: string) {
     if (!user) return;

@@ -25,6 +25,7 @@ export function ReservarCanchas() {
   const [reservando, setReservando] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [ultimaReserva, setUltimaReserva] = useState<ReservaCancha | null>(null);
+  const [cotizacion, setCotizacion] = useState<{ horaInicio: string; horaFin: string; precioFinal: number; estrategia: string } | null>(null);
 
   const fechas = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
 
@@ -43,6 +44,25 @@ export function ReservarCanchas() {
 
   const ocupadas = useMemo(() => new Set(reservas.filter((r) => r.estado === 'CONFIRMADA').map((r) => r.horaInicio.slice(0,5))), [reservas]);
 
+  async function confirmarReserva() {
+    if (!user || !canchaId || !cotizacion) return;
+    const { horaInicio, horaFin } = cotizacion;
+    setReservando(horaInicio);
+    setMsg(null);
+    try {
+      const r = await canchasApi.reservar({ canchaId, usuarioId: user.id, fecha, horaInicio, horaFin });
+      setUltimaReserva(r);
+      setMsg({ type: 'ok', text: `Reserva confirmada — $${r.precioFinal} (${r.estrategiaPrecio})` });
+      setReservas((prev) => [...prev, r]);
+      setCotizacion(null);
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } } };
+      setMsg({ type: 'err', text: ax.response?.data?.message ?? 'No se pudo reservar.' });
+    } finally {
+      setReservando(null);
+    }
+  }
+
   async function handleReservar(hora: number) {
     if (!user || !canchaId) return;
     const horaInicio = `${String(hora).padStart(2,'0')}:00`;
@@ -51,10 +71,8 @@ export function ReservarCanchas() {
     setMsg(null);
     setUltimaReserva(null);
     try {
-      const r = await canchasApi.reservar({ canchaId, usuarioId: user.id, fecha, horaInicio, horaFin });
-      setUltimaReserva(r);
-      setMsg({ type: 'ok', text: `Reserva confirmada — $${r.precioFinal} (${r.estrategiaPrecio})` });
-      setReservas((prev) => [...prev, r]);
+      const quote = await canchasApi.cotizar({ canchaId, usuarioId: user.id, fecha, horaInicio, horaFin });
+      setCotizacion({ horaInicio, horaFin, ...quote });
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } } };
       setMsg({ type: 'err', text: ax.response?.data?.message ?? 'No se pudo reservar.' });
@@ -62,6 +80,9 @@ export function ReservarCanchas() {
       setReservando(null);
     }
   }
+
+  const hoy = formatFecha(new Date());
+  const horaActual = new Date().getHours();
 
   async function handleCancelar(id: string) {
     setReservando(id);
@@ -111,16 +132,34 @@ export function ReservarCanchas() {
         {HORAS.map((h) => {
           const hi = `${String(h).padStart(2,'0')}:00`;
           const ocupado = ocupadas.has(hi);
+          const vencido = fecha === hoy && h <= horaActual;
           const hf = `${String(h+1).padStart(2,'0')}:00`;
           return (
-            <div key={hi} className={`rounded-xl border p-3 text-center ${ocupado ? 'bg-[#F3F4F6] border-[#E5E7EB] opacity-60' : 'bg-white border-[#E5E7EB]'}`}>
+            <div key={hi} className={`rounded-xl border p-3 text-center ${ocupado || vencido ? 'bg-[#F3F4F6] border-[#E5E7EB] opacity-60' : 'bg-white border-[#E5E7EB]'}`}>
               <p className="text-sm font-semibold text-[#111111]">{hi} - {hf}</p>
-              <p className="text-xs mt-1"><Badge variant={ocupado ? 'gray' : 'green'}>{ocupado ? 'Ocupada' : 'Disponible'}</Badge></p>
-              {!ocupado && <Button size="sm" fullWidth className="mt-2" onClick={() => handleReservar(h)} disabled={reservando===hi}>{reservando===hi ? '...' : 'Reservar'}</Button>}
+              <p className="text-xs mt-1"><Badge variant={ocupado || vencido ? 'gray' : 'green'}>{ocupado ? 'Ocupada' : vencido ? 'Vencido' : 'Disponible'}</Badge></p>
+              {!ocupado && !vencido && <Button size="sm" fullWidth className="mt-2" onClick={() => handleReservar(h)} disabled={reservando===hi}>{reservando===hi ? 'Consultando...' : 'Reservar'}</Button>}
             </div>
           );
         })}
       </div>
+
+      {cotizacion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" role="dialog" aria-modal="true" aria-labelledby="confirmar-reserva">
+          <Card className="w-full max-w-sm space-y-4 shadow-xl">
+            <div>
+              <h2 id="confirmar-reserva" className="text-lg font-bold text-[#111111]">Confirmar reserva</h2>
+              <p className="mt-1 text-sm text-[#6B7280]">{fecha} · {cotizacion.horaInicio} - {cotizacion.horaFin}</p>
+            </div>
+            <p className="text-base text-[#111111]">Precio final: <strong>${cotizacion.precioFinal}</strong></p>
+            <Badge variant="violet">{cotizacion.estrategia}</Badge>
+            <div className="flex gap-2">
+              <Button variant="outline" fullWidth onClick={() => setCotizacion(null)} disabled={reservando !== null}>Cancelar</Button>
+              <Button fullWidth onClick={() => void confirmarReserva()} disabled={reservando !== null}>{reservando ? 'Reservando...' : 'Aceptar y reservar'}</Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {reservas.filter((r)=>r.usuario.id===user?.id && r.estado==='CONFIRMADA').length>0 && (
         <div className="space-y-2">
