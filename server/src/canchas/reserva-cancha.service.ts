@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cancha, Usuario, ReservaCancha } from '../entities';
@@ -50,21 +50,15 @@ export class ReservasCanchaService {
     if (!usuario)
       throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
 
-    // RN03: el descuento de socio solo aplica si es SOCIO y su membresía
-    // vigente está ACTIVA (no vencida).
-    let esSocioActivo = false;
-    if (usuario.tipoActor === TipoActor.SOCIO) {
-      const membresia = await this.membresiasService.obtenerMembresiaVigente(
-        usuario.id,
-      );
-      esSocioActivo =
-        !!membresia && membresia.estado === EstadoMembresia.ACTIVO;
+    const inicio = new Date(`${dto.fecha}T${dto.horaInicio}:00`);
+    if (inicio.getTime() <= Date.now()) {
+      throw new BadRequestException('No se puede reservar un horario que ya comenzó');
     }
 
-    const esHoraPico = this.pricingCalculator.esHoraPico(dto.horaInicio);
-    const { precioFinal, estrategia } = this.pricingCalculator.calcular(
-      Number(cancha.costoHoraBase),
-      { esSocioActivo, esHoraPico },
+    const { precioFinal, estrategia } = await this.calcularPrecio(
+      cancha,
+      usuario,
+      dto.horaInicio,
     );
 
     return this.bookingRepo.crearReservaSegura({
@@ -75,6 +69,38 @@ export class ReservasCanchaService {
       horaFin: dto.horaFin,
       precioFinal,
       estrategiaPrecio: estrategia,
+    });
+  }
+
+  async cotizar(dto: CreateReservaCanchaDto, currentUser: UsuarioAutenticado) {
+    assertOwnerOrStaff(currentUser, dto.usuarioId);
+    const cancha = await this.canchasRepo.findOne({
+      where: { id: dto.canchaId },
+      relations: { sede: true },
+    });
+    if (!cancha) throw new NotFoundException(`Cancha ${dto.canchaId} no encontrada`);
+
+    const usuario = await this.usuariosRepo.findOne({ where: { id: dto.usuarioId } });
+    if (!usuario) throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
+
+    const inicio = new Date(`${dto.fecha}T${dto.horaInicio}:00`);
+    if (inicio.getTime() <= Date.now()) {
+      throw new BadRequestException('No se puede reservar un horario que ya comenzó');
+    }
+
+    return this.calcularPrecio(cancha, usuario, dto.horaInicio);
+  }
+
+  private async calcularPrecio(cancha: Cancha, usuario: Usuario, horaInicio: string) {
+    let esSocioActivo = false;
+    if (usuario.tipoActor === TipoActor.SOCIO) {
+      const membresia = await this.membresiasService.obtenerMembresiaVigente(usuario.id);
+      esSocioActivo = !!membresia && membresia.estado === EstadoMembresia.ACTIVO;
+    }
+
+    return this.pricingCalculator.calcular(Number(cancha.costoHoraBase), {
+      esSocioActivo,
+      esHoraPico: this.pricingCalculator.esHoraPico(horaInicio),
     });
   }
 

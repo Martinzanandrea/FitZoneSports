@@ -9,6 +9,8 @@ export const canchasApi = {
     api.get<ReservaCancha[]>(`/reservas-cancha/cancha/${canchaId}`, { params: fecha ? { fecha } : {} }).then((r) => r.data),
   reservar: (payload: { canchaId: string; usuarioId: string; fecha: string; horaInicio: string; horaFin: string }) =>
     api.post<ReservaCancha>('/reservas-cancha', payload).then((r) => r.data),
+  cotizar: (payload: { canchaId: string; usuarioId: string; fecha: string; horaInicio: string; horaFin: string }) =>
+    api.post<{ precioFinal: number; estrategia: string }>('/reservas-cancha/cotizar', payload).then((r) => r.data),
   cancelar: (reservaId: string) =>
     api.post<ReservaCancha>(`/reservas-cancha/${reservaId}/cancelar`).then((r) => r.data),
 };
