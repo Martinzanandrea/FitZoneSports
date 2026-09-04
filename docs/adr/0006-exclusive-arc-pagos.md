@@ -1,4 +1,4 @@
-# ADR 0005: Exclusive arc (FKs nullables + CHECK) en lugar de FK polimórfica en `pagos`
+# ADR 0006: Exclusive arc (FKs nullables + CHECK) en lugar de FK polimórfica en `pagos`
 
 ## Estado
 

@@ -1,4 +1,4 @@
-# ADR 0011: Flujo de membresía y pago obligatorio antes del dashboard del Socio
+# ADR 0013: Flujo de membresía y pago obligatorio antes del dashboard del Socio
 
 ## Estado
 

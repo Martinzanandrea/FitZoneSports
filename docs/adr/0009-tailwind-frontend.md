@@ -1,4 +1,4 @@
-# ADR 0007: Tailwind CSS v4 como sistema de estilos del frontend
+# ADR 0009: Tailwind CSS v4 como sistema de estilos del frontend
 
 ## Estado
 

@@ -28,6 +28,7 @@ export function MiQr() {
   }, [user]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     generar();
   }, [generar]);
 

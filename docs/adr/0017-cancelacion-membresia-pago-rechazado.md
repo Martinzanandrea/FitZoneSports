@@ -1,4 +1,4 @@
-# ADR 0015: Cancelación de membresía tras pago rechazado
+# ADR 0017: Cancelación de membresía tras pago rechazado
 
 ## Estado
 

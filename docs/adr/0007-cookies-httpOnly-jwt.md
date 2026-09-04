@@ -1,4 +1,4 @@
-# ADR 0004: Cookie httpOnly para el almacenamiento del JWT
+# ADR 0007: Cookie httpOnly para el almacenamiento del JWT
 
 ## Estado
 

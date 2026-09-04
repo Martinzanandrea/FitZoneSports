@@ -20,10 +20,10 @@ import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @Controller('sedes')
 export class SedesController {
+  //sedesService is injected into the controller to handle business logic related to "sedes" (locations/branches).
   constructor(private readonly sedesService: SedesService) {}
 
   // Público, sin auth — usado por la landing/página de inicio.
-  // Va ANTES que ':id' para que Nest no lo confunda con un parámetro.
   @Get('publico')
   findAllPublico() {
     return this.sedesService.findAll();

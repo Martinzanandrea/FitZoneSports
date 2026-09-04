@@ -1,4 +1,4 @@
-# ADR 0009: qrcode.react para el renderizado del QR dinámico en el cliente
+# ADR 0010: qrcode.react para el renderizado del QR dinámico en el cliente
 
 ## Estado
 

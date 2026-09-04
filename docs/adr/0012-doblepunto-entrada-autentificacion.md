@@ -1,4 +1,4 @@
-# ADR 0010: Doble punto de entrada de autenticación (cliente vs. staff)
+# ADR 0012: Doble punto de entrada de autenticación (cliente vs. staff)
 
 ## Estado
 

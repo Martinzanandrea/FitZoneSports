@@ -1,4 +1,4 @@
-# ADR 0002: PostgreSQL como motor de base de datos
+# ADR 0003: PostgreSQL como motor de base de datos
 
 ## Estado
 

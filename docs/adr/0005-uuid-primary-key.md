@@ -1,4 +1,4 @@
-# ADR 0003: UUID como clave primaria en lugar de enteros autoincrementales
+# ADR 0005: UUID como clave primaria en lugar de enteros autoincrementales
 
 ## Estado
 

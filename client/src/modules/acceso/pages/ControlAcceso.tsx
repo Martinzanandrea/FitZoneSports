@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { accesoApi } from '../acceso.api';
 import { Badge, Button, Card, SectionTitle } from '../../../shared/components/ui';
-
+// The ControlAcceso component handles the access control functionality, including validating QR codes and registering user exits.
 export function ControlAcceso() {
   const { user } = useAuth();
   const sedeId = user?.sedeId ?? null;
@@ -31,6 +31,7 @@ export function ControlAcceso() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void cargarAforo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sedeId]);

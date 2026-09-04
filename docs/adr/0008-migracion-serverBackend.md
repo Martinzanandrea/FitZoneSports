@@ -1,4 +1,4 @@
-# ADR 0006: Migración del hosting de backend de Railway a Render
+# ADR 0008: Migración del hosting de backend de Railway a Render
 
 ## Estado
 

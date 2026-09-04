@@ -1,4 +1,4 @@
-# ADR 0008: Scoping por sede para el rol Recepcionista
+# ADR 0011: Scoping por sede para el rol Recepcionista
 
 ## Estado
 

@@ -1,4 +1,4 @@
-# ADR 0012: Endpoints agregados para el panel gerencial
+# ADR 0014: Endpoints agregados para el panel gerencial
 
 ## Estado
 
