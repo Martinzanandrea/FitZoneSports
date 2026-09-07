@@ -8,6 +8,28 @@ import { instructoresApi, type Instructor } from '../../instructores/instructore
 import { ProgressBar } from '../../../shared/components/ui';
 
 const EMPTY_FORM: ClasePayload = { sedeId: '', tipoClase: '', instructorId: '', horarioInicio: '', horarioFin: '', capacidad: 1 };
+const HORAS_CLASE = Array.from({ length: 17 }, (_, index) => String(index + 6).padStart(2, '0'));
+const MINUTOS_CLASE = ['00', '15', '30'];
+const DURACIONES = ['60', '90', '120', 'PERSONALIZADA'] as const;
+type DuracionClase = (typeof DURACIONES)[number];
+
+function partesFechaHora(value: string) {
+  const [fecha = '', horaCompleta = ''] = value.split('T');
+  const [hora = '', minuto = ''] = horaCompleta.split(':');
+  return { fecha, hora, minuto };
+}
+type PartesFechaHora = ReturnType<typeof partesFechaHora>;
+
+function fechaHoraLocal(fecha: string, hora: string, minuto: string) {
+  return fecha && hora && minuto ? `${fecha}T${hora}:${minuto}` : '';
+}
+
+function sumarMinutos(value: string, minutos: number) {
+  const fecha = new Date(value);
+  fecha.setMinutes(fecha.getMinutes() + minutos);
+  const pad = (numero: number) => String(numero).padStart(2, '0');
+  return `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}T${pad(fecha.getHours())}:${pad(fecha.getMinutes())}`;
+}
 
 export function ClasesPage() {
   const [clases, setClases] = useState<Clase[]>([]);
@@ -21,6 +43,9 @@ export function ClasesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [duracion, setDuracion] = useState<DuracionClase>('60');
+  const [inicioSeleccionado, setInicioSeleccionado] = useState<PartesFechaHora>(partesFechaHora(''));
+  const [finSeleccionado, setFinSeleccionado] = useState<PartesFechaHora>(partesFechaHora(''));
 
   useEffect(() => {
     Promise.all([clasesApi.getAll(), sedesApi.getAll(), instructoresApi.getAll()])
@@ -71,7 +96,13 @@ export function ClasesPage() {
   }
 
   function editar(clase: Clase) {
-    setForm({ sedeId: clase.sede.id, tipoClase: clase.tipoClase, instructorId: clase.instructor.id, horarioInicio: toInputDate(clase.horarioInicio), horarioFin: toInputDate(clase.horarioFin), capacidad: clase.capacidad });
+    const horarioInicio = toInputDate(clase.horarioInicio);
+    const horarioFin = toInputDate(clase.horarioFin);
+    setForm({ sedeId: clase.sede.id, tipoClase: clase.tipoClase, instructorId: clase.instructor.id, horarioInicio, horarioFin, capacidad: clase.capacidad });
+    setInicioSeleccionado(partesFechaHora(horarioInicio));
+    setFinSeleccionado(partesFechaHora(horarioFin));
+    const minutos = (new Date(clase.horarioFin).getTime() - new Date(clase.horarioInicio).getTime()) / 60000;
+    setDuracion(minutos === 60 || minutos === 90 || minutos === 120 ? String(minutos) as DuracionClase : 'PERSONALIZADA');
     setEditingId(clase.id); setShowForm(true); setError('');
   }
   async function asignarInstructor(claseId: string, instructorId: string) {
@@ -80,12 +111,52 @@ export function ClasesPage() {
       setClases((actuales) => actuales.map((c) => c.id === claseId ? actualizada : c));
     } catch { setError('No se pudo asignar el instructor.'); }
   }
-  function cerrar() { setForm(EMPTY_FORM); setEditingId(null); setShowForm(false); }
+  function cerrar() {
+    setForm(EMPTY_FORM);
+    setDuracion('60');
+    setInicioSeleccionado(partesFechaHora(''));
+    setFinSeleccionado(partesFechaHora(''));
+    setEditingId(null);
+    setShowForm(false);
+  }
+
+  const inicio = inicioSeleccionado;
+  const fin = finSeleccionado;
+
+  function actualizarInicio(partes: Partial<PartesFechaHora>) {
+    const nuevoInicio = { ...inicioSeleccionado, ...partes };
+    setInicioSeleccionado(nuevoInicio);
+    const horarioInicio = fechaHoraLocal(nuevoInicio.fecha, nuevoInicio.hora, nuevoInicio.minuto);
+    if (!horarioInicio) {
+      setForm({ ...form, horarioInicio: '', horarioFin: '' });
+      return;
+    }
+    const horarioFin = duracion === 'PERSONALIZADA'
+      ? form.horarioFin
+      : sumarMinutos(horarioInicio, Number(duracion));
+    setFinSeleccionado(partesFechaHora(horarioFin));
+    setForm({ ...form, horarioInicio, horarioFin });
+  }
+
+  function actualizarDuracion(nuevaDuracion: DuracionClase) {
+    setDuracion(nuevaDuracion);
+    if (nuevaDuracion !== 'PERSONALIZADA' && form.horarioInicio) {
+      const horarioFin = sumarMinutos(form.horarioInicio, Number(nuevaDuracion));
+      setFinSeleccionado(partesFechaHora(horarioFin));
+      setForm({ ...form, horarioFin });
+    }
+  }
+
+  function actualizarFin(partes: Partial<PartesFechaHora>) {
+    const nuevoFin = { ...finSeleccionado, ...partes };
+    setFinSeleccionado(nuevoFin);
+    setForm({ ...form, horarioFin: fechaHoraLocal(nuevoFin.fecha, nuevoFin.hora, nuevoFin.minuto) });
+  }
 
   return <div className="max-w-5xl">
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-bold text-[#111111]">Clases</h1><p className="mt-1 text-sm text-[#6B7280]">Administrá las clases grupales de todas las sedes.</p></div><button type="button" onClick={() => showForm ? cerrar() : setShowForm(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#8B2EFF] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7620df]" style={{ minHeight: 44 }}>{showForm ? <X size={16} /> : <Plus size={16} />}{showForm ? 'Cerrar' : 'Agregar clase'}</button></div>
     {error && <p className="mb-4 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{error}</p>}
-    {showForm && <form onSubmit={guardar} className="mb-6 grid gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5 md:grid-cols-2"><label className="text-sm font-medium text-[#374151]">Nombre de la clase<input required value={form.tipoClase} onChange={(e) => setForm({ ...form, tipoClase: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label><label className="text-sm font-medium text-[#374151]">Sede<select required value={form.sedeId} onChange={(e) => setForm({ ...form, sedeId: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}><option value="">Seleccionar sede...</option>{sedes.map((sede) => <option key={sede.id} value={sede.id}>{sede.nombre}</option>)}</select></label><label className="text-sm font-medium text-[#374151]">Instructor<select required value={form.instructorId} onChange={(e) => setForm({ ...form, instructorId: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}><option value="">Seleccionar instructor...</option>{instructores.filter((i) => i.activo).map((instructor) => <option key={instructor.id} value={instructor.id}>{instructor.nombre}</option>)}</select></label><label className="text-sm font-medium text-[#374151]">Cupo máximo<input required min={1} type="number" value={form.capacidad} onChange={(e) => setForm({ ...form, capacidad: Number(e.target.value) })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label><label className="text-sm font-medium text-[#374151]">Inicio<input required type="datetime-local" value={form.horarioInicio} onChange={(e) => setForm({ ...form, horarioInicio: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label><label className="text-sm font-medium text-[#374151]">Fin<input required type="datetime-local" value={form.horarioFin} onChange={(e) => setForm({ ...form, horarioFin: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label><div className="flex items-end md:justify-end"><button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" style={{ minHeight: 44 }}><Check size={16} />{saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Guardar'}</button></div></form>}
+    {showForm && <form onSubmit={guardar} className="mb-6 grid gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5 md:grid-cols-2"><label className="text-sm font-medium text-[#374151]">Nombre de la clase<input required value={form.tipoClase} onChange={(e) => setForm({ ...form, tipoClase: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label><label className="text-sm font-medium text-[#374151]">Sede<select required value={form.sedeId} onChange={(e) => setForm({ ...form, sedeId: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}><option value="">Seleccionar sede...</option>{sedes.map((sede) => <option key={sede.id} value={sede.id}>{sede.nombre}</option>)}</select></label><label className="text-sm font-medium text-[#374151]">Instructor<select required value={form.instructorId} onChange={(e) => setForm({ ...form, instructorId: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}><option value="">Seleccionar instructor...</option>{instructores.filter((i) => i.activo).map((instructor) => <option key={instructor.id} value={instructor.id}>{instructor.nombre}</option>)}</select></label><label className="text-sm font-medium text-[#374151]">Cupo máximo<input required min={1} type="number" value={form.capacidad} onChange={(e) => setForm({ ...form, capacidad: Number(e.target.value) })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label><div className="text-sm font-medium text-[#374151]"><span>Inicio</span><div className="mt-1.5 grid grid-cols-3 gap-2"><input required type="date" value={inicio.fecha} onChange={(e) => actualizarInicio({ fecha: e.target.value })} className="w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" /><select required value={inicio.hora} onChange={(e) => actualizarInicio({ hora: e.target.value })} className="w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]"><option value="">Hora</option>{HORAS_CLASE.map((hora) => <option key={hora} value={hora}>{hora}</option>)}</select><select required value={inicio.minuto} onChange={(e) => actualizarInicio({ minuto: e.target.value })} className="w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]"><option value="">Minutos</option>{MINUTOS_CLASE.map((minuto) => <option key={minuto} value={minuto}>{minuto}</option>)}</select></div></div><div className="text-sm font-medium text-[#374151]"><span>Duración</span><select required value={duracion} onChange={(e) => actualizarDuracion(e.target.value as DuracionClase)} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}><option value="60">Clase de 1 hora</option><option value="90">Clase de 1 hora y media</option><option value="120">Clase de 2 horas</option><option value="PERSONALIZADA">Personalizar hora final</option></select>{duracion === 'PERSONALIZADA' ? <div className="mt-2 grid grid-cols-3 gap-2"><input required type="date" value={fin.fecha} onChange={(e) => actualizarFin({ fecha: e.target.value })} className="w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" /><select required value={fin.hora} onChange={(e) => actualizarFin({ hora: e.target.value })} className="w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]"><option value="">Hora fin</option>{HORAS_CLASE.map((hora) => <option key={hora} value={hora}>{hora}</option>)}</select><select required value={fin.minuto} onChange={(e) => actualizarFin({ minuto: e.target.value })} className="w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]"><option value="">Minutos</option>{MINUTOS_CLASE.map((minuto) => <option key={minuto} value={minuto}>{minuto}</option>)}</select></div> : <p className="mt-2 text-xs text-[#6B7280]">Finaliza: {form.horarioFin ? formatDate(form.horarioFin) : 'seleccioná el inicio'}</p>}</div><div className="flex items-end md:justify-end"><button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" style={{ minHeight: 44 }}><Check size={16} />{saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Guardar'}</button></div></form>}
     {loading ? <p className="text-sm text-[#6B7280]">Cargando clases...</p> : grouped.length === 0 ? <p className="text-sm text-[#6B7280]">Sin sedes.</p> : <div className="space-y-4">
       {grouped.map(({ sede, clases: lista }) => (
         <div key={sede.id} className="rounded-2xl border border-[#E5E7EB] bg-white overflow-hidden">
