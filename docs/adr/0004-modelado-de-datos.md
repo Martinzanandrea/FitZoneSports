@@ -1,0 +1,13 @@
+# ADR 0004: Modelado de datos — UUID, sede transversal, tipos exactos y exclusive arc
+
+## Estado
+Aceptado
+
+## Contexto
+El sistema debía escalar a 25 o más sucursales con interoperabilidad real entre ellas (RF-03, RNF-04) y reglas de negocio que dependen de la pertenencia de cada recurso a una sede concreta (RN-01). Con claves primarias enteras autoincrementales, dos sedes generando datos de forma independiente podrían producir colisiones de ID. El sistema además maneja valores monetarios (precio de canchas, monto de pagos, precio de membresías) donde un error de redondeo por el uso de punto flotante binario (FLOAT/REAL) podría generar diferencias de centavos acumulativas entre lo cobrado y lo registrado. Por último, un pago puede corresponder a exactamente una de tres cosas (membresía, reserva de clase o reserva de cancha), y una FK polimórfica genérica no permite que Postgres valide la existencia real de la fila referenciada.
+
+## Decisión
+Vamos a adoptar cinco criterios de modelado en conjunto sobre las 14 entidades del sistema: (1) UUID (gen_random_uuid()) como clave primaria en todas las tablas, en lugar de enteros autoincrementales; (2) una tabla por módulo de dominio, con sede_id como columna transversal en toda entidad que pertenece a una sucursal; (3) tipos ENUM nativos de Postgres para todo campo de vocabulario cerrado (tipo_actor, estado_membresia, estado_res_cancha, metodo_pago, etc.); (4) el tipo NUMERIC(10,2) —de precisión decimal exacta, no de punto flotante binario— para todo campo monetario (monto, precio, precio_final, costo_hora_base); (5) el patrón exclusive arc (columnas de clave foránea nullables más un CHECK) para representar que un pago referencia exactamente una de tres entidades posibles.
+
+## Consecuencias
+El UUID elimina el riesgo de colisión de ID entre sedes y no revela volumen de negocio a través de la API. El sede_id transversal permite implementar el scoping por sede (ADR 0005) con una simple cláusula WHERE. Los ENUM detectan valores inválidos a nivel de base de datos antes de que lleguen a la aplicación. NUMERIC(10,2) garantiza que un monto se almacene y se sume siempre con exactitud decimal, sin el riesgo de discrepancias de centavos propio de FLOAT/REAL, crítico en una tabla auditada financieramente como pagos. El exclusive arc permite que Postgres valide la existencia real de la fila referenciada en pagos. Como contrapartida: mayor tamaño de almacenamiento por clave UUID frente a un entero; agregar un valor a un ENUM requiere una migración de esquema; y la tabla de pagos usa tres columnas nullables en lugar de dos columnas fijas.
