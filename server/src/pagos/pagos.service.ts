@@ -12,7 +12,13 @@ import {
   ReservaClase,
   ReservaCancha,
 } from '../entities';
-import { EstadoPago, MetodoPago, TipoActor } from '../entities/enums';
+import {
+  EstadoPago,
+  MetodoPago,
+  TipoActor,
+  EstadoResClase,
+  EstadoResCancha,
+} from '../entities/enums';
 import { PasarelaMockService } from './gateway/pasarela-mock.service';
 import { ComprobantesService } from './comprobantes.service';
 import { PreciosService } from '../precios/precios.service';
@@ -39,6 +45,42 @@ export class PagosService {
     private readonly comprobantes: ComprobantesService,
     private readonly preciosService: PreciosService,
   ) {}
+
+  async obtenerOpcionesCobro(currentUser: UsuarioAutenticado) {
+    const sedeId = currentUser.sedeId;
+    const [usuarios, membresias, reservasClase, reservasCancha] = await Promise.all([
+      this.usuariosRepo.find({ relations: { sede: true } }),
+      this.membresiasRepo.find({ relations: { usuario: true, sedeAlta: true } }),
+      this.reservasClaseRepo.find({
+        where: { estado: EstadoResClase.RESERVADA },
+        relations: { usuario: true, clase: { sede: true } },
+      }),
+      this.reservasCanchaRepo.find({
+        where: { estado: EstadoResCancha.CONFIRMADA },
+        relations: { usuario: true, cancha: { sede: true } },
+      }),
+    ]);
+
+    const esDeSede = (sede?: { id: string } | null) => !sedeId || sede?.id === sedeId;
+    const membresiasDeSede = membresias.filter((m) => esDeSede(m.sedeAlta));
+    const reservasClaseDeSede = reservasClase.filter((r) => esDeSede(r.clase.sede));
+    const reservasCanchaDeSede = reservasCancha.filter((r) => esDeSede(r.cancha.sede));
+    const idsUsuarios = new Set([
+      ...membresiasDeSede.map((m) => m.usuario.id),
+      ...reservasClaseDeSede.map((r) => r.usuario.id),
+      ...reservasCanchaDeSede.map((r) => r.usuario.id),
+      ...usuarios.filter((u) => esDeSede(u.sede)).map((u) => u.id),
+    ]);
+
+    return {
+      usuarios: usuarios.filter(
+        (u) => idsUsuarios.has(u.id) && (u.tipoActor === TipoActor.SOCIO || u.tipoActor === TipoActor.EXTERNO),
+      ),
+      membresias: membresiasDeSede,
+      reservasClase: reservasClaseDeSede,
+      reservasCancha: reservasCanchaDeSede,
+    };
+  }
 
   private async resolverReferencia(dto: {
     membresiaId?: string;

@@ -41,6 +41,12 @@ export class PagosController {
     return this.pagosService.registrarPagoEfectivo(dto, user.id);
   }
 
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Get('efectivo/opciones')
+  opcionesEfectivo(@CurrentUser() user: UsuarioAutenticado) {
+    return this.pagosService.obtenerOpcionesCobro(user);
+  }
+
   @Get('usuario/:usuarioId')
   findPorUsuario(
     @Param('usuarioId', ParseUUIDPipe) usuarioId: string,
