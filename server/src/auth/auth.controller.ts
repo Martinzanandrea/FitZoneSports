@@ -13,8 +13,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly config: ConfigService,
   ) {}
-  @SkipThrottle()
-  //esto no esta funcionando, no se si es por la version de nestjs o por la version de typescript, pero me deja hacer post a login sin limite de intentos
+ 
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 intentos por minuto por IP
   @Post('login')
   async login(
