@@ -48,23 +48,31 @@ export class PagosService {
 
   async obtenerOpcionesCobro(currentUser: UsuarioAutenticado) {
     const sedeId = currentUser.sedeId;
-    const [usuarios, membresias, reservasClase, reservasCancha] = await Promise.all([
-      this.usuariosRepo.find({ relations: { sede: true } }),
-      this.membresiasRepo.find({ relations: { usuario: true, sedeAlta: true } }),
-      this.reservasClaseRepo.find({
-        where: { estado: EstadoResClase.RESERVADA },
-        relations: { usuario: true, clase: { sede: true } },
-      }),
-      this.reservasCanchaRepo.find({
-        where: { estado: EstadoResCancha.CONFIRMADA },
-        relations: { usuario: true, cancha: { sede: true } },
-      }),
-    ]);
+    const [usuarios, membresias, reservasClase, reservasCancha] =
+      await Promise.all([
+        this.usuariosRepo.find({ relations: { sede: true } }),
+        this.membresiasRepo.find({
+          relations: { usuario: true, sedeAlta: true },
+        }),
+        this.reservasClaseRepo.find({
+          where: { estado: EstadoResClase.RESERVADA },
+          relations: { usuario: true, clase: { sede: true } },
+        }),
+        this.reservasCanchaRepo.find({
+          where: { estado: EstadoResCancha.CONFIRMADA },
+          relations: { usuario: true, cancha: { sede: true } },
+        }),
+      ]);
 
-    const esDeSede = (sede?: { id: string } | null) => !sedeId || sede?.id === sedeId;
+    const esDeSede = (sede?: { id: string } | null) =>
+      !sedeId || sede?.id === sedeId;
     const membresiasDeSede = membresias.filter((m) => esDeSede(m.sedeAlta));
-    const reservasClaseDeSede = reservasClase.filter((r) => esDeSede(r.clase.sede));
-    const reservasCanchaDeSede = reservasCancha.filter((r) => esDeSede(r.cancha.sede));
+    const reservasClaseDeSede = reservasClase.filter((r) =>
+      esDeSede(r.clase.sede),
+    );
+    const reservasCanchaDeSede = reservasCancha.filter((r) =>
+      esDeSede(r.cancha.sede),
+    );
     const idsUsuarios = new Set([
       ...membresiasDeSede.map((m) => m.usuario.id),
       ...reservasClaseDeSede.map((r) => r.usuario.id),
@@ -74,7 +82,10 @@ export class PagosService {
 
     return {
       usuarios: usuarios.filter(
-        (u) => idsUsuarios.has(u.id) && (u.tipoActor === TipoActor.SOCIO || u.tipoActor === TipoActor.EXTERNO),
+        (u) =>
+          idsUsuarios.has(u.id) &&
+          (u.tipoActor === TipoActor.SOCIO ||
+            u.tipoActor === TipoActor.EXTERNO),
       ),
       membresias: membresiasDeSede,
       reservasClase: reservasClaseDeSede,

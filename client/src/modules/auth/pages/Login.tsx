@@ -47,6 +47,7 @@ export function Login({ audience, redirectTo }: LoginProps) {
       navigate(redirectTo);
     } catch {
       setError('Email o contraseña incorrectos.');
+      
     } finally {
       setLoading(false);
     }
