@@ -24,8 +24,16 @@ export function GestionReservasClases() {
 
   const clasesDeSede = useMemo(() => {
     if (!sedeId) return [];
-    return clases.filter((c) => c.sede.id === sedeId);
+    const ahora = Date.now();
+    return clases.filter(
+      (c) => c.sede.id === sedeId && new Date(c.horarioFin).getTime() > ahora,
+    );
   }, [clases, sedeId]);
+
+  const clasesDisponiblesParaAnotar = useMemo(() => {
+    const limite = Date.now() + 30 * 60 * 1000;
+    return clasesDeSede.filter((clase) => new Date(clase.horarioInicio).getTime() >= limite);
+  }, [clasesDeSede]);
 
   const usuariosFiltrados = useMemo(() => {
     const q = busquedaUsuario.trim().toLowerCase();
@@ -68,6 +76,12 @@ export function GestionReservasClases() {
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sedeId]);
+
+  useEffect(() => {
+    if (claseIdSel && !clasesDisponiblesParaAnotar.some((clase) => clase.id === claseIdSel)) {
+      setClaseIdSel('');
+    }
+  }, [claseIdSel, clasesDisponiblesParaAnotar]);
 
   async function handleReservar() {
     if (!claseIdSel) { setMsg({ type: 'err', text: 'Seleccioná una clase.' }); return; }
@@ -145,7 +159,7 @@ export function GestionReservasClases() {
               style={{ minHeight: 44 }}
             >
               <option value="">Seleccionar clase…</option>
-              {clasesDeSede.map((c) => (
+              {clasesDisponiblesParaAnotar.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.tipoClase} — {new Date(c.horarioInicio).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })} — {c.sede.nombre}
                 </option>
@@ -199,11 +213,20 @@ export function GestionReservasClases() {
             const reservas = reservasPorClase[clase.id] ?? [];
             const ocupadas = reservas.filter((r) => r.estado === 'RESERVADA').length;
             const llena = ocupadas >= clase.capacidad;
+            const ahora = Date.now();
+            const inicio = new Date(clase.horarioInicio).getTime();
+            const fin = new Date(clase.horarioFin).getTime();
+            const enCurso = ahora >= inicio && ahora < fin;
             return (
               <Card key={clase.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-bold text-[#111111]">{clase.tipoClase}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold text-[#111111]">{clase.tipoClase}</p>
+                      <Badge variant={enCurso ? 'amber' : 'green'}>
+                        {enCurso ? 'En curso' : 'Clase futura'}
+                      </Badge>
+                    </div>
                     <p className="text-xs text-[#6B7280] mt-0.5">{clase.sede.nombre} · {clase.instructor.nombre} · {new Date(clase.horarioInicio).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</p>
                   </div>
                   {llena ? <Badge variant="amber">Llena</Badge> : <Badge variant="green">{ocupadas}/{clase.capacidad}</Badge>}

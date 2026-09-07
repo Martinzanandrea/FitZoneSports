@@ -13,7 +13,8 @@ import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 
-const HORAS_LIMITE_RESERVA = 48;
+const HORAS_LIMITE_RESERVA_PROPIA = 48;
+const MINUTOS_LIMITE_RESERVA_STAFF = 30;
 const HORAS_LIMITE_CANCELACION = 2;
 
 @Injectable()
@@ -56,11 +57,17 @@ export class ReservasClaseService {
       throw new ConflictException('Este usuario ya tiene una reserva para esta clase');
     }
 
-    const horasHastaClase =
-      (clase.horarioInicio.getTime() - Date.now()) / (1000 * 60 * 60);
-    if (horasHastaClase < HORAS_LIMITE_RESERVA) {
+    const minutosHastaClase =
+      (clase.horarioInicio.getTime() - Date.now()) / (1000 * 60);
+    const esReservaParaOtraPersona = currentUser.id !== usuarioId;
+    const limiteMinutos = esReservaParaOtraPersona
+      ? MINUTOS_LIMITE_RESERVA_STAFF
+      : HORAS_LIMITE_RESERVA_PROPIA * 60;
+    if (minutosHastaClase < limiteMinutos) {
       throw new BadRequestException(
-        `Solo se puede reservar hasta ${HORAS_LIMITE_RESERVA}hs antes del inicio de la clase`,
+        esReservaParaOtraPersona
+          ? `Solo se puede anotar hasta ${MINUTOS_LIMITE_RESERVA_STAFF} minutos antes del inicio de la clase`
+          : `Solo se puede reservar hasta ${HORAS_LIMITE_RESERVA_PROPIA}hs antes del inicio de la clase`,
       );
     }
 
