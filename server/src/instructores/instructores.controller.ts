@@ -17,31 +17,40 @@ import { InstructoresService } from './instructores.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
+import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
+@ApiTags('Instructores')
+@ApiCookieAuth('token')
 @Controller('instructores')
 export class InstructoresController {
   constructor(private readonly instructoresService: InstructoresService) {}
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Post()
+  @ApiOperation({ summary: 'Crear un instructor' })
   @Auditable('CREAR_INSTRUCTOR', 'Instructor')
   create(@Body() dto: CreateInstructorDto) {
     return this.instructoresService.create(dto);
   }
 
   @Get()
+  @ApiOperation({ summary: 'Listar instructores' })
   findAll() {
     return this.instructoresService.findAll();
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Obtener un instructor por ID' })
+  @ApiParam({ name: 'id', description: 'UUID del instructor' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.instructoresService.findOne(id);
   }
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar un instructor' })
+  @ApiParam({ name: 'id', description: 'UUID del instructor' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInstructorDto,
@@ -53,6 +62,8 @@ export class InstructoresController {
   // un instructor es una decisión más sensible que darlo de alta.
   @Roles(TipoActor.GERENTE)
   @Delete(':id')
+  @ApiOperation({ summary: 'Dar de baja un instructor' })
+  @ApiParam({ name: 'id', description: 'UUID del instructor' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.instructoresService.remove(id);
   }

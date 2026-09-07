@@ -24,6 +24,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadedFile, UseInterceptors } from '@nestjs/common';
 import { AsignarSedeDto } from './dto/asignar-sede.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
+import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+
+@ApiTags('Usuarios')
+@ApiCookieAuth('token')
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
@@ -31,6 +35,7 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Post('staff')
+  @ApiOperation({ summary: 'Crear un usuario de staff' })
   @Auditable('CREAR_PERSONAL', 'Usuario')
   createStaff(@Body() dto: CreateUsuarioDto) {
     return this.usuariosService.create(dto);
@@ -40,6 +45,7 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Get('staff')
+  @ApiOperation({ summary: 'Listar usuarios de staff' })
   findStaff() {
     return this.usuariosService.findStaff();
   }
@@ -47,6 +53,8 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Patch(':id/sede')
+  @ApiOperation({ summary: 'Asignar una sede a un usuario' })
+  @ApiParam({ name: 'id', description: 'UUID del usuario' })
   @Auditable('REASIGNAR_SEDE', 'Usuario')
   asignarSede(
     @Param('id', ParseUUIDPipe) id: string,
@@ -56,6 +64,7 @@ export class UsuariosController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Crear un usuario' })
   @UseInterceptors(FileInterceptor('foto'))
   create(
     @Body() dto: CreateUsuarioDto,
@@ -67,12 +76,15 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Get()
+  @ApiOperation({ summary: 'Listar usuarios' })
   findAll() {
     return this.usuariosService.findAll();
   }
 
   @UseGuards(JwtAuthGuard) // sin RolesGuard: cualquier logueado, se valida ownership abajo
   @Get(':id')
+  @ApiOperation({ summary: 'Obtener un usuario por ID' })
+  @ApiParam({ name: 'id', description: 'UUID del usuario' })
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     assertOwnerOrStaff(user, id);
     return this.usuariosService.findOne(id);
@@ -80,6 +92,8 @@ export class UsuariosController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar un usuario' })
+  @ApiParam({ name: 'id', description: 'UUID del usuario' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUsuarioDto,
@@ -92,6 +106,8 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Patch(':id/rol')
+  @ApiOperation({ summary: 'Asignar rol a un usuario' })
+  @ApiParam({ name: 'id', description: 'UUID del usuario' })
   assignRole(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignRoleDto,
@@ -101,6 +117,8 @@ export class UsuariosController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id/password')
+  @ApiOperation({ summary: 'Cambiar contraseña de un usuario' })
+  @ApiParam({ name: 'id', description: 'UUID del usuario' })
   async changePassword(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ChangePasswordDto,
@@ -114,6 +132,8 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Delete(':id')
+  @ApiOperation({ summary: 'Desactivar un usuario' })
+  @ApiParam({ name: 'id', description: 'UUID del usuario' })
   @Auditable('DESACTIVAR_USUARIO', 'Usuario')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usuariosService.remove(id);

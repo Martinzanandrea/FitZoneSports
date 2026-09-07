@@ -1,4 +1,4 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 import { CreateCanchaDto } from './create-cancha.dto';
 import { EstadoCancha } from '../../entities/enums';

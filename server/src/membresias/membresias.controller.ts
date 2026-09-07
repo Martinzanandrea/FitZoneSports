@@ -19,13 +19,17 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
+import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
+@ApiTags('Membresías')
+@ApiCookieAuth('token')
 @Controller('membresias')
 export class MembresiasController {
   constructor(private readonly membresiasService: MembresiasService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Crear una membresía' })
   create(
     @Body() dto: CreateMembresiaDto,
     @CurrentUser() user: UsuarioAutenticado,
@@ -35,6 +39,7 @@ export class MembresiasController {
   }
 
   @Post('renovar')
+  @ApiOperation({ summary: 'Renovar una membresía' })
   renovar(@Body() dto: CreateMembresiaDto, @CurrentUser() user: UsuarioAutenticado) {
     assertOwnerOrStaff(user, dto.usuarioId);
     return this.membresiasService.renovar(dto);
@@ -42,6 +47,8 @@ export class MembresiasController {
 
   // Debe ir ANTES que ':id' para que Nest no lo confunda con un parámetro.
   @Get('vigente/:usuarioId')
+  @ApiOperation({ summary: 'Obtener la membresía vigente de un usuario' })
+  @ApiParam({ name: 'usuarioId', description: 'UUID del usuario' })
   vigente(
     @Param('usuarioId', ParseUUIDPipe) usuarioId: string,
     @CurrentUser() user: UsuarioAutenticado,
@@ -52,11 +59,14 @@ export class MembresiasController {
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Get()
+  @ApiOperation({ summary: 'Listar membresías' })
   findAll() {
     return this.membresiasService.findAll();
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Obtener una membresía por ID' })
+  @ApiParam({ name: 'id', description: 'UUID de la membresía' })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UsuarioAutenticado,
@@ -68,6 +78,8 @@ export class MembresiasController {
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar una membresía' })
+  @ApiParam({ name: 'id', description: 'UUID de la membresía' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateMembresiaDto,
@@ -77,12 +89,15 @@ export class MembresiasController {
 
   @Roles(TipoActor.GERENTE)
   @Post('marcar-vencidas')
+  @ApiOperation({ summary: 'Marcar membresías vencidas' })
   async marcarVencidas() {
     const cantidad = await this.membresiasService.marcarVencidasSiCorresponde();
     return { message: `${cantidad} membresía(s) marcadas como vencidas` };
   }
 
   @Patch(':id/cancelar')
+  @ApiOperation({ summary: 'Cancelar una membresía' })
+  @ApiParam({ name: 'id', description: 'UUID de la membresía' })
   @Auditable('CANCELAR_MEMBRESIA', 'Membresia')
   async cancelar(
     @Param('id', ParseUUIDPipe) id: string,

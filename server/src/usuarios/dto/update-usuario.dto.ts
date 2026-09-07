@@ -1,4 +1,4 @@
-import { PartialType, OmitType } from '@nestjs/mapped-types';
+import { PartialType, OmitType } from '@nestjs/swagger';
 import { CreateUsuarioDto } from './create-usuario.dto';
 
 // Se excluye "password" del update
