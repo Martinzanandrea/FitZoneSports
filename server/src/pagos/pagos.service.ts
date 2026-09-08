@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -47,6 +48,10 @@ export class PagosService {
   ) {}
 
   async obtenerOpcionesCobro(currentUser: UsuarioAutenticado) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser.tipoActor === TipoActor.RECEPCIONISTA && !currentUser.sedeId) {
+      throw new ForbiddenException('Tu usuario no tiene una sede asignada');
+    }
     const sedeId = currentUser.sedeId;
     const [usuarios, membresias, reservasClase, reservasCancha] =
       await Promise.all([

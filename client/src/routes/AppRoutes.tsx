@@ -31,6 +31,8 @@ import { CobrarEfectivo } from '../modules/pagos/pages/CobrarEfectivo';
 import { Reportes } from '../modules/admin/pages/Reportes';
 import { SedeDetalle } from '../modules/sedes/pages/SedeDetalle';
 import { InstructorDetalle } from '../modules/instructores/pages/InstructorDetalle';
+import { ListadoMembresias } from '../modules/membresias/pages/ListadoMembresias';
+import { SinSedeAsignada } from '../modules/admin/pages/SinSedeAsignada';
 
 
 export function AppRoutes() {
@@ -135,9 +137,20 @@ export function AppRoutes() {
         <Route path="reservas-canchas" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasCanchas /></ProtectedRoute>} />
         <Route path="cobrar" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><CobrarEfectivo /></ProtectedRoute>} />
         <Route path="reportes" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><Reportes /></ProtectedRoute>} />
+        <Route path="membresias" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE, TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><ListadoMembresias /></ProtectedRoute>} />
         <Route path="sedes/:id" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><SedeDetalle /></ProtectedRoute>} />
         <Route path="instructores/:id" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE, TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><InstructorDetalle /></ProtectedRoute>} />
       </Route>
+
+      {/* Fuera de AdminLayout a propósito: pantalla centrada sin sidebar */}
+      <Route
+        path="/admin/sin-sede"
+        element={
+          <ProtectedRoute loginPath="/admin/login">
+            <SinSedeAsignada />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

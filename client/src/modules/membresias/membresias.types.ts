@@ -9,6 +9,8 @@ export interface Membresia {
   renovacionAuto: boolean;
   sedeAlta: { id: string; nombre: string };
   creadaEn: string;
+  // Presente solo cuando el backend incluye la relación (ej. GET /membresias).
+  usuario?: { id: string; nombre: string; apellido: string; dni: string | null };
 }
 
 export interface CreateMembresiaPayload {

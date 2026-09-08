@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Membresia, Usuario, Sede } from '../entities';
-import { TipoPlan, EstadoMembresia } from '../entities/enums';
+import { TipoActor, TipoPlan, EstadoMembresia } from '../entities/enums';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { CreateMembresiaDto } from './dto/create-membresia.dto';
 import { UpdateMembresiaDto } from './dto/update-membresia.dto';
 import { Logger } from '@nestjs/common';
@@ -85,9 +86,21 @@ export class MembresiasService {
     return this.membresiasRepo.save(membresia);
   }
 
-  findAll(): Promise<Membresia[]> {
+  findAll(currentUser: UsuarioAutenticado): Promise<Membresia[]> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser.tipoActor === TipoActor.RECEPCIONISTA) {
+      if (!currentUser.sedeId) {
+        throw new ForbiddenException('Tu usuario no tiene una sede asignada');
+      }
+      return this.membresiasRepo.find({
+        where: { sedeAlta: { id: currentUser.sedeId } },
+        relations: { usuario: true, sedeAlta: true },
+        order: { fechaFin: 'DESC' },
+      });
+    }
     return this.membresiasRepo.find({
       relations: { usuario: true, sedeAlta: true },
+      order: { fechaFin: 'DESC' },
     });
   }
 

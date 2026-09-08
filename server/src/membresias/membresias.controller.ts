@@ -60,8 +60,8 @@ export class MembresiasController {
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Get()
   @ApiOperation({ summary: 'Listar membresías' })
-  findAll() {
-    return this.membresiasService.findAll();
+  findAll(@CurrentUser() user: UsuarioAutenticado) {
+    return this.membresiasService.findAll(user);
   }
 
   @Get(':id')

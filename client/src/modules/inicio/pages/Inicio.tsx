@@ -52,7 +52,7 @@ const FAQS = [
 
 export function Inicio() {
   const [sedes, setSedes] = useState<Sede[]>([]);
-  const [faqAbierta, setFaqAbierta] = useState<number | null>(0);
+  const [faqAbierta, setFaqAbierta] = useState<number | null>(0); //= 0 para abrir la primera pregunta por defecto
 
   useEffect(() => {
     sedesApi.getAllPublico().then(setSedes).catch(() => setSedes([]));
