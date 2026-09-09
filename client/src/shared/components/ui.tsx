@@ -18,9 +18,9 @@ export function Badge({ variant, children }: { variant: BadgeVariant; children: 
   );
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Card({ children, className = '', style }: { children: ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={`rounded-xl p-4 bg-white border border-[#E5E7EB] ${className}`}>
+    <div className={`rounded-xl p-4 bg-white border border-[#E5E7EB] ${className}`} style={style}>
       {children}
     </div>
   );

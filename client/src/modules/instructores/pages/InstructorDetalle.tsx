@@ -5,6 +5,9 @@ import { clasesApi } from '../../clases/clases.api';
 import type { Clase } from '../../clases/clases.types';
 import { PageHeader, Card, Button, Avatar } from '../../../shared/components/ui';
 
+// Convención JS getDay() del backend: 0 = Domingo ... 6 = Sábado.
+const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
 export function InstructorDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -71,7 +74,14 @@ export function InstructorDetalle() {
           {clases.map((c) => (
             <Link key={c.id} to="/admin/clases" className="block rounded-xl border border-[#E5E7EB] bg-white p-4 hover:border-[#8B2EFF] transition-colors">
               <p className="text-sm font-semibold text-[#111111]">{c.tipoClase} · {c.sede.nombre}</p>
-              <p className="text-xs text-[#6B7280] mt-1">{new Date(c.horarioInicio).toLocaleString('es-AR')} · Cupo {c.capacidad}</p>
+              <ul className="mt-1 space-y-0.5">
+                {(c.horarios ?? []).map((h) => (
+                  <li key={h.id} className="text-xs text-[#6B7280]">
+                    {DIAS_SEMANA[h.diaSemana] ?? `Día ${h.diaSemana}`} {h.horaInicio.slice(0, 5)}–{h.horaFin.slice(0, 5)}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-[#6B7280] mt-1">Cupo {c.capacidad}</p>
             </Link>
           ))}
         </div>

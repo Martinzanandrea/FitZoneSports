@@ -61,7 +61,7 @@ export class PagosService {
         }),
         this.reservasClaseRepo.find({
           where: { estado: EstadoResClase.RESERVADA },
-          relations: { usuario: true, clase: { sede: true } },
+          relations: { usuario: true, ocurrencia: { clase: { sede: true } } },
         }),
         this.reservasCanchaRepo.find({
           where: { estado: EstadoResCancha.CONFIRMADA },
@@ -73,7 +73,7 @@ export class PagosService {
       !sedeId || sede?.id === sedeId;
     const membresiasDeSede = membresias.filter((m) => esDeSede(m.sedeAlta));
     const reservasClaseDeSede = reservasClase.filter((r) =>
-      esDeSede(r.clase.sede),
+      esDeSede(r.ocurrencia.clase.sede),
     );
     const reservasCanchaDeSede = reservasCancha.filter((r) =>
       esDeSede(r.cancha.sede),
@@ -185,9 +185,9 @@ export class PagosService {
     if (referencia.reservaClase) {
       const r = await this.reservasClaseRepo.findOne({
         where: { id: referencia.reservaClase.id },
-        relations: { clase: { sede: true } },
+        relations: { ocurrencia: { clase: { sede: true } } },
       });
-      return r?.clase.sede.id ?? null;
+      return r?.ocurrencia.clase.sede.id ?? null;
     }
     if (referencia.reservaCancha) {
       const r = await this.reservasCanchaRepo.findOne({

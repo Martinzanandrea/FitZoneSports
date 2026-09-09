@@ -7,8 +7,18 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ReservaClase, Clase, Usuario } from '../entities';
-import { EstadoResClase, TipoActor } from '../entities/enums';
+import {
+  ReservaClase,
+  ClaseOcurrencia,
+  Membresia,
+  Usuario,
+} from '../entities';
+import {
+  EstadoMembresia,
+  EstadoOcurrenciaClase,
+  EstadoResClase,
+  TipoActor,
+} from '../entities/enums';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
@@ -22,26 +32,49 @@ export class ReservasClaseService {
   constructor(
     @InjectRepository(ReservaClase)
     private readonly reservasRepo: Repository<ReservaClase>,
-    @InjectRepository(Clase)
-    private readonly clasesRepo: Repository<Clase>,
+    @InjectRepository(ClaseOcurrencia)
+    private readonly ocurrenciasRepo: Repository<ClaseOcurrencia>,
     @InjectRepository(Usuario)
     private readonly usuariosRepo: Repository<Usuario>,
+    @InjectRepository(Membresia)
+    private readonly membresiasRepo: Repository<Membresia>,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async reservar(
-    claseId: string,
+    ocurrenciaId: string,
     usuarioId: string,
     currentUser: UsuarioAutenticado,
   ): Promise<ReservaClase> {
-    const clase = await this.clasesRepo.findOne({
-      where: { id: claseId },
-      relations: { sede: true },
+    const ocurrencia = await this.ocurrenciasRepo.findOne({
+      where: { id: ocurrenciaId },
+      relations: { clase: { sede: true } },
     });
-    if (!clase) throw new NotFoundException(`Clase ${claseId} no encontrada`);
+    if (!ocurrencia || ocurrencia.estado !== EstadoOcurrenciaClase.PROGRAMADA) {
+      throw new NotFoundException(
+        `Ocurrencia ${ocurrenciaId} no disponible para reservar`,
+      );
+    }
 
+    assertOwnerOrStaff(currentUser, usuarioId);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (currentUser.tipoActor === TipoActor.RECEPCIONISTA) {
-      assertSedeScope(currentUser, clase.sede.id);
+      assertSedeScope(currentUser, ocurrencia.clase.sede.id);
+    }
+
+    // RN-03: solo socios con membresía activa reservan clases. Vale para
+    // el usuario destino (usuarioId), también cuando el staff anota a otro.
+    const membresiaActiva = await this.membresiasRepo.findOne({
+      where: {
+        usuario: { id: usuarioId },
+        estado: EstadoMembresia.ACTIVO,
+      },
+    });
+    if (!membresiaActiva) {
+      throw new BadRequestException(
+        'Necesitás una membresía activa para reservar clases',
+      );
     }
 
     const usuario = await this.usuariosRepo.findOne({
@@ -51,14 +84,19 @@ export class ReservasClaseService {
       throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
 
     const yaReservada = await this.reservasRepo.findOne({
-      where: { clase: { id: claseId }, usuario: { id: usuarioId } },
+      where: { ocurrencia: { id: ocurrenciaId }, usuario: { id: usuarioId } },
     });
     if (yaReservada) {
-      throw new ConflictException('Este usuario ya tiene una reserva para esta clase');
+      throw new ConflictException(
+        'Este usuario ya tiene una reserva para esta ocurrencia',
+      );
     }
 
+    const inicioOcurrencia = new Date(
+      `${ocurrencia.fecha}T${ocurrencia.horaInicio}`,
+    );
     const minutosHastaClase =
-      (clase.horarioInicio.getTime() - Date.now()) / (1000 * 60);
+      (inicioOcurrencia.getTime() - Date.now()) / (1000 * 60);
     const esReservaParaOtraPersona = currentUser.id !== usuarioId;
     const limiteMinutos = esReservaParaOtraPersona
       ? MINUTOS_LIMITE_RESERVA_STAFF
@@ -72,15 +110,18 @@ export class ReservasClaseService {
     }
 
     const cupoOcupado = await this.reservasRepo.count({
-      where: { clase: { id: claseId }, estado: EstadoResClase.RESERVADA },
+      where: {
+        ocurrencia: { id: ocurrenciaId },
+        estado: EstadoResClase.RESERVADA,
+      },
     });
 
     const estado =
-      cupoOcupado < clase.capacidad
+      cupoOcupado < ocurrencia.clase.capacidad
         ? EstadoResClase.RESERVADA
         : EstadoResClase.LISTA_ESPERA;
 
-    const reserva = this.reservasRepo.create({ clase, usuario, estado });
+    const reserva = this.reservasRepo.create({ ocurrencia, usuario, estado });
     return this.reservasRepo.save(reserva);
   }
 
@@ -90,7 +131,7 @@ export class ReservasClaseService {
   ): Promise<ReservaClase> {
     const reserva = await this.reservasRepo.findOne({
       where: { id: reservaId },
-      relations: { clase: true, usuario: true },
+      relations: { ocurrencia: { clase: true }, usuario: true },
     });
     if (!reserva)
       throw new NotFoundException(`Reserva ${reservaId} no encontrada`);
@@ -98,8 +139,11 @@ export class ReservasClaseService {
     assertOwnerOrStaff(currentUser, reserva.usuario.id);
 
     if (reserva.estado === EstadoResClase.RESERVADA) {
+      const inicioOcurrencia = new Date(
+        `${reserva.ocurrencia.fecha}T${reserva.ocurrencia.horaInicio}`,
+      );
       const horasHastaClase =
-        (reserva.clase.horarioInicio.getTime() - Date.now()) / (1000 * 60 * 60);
+        (inicioOcurrencia.getTime() - Date.now()) / (1000 * 60 * 60);
       if (horasHastaClase < HORAS_LIMITE_CANCELACION) {
         throw new BadRequestException(
           `Solo se puede cancelar hasta ${HORAS_LIMITE_CANCELACION}hs antes del inicio de la clase`,
@@ -114,17 +158,20 @@ export class ReservasClaseService {
 
     if (liberoCupo) {
       this.eventEmitter.emit('clase.cupo-liberado', {
-        claseId: reserva.clase.id,
+        ocurrenciaId: reserva.ocurrencia.id,
       });
     }
 
     return guardada;
   }
 
-  findPorClase(claseId: string): Promise<ReservaClase[]> {
+  findPorOcurrencia(ocurrenciaId: string): Promise<ReservaClase[]> {
     return this.reservasRepo.find({
-      where: { clase: { id: claseId } },
-      relations: { usuario: true, clase: { sede: true, instructor: true } },
+      where: { ocurrencia: { id: ocurrenciaId } },
+      relations: {
+        usuario: true,
+        ocurrencia: { clase: { sede: true } },
+      },
       order: { creadaEn: 'ASC' },
     });
   }

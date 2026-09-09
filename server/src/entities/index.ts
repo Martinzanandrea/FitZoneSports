@@ -5,6 +5,9 @@ export * from './membresia.entity';
 export * from './control-acceso.entity';
 export * from './instructor.entity';
 export * from './clase.entity';
+export * from './clase-horario-semanal.entity';
+export * from './clase-ocurrencia.entity';
+export * from './franja-horaria.entity';
 export * from './reserva-clase.entity';
 export * from './cancha.entity';
 export * from './bloqueo-cancha.entity';
@@ -20,6 +23,9 @@ import { Membresia } from './membresia.entity';
 import { ControlAcceso } from './control-acceso.entity';
 import { Instructor } from './instructor.entity';
 import { Clase } from './clase.entity';
+import { ClaseHorarioSemanal } from './clase-horario-semanal.entity';
+import { ClaseOcurrencia } from './clase-ocurrencia.entity';
+import { FranjaHoraria } from './franja-horaria.entity';
 import { ReservaClase } from './reserva-clase.entity';
 import { Cancha } from './cancha.entity';
 import { BloqueoCancha } from './bloqueo-cancha.entity';
@@ -35,6 +41,9 @@ export const ALL_ENTITIES = [
   ControlAcceso,
   Instructor,
   Clase,
+  ClaseHorarioSemanal,
+  ClaseOcurrencia,
+  FranjaHoraria,
   ReservaClase,
   Cancha,
   BloqueoCancha,

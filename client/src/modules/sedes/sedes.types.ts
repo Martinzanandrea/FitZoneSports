@@ -12,3 +12,9 @@ export interface CreateSedePayload {
   direccion: string;
   aforoMaximo: number;
 }
+
+export interface FranjaHoraria {
+  id: string;
+  apertura: string; // "HH:MM:SS"
+  cierre: string; // "HH:MM:SS"
+}

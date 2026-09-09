@@ -39,6 +39,11 @@ export enum EstadoResClase {
   NO_ASISTIO = 'NO_ASISTIO',
 }
 
+export enum EstadoOcurrenciaClase {
+  PROGRAMADA = 'PROGRAMADA',
+  CANCELADA = 'CANCELADA',
+}
+
 export enum EstadoResCancha {
   CONFIRMADA = 'CONFIRMADA',
   CANCELADA = 'CANCELADA',

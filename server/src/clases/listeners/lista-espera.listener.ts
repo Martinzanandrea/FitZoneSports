@@ -17,14 +17,14 @@ export class ListaEsperaListener {
   ) {}
 
   @OnEvent('clase.cupo-liberado')
-  async promoverSiguienteEnEspera(payload: { claseId: string }) {
+  async promoverSiguienteEnEspera(payload: { ocurrenciaId: string }) {
     const siguiente = await this.reservasRepo.findOne({
       where: {
-        clase: { id: payload.claseId },
+        ocurrencia: { id: payload.ocurrenciaId },
         estado: EstadoResClase.LISTA_ESPERA,
       },
       order: { creadaEn: 'ASC' }, // el que se anotó primero a la espera, entra primero
-      relations: { usuario: true },
+      relations: { usuario: true, ocurrencia: { clase: true } },
     });
 
     if (!siguiente) return; // nadie esperando, no hay nada que hacer
@@ -33,7 +33,7 @@ export class ListaEsperaListener {
     siguiente.notificado = true;
     await this.reservasRepo.save(siguiente);
     this.logger.log(
-      `Notificado a ${siguiente.usuario.nombre} ${siguiente.usuario.apellido}: se liberó un cupo en su clase.`,
+      `Notificado a ${siguiente.usuario.nombre} ${siguiente.usuario.apellido}: se liberó un cupo en ${siguiente.ocurrencia.clase.tipoClase} del ${siguiente.ocurrencia.fecha}.`,
     );
   }
 }

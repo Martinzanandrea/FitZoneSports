@@ -6,16 +6,16 @@ import {
   OneToMany,
   JoinColumn,
   CreateDateColumn,
-  Check,
-  Index,
 } from 'typeorm';
 import { Sede } from './sede.entity';
 import { Instructor } from './instructor.entity';
-import { ReservaClase } from './reserva-clase.entity';
+import { ClaseHorarioSemanal } from './clase-horario-semanal.entity';
+import { ClaseOcurrencia } from './clase-ocurrencia.entity';
 
+// Plantilla recurrente de clase (ya no un evento único): define QUÉ se
+// dicta, DÓNDE y con QUÉ carga horaria. El CUÁNDO vive en la grilla
+// semanal (ClaseHorarioSemanal) y en las ocurrencias generadas.
 @Entity('clases')
-@Check('chk_horario_clase', `"horario_fin" > "horario_inicio"`)
-@Index('idx_clases_sede_horario', ['sede', 'horarioInicio'])
 export class Clase {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -33,18 +33,25 @@ export class Clase {
   @JoinColumn({ name: 'instructor_id' })
   instructor!: Instructor;
 
-  @Column({ name: 'horario_inicio', type: 'timestamptz' })
-  horarioInicio!: Date;
-
-  @Column({ name: 'horario_fin', type: 'timestamptz' })
-  horarioFin!: Date;
-
   @Column('int')
   capacidad!: number;
+
+  @Column('numeric', {
+    name: 'horas_semanales_totales',
+    precision: 4,
+    scale: 1,
+  })
+  horasSemanalesTotales!: string;
+
+  @Column({ default: true })
+  activa!: boolean;
 
   @CreateDateColumn({ name: 'creada_en', type: 'timestamptz' })
   creadaEn!: Date;
 
-  @OneToMany(() => ReservaClase, (reserva) => reserva.clase)
-  reservas!: ReservaClase[];
+  @OneToMany(() => ClaseHorarioSemanal, (horario) => horario.clase)
+  horariosSemanales!: ClaseHorarioSemanal[];
+
+  @OneToMany(() => ClaseOcurrencia, (ocurrencia) => ocurrencia.clase)
+  ocurrencias!: ClaseOcurrencia[];
 }

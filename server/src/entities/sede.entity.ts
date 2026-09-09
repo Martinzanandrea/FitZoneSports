@@ -10,6 +10,7 @@ import { Membresia } from './membresia.entity';
 import { ControlAcceso } from './control-acceso.entity';
 import { Clase } from './clase.entity';
 import { Cancha } from './cancha.entity';
+import { FranjaHoraria } from './franja-horaria.entity';
 
 @Entity('sedes')
 export class Sede {
@@ -46,4 +47,7 @@ export class Sede {
 
   @OneToMany(() => Cancha, (cancha) => cancha.sede)
   canchas!: Cancha[];
+
+  @OneToMany(() => FranjaHoraria, (franja) => franja.sede)
+  franjas!: FranjaHoraria[];
 }

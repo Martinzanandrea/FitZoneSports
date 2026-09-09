@@ -151,7 +151,8 @@ export class AdminService {
 
     const reservasClaseQuery = this.reservasClaseRepo
       .createQueryBuilder('reserva')
-      .leftJoinAndSelect('reserva.clase', 'clase')
+      .leftJoinAndSelect('reserva.ocurrencia', 'ocurrencia')
+      .leftJoinAndSelect('ocurrencia.clase', 'clase')
       .leftJoinAndSelect('clase.sede', 'sede')
       .leftJoinAndSelect('reserva.usuario', 'usuario')
       .orderBy('reserva.creadaEn', 'DESC');
@@ -180,31 +181,31 @@ export class AdminService {
     for (const reserva of reservasClase) {
       if (reserva.estado === EstadoResClase.RESERVADA) {
         ocupacion.set(
-          reserva.clase.id,
-          (ocupacion.get(reserva.clase.id) ?? 0) + 1,
+          reserva.ocurrencia.id,
+          (ocupacion.get(reserva.ocurrencia.id) ?? 0) + 1,
         );
       }
     }
 
     const clases = reservasClase.map((reserva) => ({
       id: reserva.id,
-      clase: reserva.clase.tipoClase,
-      sede: reserva.clase.sede.nombre,
+      clase: reserva.ocurrencia.clase.tipoClase,
+      sede: reserva.ocurrencia.clase.sede.nombre,
       usuario: `${reserva.usuario.nombre} ${reserva.usuario.apellido}`,
-      fecha: reserva.clase.horarioInicio.toISOString().slice(0, 10),
-      horario: `${reserva.clase.horarioInicio.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} - ${reserva.clase.horarioFin.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`,
+      fecha: reserva.ocurrencia.fecha,
+      horario: `${reserva.ocurrencia.horaInicio.slice(0, 5)} - ${reserva.ocurrencia.horaFin.slice(0, 5)}`,
       estado: reserva.estado,
-      ocupadas: ocupacion.get(reserva.clase.id) ?? 0,
-      capacidad: reserva.clase.capacidad,
+      ocupadas: ocupacion.get(reserva.ocurrencia.id) ?? 0,
+      capacidad: reserva.ocurrencia.clase.capacidad,
     }));
 
     const clasesConOcupacionAlta = new Set(
       reservasClase
         .filter((reserva) => {
-          const cantidad = ocupacion.get(reserva.clase.id) ?? 0;
-          return cantidad / reserva.clase.capacidad >= 0.8;
+          const cantidad = ocupacion.get(reserva.ocurrencia.id) ?? 0;
+          return cantidad / reserva.ocurrencia.clase.capacidad >= 0.8;
         })
-        .map((reserva) => reserva.clase.id),
+        .map((reserva) => reserva.ocurrencia.id),
     ).size;
 
     const canchas = reservasCancha.map((reserva) => ({

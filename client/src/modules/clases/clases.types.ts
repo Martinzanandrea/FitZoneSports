@@ -1,38 +1,36 @@
-export const EstadoResClase = {
-  RESERVADA: 'RESERVADA',
-  LISTA_ESPERA: 'LISTA_ESPERA',
-  CANCELADA: 'CANCELADA',
-  ASISTIO: 'ASISTIO',
-  NO_ASISTIO: 'NO_ASISTIO',
-} as const;
-export type EstadoResClase = (typeof EstadoResClase)[keyof typeof EstadoResClase];
+export interface ClaseHorarioSemanal {
+  id: string;
+  diaSemana: number; // 0=domingo ... 6=sábado (igual que Date.getDay() del backend)
+  horaInicio: string; // "HH:MM"
+  horaFin: string;
+}
 
 export interface Clase {
   id: string;
   sede: { id: string; nombre: string };
   tipoClase: string;
-  instructor: { id: string; nombre: string; especialidad?: string | null };
-  horarioInicio: string;
-  horarioFin: string;
+  instructor: { id: string; nombre: string };
   capacidad: number;
-  creadaEn?: string;
+  horasSemanalesTotales: number;
+  activa: boolean;
+  horarios: ClaseHorarioSemanal[];
 }
 
-export interface ClasePayload {
-  sedeId: string;
-  tipoClase: string;
-  instructorId: string;
-  horarioInicio: string;
-  horarioFin: string;
-  capacidad: number;
+export interface ClaseOcurrencia {
+  id: string;
+  claseId: string;
+  fecha: string; // "YYYY-MM-DD"
+  horaInicio: string;
+  horaFin: string;
+  estado: 'PROGRAMADA' | 'CANCELADA';
 }
+
+export type EstadoResClase = 'RESERVADA' | 'LISTA_ESPERA' | 'CANCELADA' | 'ASISTIO' | 'NO_ASISTIO';
 
 export interface ReservaClase {
   id: string;
-  clase: Clase;
+  ocurrencia: ClaseOcurrencia & { clase: Clase };
   usuario: { id: string; nombre: string; apellido: string };
   estado: EstadoResClase;
-  notificado: boolean;
   creadaEn: string;
-  canceladaEn?: string | null;
 }

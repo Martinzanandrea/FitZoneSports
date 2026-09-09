@@ -9,26 +9,27 @@ import {
   Unique,
   Index,
 } from 'typeorm';
-import { Clase } from './clase.entity';
+import { ClaseOcurrencia } from './clase-ocurrencia.entity';
 import { Usuario } from './usuario.entity';
 import { Pago } from './pago.entity';
 import { EstadoResClase } from './enums';
 
-// Tabla puente N:M (usuarios <-> clases) con atributos propios.
-// El UNIQUE(clase, usuario) evita doble anotación a la misma clase.
+// Tabla puente N:M (usuarios <-> ocurrencias de clase) con atributos propios.
+// La reserva apunta a la ocurrencia (la edición concreta en una fecha), no a
+// la plantilla. El UNIQUE(ocurrencia, usuario) evita doble anotación.
 @Entity('reservas_clase')
-@Unique('uq_reserva_usuario_clase', ['clase', 'usuario'])
-@Index('idx_reservas_clase_estado', ['clase', 'estado', 'creadaEn'])
+@Unique('uq_reserva_usuario_ocurrencia', ['ocurrencia', 'usuario'])
+@Index('idx_reservas_clase_estado', ['ocurrencia', 'estado', 'creadaEn'])
 export class ReservaClase {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Clase, (clase) => clase.reservas, {
+  @ManyToOne(() => ClaseOcurrencia, (ocurrencia) => ocurrencia.reservas, {
     nullable: false,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'clase_id' })
-  clase: Clase;
+  @JoinColumn({ name: 'ocurrencia_id' })
+  ocurrencia: ClaseOcurrencia;
 
   @ManyToOne(() => Usuario, (usuario) => usuario.reservasClase, {
     nullable: false,

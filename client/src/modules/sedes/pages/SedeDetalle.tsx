@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
 import { sedesApi } from '../sedes.api';
-import type { Sede } from '../sedes.types';
+import type { FranjaHoraria, Sede } from '../sedes.types';
 import { usuariosApi } from '../../usuarios/usuarios.api';
 import type { Usuario } from '../../usuarios/usuarios.types';
 import { canchasApi } from '../../canchas/canchas.api';
@@ -17,6 +18,11 @@ export function SedeDetalle() {
   const [recepcionistas, setRecepcionistas] = useState<Usuario[]>([]);
   const [selectedRecep, setSelectedRecep] = useState('');
   const [counts, setCounts] = useState<{ canchas: number; clases: number; usuarios: number } | null>(null);
+  const [franjas, setFranjas] = useState<FranjaHoraria[]>([]);
+  const [apertura, setApertura] = useState('');
+  const [cierre, setCierre] = useState('');
+  const [guardandoFranja, setGuardandoFranja] = useState(false);
+  const [eliminandoFranja, setEliminandoFranja] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [assigning, setAssigning] = useState(false);
@@ -31,7 +37,8 @@ export function SedeDetalle() {
       canchasApi.getAll().catch(() => [] as any),
       clasesApi.getAll().catch(() => [] as any),
       usuariosApi.getAll().catch(() => [] as Usuario[]),
-    ]).then(([s, staff, canchas, clases, usuarios]) => {
+      sedesApi.getFranjas(id).catch(() => [] as FranjaHoraria[]),
+    ]).then(([s, staff, canchas, clases, usuarios, franjasData]) => {
       setSede(s);
       setForm({ nombre: s.nombre, direccion: s.direccion, aforoMaximo: s.aforoMaximo });
       const receps = (staff as Usuario[]).filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
@@ -42,6 +49,7 @@ export function SedeDetalle() {
       const clasesCount = (clases as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length;
       const usuariosCount = (usuarios as Usuario[]).filter((u) => (u as any).sede?.id === s.id).length;
       setCounts({ canchas: canchasCount, clases: clasesCount, usuarios: usuariosCount });
+      setFranjas(franjasData);
     }).catch(() => setMsg({ type: 'err', text: 'No se pudo cargar la sede.' }))
       .finally(() => setLoading(false));
   }, [id]);
@@ -69,6 +77,31 @@ export function SedeDetalle() {
       setRecepcionistas(receps);
     } catch { setMsg({ type: 'err', text: 'No se pudo asignar.' }); }
     finally { setAssigning(false); }
+  }
+
+  async function handleAgregarFranja() {
+    if (!id) return;
+    if (!apertura || !cierre) { setMsg({ type: 'err', text: 'Completá apertura y cierre.' }); return; }
+    if (cierre <= apertura) { setMsg({ type: 'err', text: 'El cierre debe ser mayor que la apertura.' }); return; }
+    setGuardandoFranja(true); setMsg(null);
+    try {
+      const nueva = await sedesApi.crearFranja(id, { apertura, cierre });
+      setFranjas((prev) => [...prev, nueva].sort((a, b) => a.apertura.localeCompare(b.apertura)));
+      setApertura(''); setCierre('');
+      setMsg({ type: 'ok', text: 'Franja agregada.' });
+    } catch { setMsg({ type: 'err', text: 'No se pudo agregar la franja.' }); }
+    finally { setGuardandoFranja(false); }
+  }
+
+  async function handleEliminarFranja(franjaId: string) {
+    if (!id) return;
+    setEliminandoFranja(franjaId); setMsg(null);
+    try {
+      await sedesApi.eliminarFranja(id, franjaId);
+      setFranjas((prev) => prev.filter((f) => f.id !== franjaId));
+      setMsg({ type: 'ok', text: 'Franja eliminada.' });
+    } catch { setMsg({ type: 'err', text: 'No se pudo eliminar la franja.' }); }
+    finally { setEliminandoFranja(null); }
   }
 
   if (loading) return <p className="text-sm text-[#6B7280]">Cargando sede...</p>;
@@ -114,6 +147,42 @@ export function SedeDetalle() {
           </div>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <h3 className="text-sm font-semibold text-[#111111] mb-3">Horario de atención</h3>
+        {franjas.length === 0 ? (
+          <p className="text-sm text-[#6B7280]">Todavía no cargaste el horario de atención de esta sede. Agregá al menos una franja para poder programar clases.</p>
+        ) : (
+          <div className="space-y-2 mb-4">
+            {franjas.map((f) => (
+              <div key={f.id} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] p-2.5">
+                <p className="text-sm font-medium text-[#111111]">{f.apertura.slice(0, 5)} – {f.cierre.slice(0, 5)}</p>
+                <button
+                  type="button"
+                  onClick={() => handleEliminarFranja(f.id)}
+                  disabled={eliminandoFranja === f.id}
+                  aria-label="Eliminar franja"
+                  className="rounded-lg p-2 text-[#6B7280] hover:bg-[#FEF2F2] hover:text-[#DC2626] disabled:opacity-60"
+                  style={{ minHeight: 44, minWidth: 44 }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block text-sm font-medium text-[#374151]">Apertura
+            <input type="time" value={apertura} onChange={(e) => setApertura(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] bg-white" style={{ minHeight: 44 }} />
+          </label>
+          <label className="block text-sm font-medium text-[#374151]">Cierre
+            <input type="time" value={cierre} onChange={(e) => setCierre(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] bg-white" style={{ minHeight: 44 }} />
+          </label>
+        </div>
+        <div className="mt-3">
+          <Button onClick={handleAgregarFranja} disabled={guardandoFranja} fullWidth>{guardandoFranja ? 'Agregando...' : '+ Agregar franja'}</Button>
+        </div>
+      </Card>
     </div>
   );
 }

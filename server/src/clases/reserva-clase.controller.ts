@@ -23,23 +23,25 @@ import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 export class ReservasClaseController {
   constructor(private readonly reservasService: ReservasClaseService) {}
 
-  @Post(':claseId/reservas')
-  @ApiOperation({ summary: 'Reservar una clase' })
-  @ApiParam({ name: 'claseId', description: 'UUID de la clase' })
+  @Post('ocurrencias/:ocurrenciaId/reservas')
+  @ApiOperation({ summary: 'Reservar una ocurrencia de clase' })
+  @ApiParam({ name: 'ocurrenciaId', description: 'UUID de la ocurrencia' })
   reservar(
-    @Param('claseId', ParseUUIDPipe) claseId: string,
+    @Param('ocurrenciaId', ParseUUIDPipe) ocurrenciaId: string,
     @Body() dto: CreateReservaClaseDto,
     @CurrentUser() user: UsuarioAutenticado,
   ) {
     assertOwnerOrStaff(user, dto.usuarioId);
-    return this.reservasService.reservar(claseId, dto.usuarioId, user);
+    return this.reservasService.reservar(ocurrenciaId, dto.usuarioId, user);
   }
 
-  @Get(':claseId/reservas')
-  @ApiOperation({ summary: 'Listar reservas de una clase' })
-  @ApiParam({ name: 'claseId', description: 'UUID de la clase' })
-  findPorClase(@Param('claseId', ParseUUIDPipe) claseId: string) {
-    return this.reservasService.findPorClase(claseId);
+  @Get('ocurrencias/:ocurrenciaId/reservas')
+  @ApiOperation({ summary: 'Listar reservas de una ocurrencia' })
+  @ApiParam({ name: 'ocurrenciaId', description: 'UUID de la ocurrencia' })
+  findPorOcurrencia(
+    @Param('ocurrenciaId', ParseUUIDPipe) ocurrenciaId: string,
+  ) {
+    return this.reservasService.findPorOcurrencia(ocurrenciaId);
   }
 
   @Post('reservas/:reservaId/cancelar')

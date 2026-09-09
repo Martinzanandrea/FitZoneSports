@@ -3,7 +3,7 @@
 -- Export del schema real (pg_dump --schema-only) contra la base de
 -- Supabase del proyecto. TypeORM corre con synchronize:false — este
 -- archivo es la referencia versionada de la estructura real, generada
--- el 7 de septiembre de 2026. Ver server/src/entities/*.entity.ts como fuente
+-- el 9 de septiembre de 2026. Ver server/src/entities/*.entity.ts como fuente
 -- de verdad del código; este .sql es el reflejo de la base ya creada.
 -- Ver docs/adr/0002, 0003 y 0004 para las decisiones detrás de este
 -- modelo.
@@ -13,7 +13,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict PYYLjcSeplqwx0ANc7ZkUzHc9rNGmdmRydqYJAclS9skuS2ZAqeLWz9Nt2At2L2
+\restrict HR2MO46BVeFMl3UNpkLQ3eVTWtBMaJzD7cGHxdnhc2W25Qdv89ijqeWam56fhNo
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.0
@@ -62,6 +62,16 @@ CREATE TYPE public.estado_membresia AS ENUM (
     'ACTIVO',
     'VENCIDO',
     'SUSPENDIDO'
+);
+
+
+--
+-- Name: estado_ocurrencia_clase; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.estado_ocurrencia_clase AS ENUM (
+    'PROGRAMADA',
+    'CANCELADA'
 );
 
 
@@ -229,6 +239,36 @@ CREATE TABLE public.canchas (
 
 
 --
+-- Name: clase_horario_semanal; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.clase_horario_semanal (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clase_id uuid NOT NULL,
+    dia_semana smallint NOT NULL,
+    hora_inicio time without time zone NOT NULL,
+    hora_fin time without time zone NOT NULL,
+    CONSTRAINT chk_horario_semanal CHECK ((hora_fin > hora_inicio)),
+    CONSTRAINT clase_horario_semanal_dia_semana_check CHECK (((dia_semana >= 0) AND (dia_semana <= 6)))
+);
+
+
+--
+-- Name: clase_ocurrencia; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.clase_ocurrencia (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clase_id uuid NOT NULL,
+    fecha date NOT NULL,
+    hora_inicio time without time zone NOT NULL,
+    hora_fin time without time zone NOT NULL,
+    estado public.estado_ocurrencia_clase DEFAULT 'PROGRAMADA'::public.estado_ocurrencia_clase NOT NULL,
+    creada_en timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: clases; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -237,12 +277,12 @@ CREATE TABLE public.clases (
     sede_id uuid NOT NULL,
     tipo_clase character varying(80) NOT NULL,
     instructor_id uuid NOT NULL,
-    horario_inicio timestamp with time zone NOT NULL,
-    horario_fin timestamp with time zone NOT NULL,
     capacidad integer NOT NULL,
+    horas_semanales_totales numeric(4,1) NOT NULL,
+    activa boolean DEFAULT true NOT NULL,
     creada_en timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT chk_horario_clase CHECK ((horario_fin > horario_inicio)),
-    CONSTRAINT clases_capacidad_check CHECK ((capacidad > 0))
+    CONSTRAINT clases_capacidad_check CHECK ((capacidad > 0)),
+    CONSTRAINT clases_horas_semanales_totales_check CHECK ((horas_semanales_totales > (0)::numeric))
 );
 
 
@@ -270,6 +310,19 @@ CREATE TABLE public.control_acceso (
     hora_egreso timestamp with time zone,
     validado_offline boolean DEFAULT false NOT NULL,
     sincronizado_en timestamp with time zone
+);
+
+
+--
+-- Name: franjas_horarias; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.franjas_horarias (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    sede_id uuid NOT NULL,
+    apertura time without time zone NOT NULL,
+    cierre time without time zone NOT NULL,
+    CONSTRAINT chk_franja_horario CHECK ((cierre > apertura))
 );
 
 
@@ -379,7 +432,7 @@ CREATE TABLE public.reservas_cancha (
 
 CREATE TABLE public.reservas_clase (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    clase_id uuid NOT NULL,
+    ocurrencia_id uuid NOT NULL,
     usuario_id uuid NOT NULL,
     estado public.estado_res_clase DEFAULT 'RESERVADA'::public.estado_res_clase NOT NULL,
     notificado boolean DEFAULT false NOT NULL,
@@ -450,6 +503,22 @@ ALTER TABLE ONLY public.canchas
 
 
 --
+-- Name: clase_horario_semanal clase_horario_semanal_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clase_horario_semanal
+    ADD CONSTRAINT clase_horario_semanal_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: clase_ocurrencia clase_ocurrencia_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clase_ocurrencia
+    ADD CONSTRAINT clase_ocurrencia_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: clases clases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -479,6 +548,14 @@ ALTER TABLE ONLY public.comprobantes
 
 ALTER TABLE ONLY public.control_acceso
     ADD CONSTRAINT control_acceso_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: franjas_horarias franjas_horarias_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.franjas_horarias
+    ADD CONSTRAINT franjas_horarias_pkey PRIMARY KEY (id);
 
 
 --
@@ -546,11 +623,19 @@ ALTER TABLE ONLY public.sedes
 
 
 --
--- Name: reservas_clase uq_reserva_usuario_clase; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clase_ocurrencia uq_ocurrencia_clase_fecha_hora; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clase_ocurrencia
+    ADD CONSTRAINT uq_ocurrencia_clase_fecha_hora UNIQUE (clase_id, fecha, hora_inicio);
+
+
+--
+-- Name: reservas_clase uq_reserva_usuario_ocurrencia; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.reservas_clase
-    ADD CONSTRAINT uq_reserva_usuario_clase UNIQUE (clase_id, usuario_id);
+    ADD CONSTRAINT uq_reserva_usuario_ocurrencia UNIQUE (ocurrencia_id, usuario_id);
 
 
 --
@@ -620,10 +705,38 @@ CREATE INDEX idx_canchas_sede ON public.canchas USING btree (sede_id);
 
 
 --
--- Name: idx_clases_sede_horario; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_clases_sede; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_clases_sede_horario ON public.clases USING btree (sede_id, horario_inicio);
+CREATE INDEX idx_clases_sede ON public.clases USING btree (sede_id);
+
+
+--
+-- Name: idx_franjas_sede; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_franjas_sede ON public.franjas_horarias USING btree (sede_id);
+
+
+--
+-- Name: idx_horario_semanal_clase; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_horario_semanal_clase ON public.clase_horario_semanal USING btree (clase_id);
+
+
+--
+-- Name: idx_horario_semanal_dia; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_horario_semanal_dia ON public.clase_horario_semanal USING btree (dia_semana);
+
+
+--
+-- Name: idx_horario_semanal_solape; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_horario_semanal_solape ON public.clase_horario_semanal USING btree (dia_semana, hora_inicio, hora_fin);
 
 
 --
@@ -638,6 +751,20 @@ CREATE INDEX idx_membresias_usuario_estado ON public.membresias USING btree (usu
 --
 
 CREATE INDEX idx_membresias_vigencia ON public.membresias USING btree (usuario_id, fecha_fin DESC);
+
+
+--
+-- Name: idx_ocurrencia_clase; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ocurrencia_clase ON public.clase_ocurrencia USING btree (clase_id);
+
+
+--
+-- Name: idx_ocurrencia_fecha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ocurrencia_fecha ON public.clase_ocurrencia USING btree (fecha);
 
 
 --
@@ -686,7 +813,14 @@ CREATE INDEX idx_reservas_cancha_disponibilidad ON public.reservas_cancha USING 
 -- Name: idx_reservas_clase_estado; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_reservas_clase_estado ON public.reservas_clase USING btree (clase_id, estado, creada_en);
+CREATE INDEX idx_reservas_clase_estado ON public.reservas_clase USING btree (estado);
+
+
+--
+-- Name: idx_reservas_clase_usuario; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_reservas_clase_usuario ON public.reservas_clase USING btree (usuario_id);
 
 
 --
@@ -742,6 +876,22 @@ ALTER TABLE ONLY public.canchas
 
 
 --
+-- Name: clase_horario_semanal clase_horario_semanal_clase_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clase_horario_semanal
+    ADD CONSTRAINT clase_horario_semanal_clase_id_fkey FOREIGN KEY (clase_id) REFERENCES public.clases(id) ON DELETE CASCADE;
+
+
+--
+-- Name: clase_ocurrencia clase_ocurrencia_clase_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clase_ocurrencia
+    ADD CONSTRAINT clase_ocurrencia_clase_id_fkey FOREIGN KEY (clase_id) REFERENCES public.clases(id) ON DELETE CASCADE;
+
+
+--
 -- Name: clases clases_instructor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -779,6 +929,14 @@ ALTER TABLE ONLY public.control_acceso
 
 ALTER TABLE ONLY public.control_acceso
     ADD CONSTRAINT control_acceso_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id);
+
+
+--
+-- Name: franjas_horarias franjas_horarias_sede_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.franjas_horarias
+    ADD CONSTRAINT franjas_horarias_sede_id_fkey FOREIGN KEY (sede_id) REFERENCES public.sedes(id) ON DELETE CASCADE;
 
 
 --
@@ -822,14 +980,6 @@ ALTER TABLE ONLY public.pagos
 
 
 --
--- Name: pagos pagos_reserva_clase_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pagos
-    ADD CONSTRAINT pagos_reserva_clase_id_fkey FOREIGN KEY (reserva_clase_id) REFERENCES public.reservas_clase(id);
-
-
---
 -- Name: pagos pagos_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -854,11 +1004,11 @@ ALTER TABLE ONLY public.reservas_cancha
 
 
 --
--- Name: reservas_clase reservas_clase_clase_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas_clase reservas_clase_ocurrencia_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.reservas_clase
-    ADD CONSTRAINT reservas_clase_clase_id_fkey FOREIGN KEY (clase_id) REFERENCES public.clases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT reservas_clase_ocurrencia_id_fkey FOREIGN KEY (ocurrencia_id) REFERENCES public.clase_ocurrencia(id) ON DELETE CASCADE;
 
 
 --
@@ -881,5 +1031,5 @@ ALTER TABLE ONLY public.usuarios
 -- PostgreSQL database dump complete
 --
 
-\unrestrict PYYLjcSeplqwx0ANc7ZkUzHc9rNGmdmRydqYJAclS9skuS2ZAqeLWz9Nt2At2L2
+\unrestrict HR2MO46BVeFMl3UNpkLQ3eVTWtBMaJzD7cGHxdnhc2W25Qdv89ijqeWam56fhNo
 
