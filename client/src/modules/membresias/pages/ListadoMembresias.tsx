@@ -35,9 +35,9 @@ export function ListadoMembresias() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCargando(true);
-    membresiasApi
-      .getAll()
+    membresiasApi.getAll()
       .then((data) => {
         setMembresias(data);
         setError('');

@@ -10,6 +10,7 @@ import { ProgressBar } from '../../../shared/components/ui';
 const EMPTY_FORM: ClasePayload = { sedeId: '', tipoClase: '', instructorId: '', horarioInicio: '', horarioFin: '', capacidad: 1 };
 const HORAS_CLASE = Array.from({ length: 17 }, (_, index) => String(index + 6).padStart(2, '0'));
 const MINUTOS_CLASE = ['00', '15', '30'];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DURACIONES = ['60', '90', '120', 'PERSONALIZADA'] as const;
 type DuracionClase = (typeof DURACIONES)[number];
 
