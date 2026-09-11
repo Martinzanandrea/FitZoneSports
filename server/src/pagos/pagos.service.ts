@@ -28,6 +28,8 @@ import { RegistrarPagoEfectivoDto } from './dto/registrar-pago-efectivo.dto';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
 
 @Injectable()
 export class PagosService {
@@ -290,12 +292,20 @@ export class PagosService {
     return guardado;
   }
 
-  findPorUsuario(usuarioId: string): Promise<Pago[]> {
-    return this.pagosRepo.find({
+  async findPorUsuario(
+    usuarioId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<Pago>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const [data, total] = await this.pagosRepo.findAndCount({
       where: { usuario: { id: usuarioId } },
       relations: { comprobante: true, registradoPor: true },
       order: { creadoEn: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 
   async findOne(id: string, currentUser: UsuarioAutenticado): Promise<Pago> {

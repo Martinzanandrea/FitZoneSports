@@ -20,6 +20,9 @@ import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { RepartoHorasService } from './reparto-horas.service';
 import { GeneracionOcurrenciasService } from './generacion-ocurrencias.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
+import { paginarQueryBuilder } from '../common/helpers/paginate.helper';
 
 @Injectable()
 export class ClasesService {
@@ -104,12 +107,17 @@ export class ClasesService {
     return this.findOne(claseId);
   }
 
-  findAll(sedeId?: string): Promise<Clase[]> {
-    return this.clasesRepo.find({
+  async findAll(sedeId?: string, query?: PaginationQueryDto): Promise<PaginatedResponse<Clase>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const [data, total] = await this.clasesRepo.findAndCount({
       where: sedeId ? { sede: { id: sedeId } } : {},
       relations: { sede: true, instructor: true, horariosSemanales: true },
       order: { tipoClase: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 
   async findOne(id: string): Promise<Clase> {
@@ -150,7 +158,8 @@ export class ClasesService {
     id: string,
     desde?: string,
     hasta?: string,
-  ): Promise<ClaseOcurrencia[]> {
+    query?: PaginationQueryDto,
+  ): Promise<PaginatedResponse<ClaseOcurrencia>> {
     await this.findOne(id);
     for (const fecha of [desde, hasta]) {
       if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
@@ -167,7 +176,7 @@ export class ClasesService {
       .addOrderBy('ocurrencia.horaInicio', 'ASC');
     if (desde) qb.andWhere('ocurrencia.fecha >= :desde', { desde });
     if (hasta) qb.andWhere('ocurrencia.fecha <= :hasta', { hasta });
-    return qb.getMany();
+    return paginarQueryBuilder(qb, query?.page ?? 1, query?.limit ?? 20);
   }
 
   // Acción acotada, distinta de update(): el Recepcionista puede

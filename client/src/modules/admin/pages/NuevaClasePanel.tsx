@@ -134,10 +134,10 @@ export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaCla
   const [clasesSede, setClasesSede] = useState<Clase[]>([]);
 
   useEffect(() => {
-    instructoresApi.getAll().then(setInstructores).catch(() => setInstructores([]));
+    instructoresApi.getAll(1, 100).then((res) => setInstructores(res.data)).catch(() => setInstructores([]));
     // Ya se traen para el selector: franjas y clases activas de esta sede.
     sedesApi.getFranjas(sedeId).then(setFranjas).catch(() => setFranjas([]));
-    clasesApi.getAll(sedeId).then((c) => setClasesSede(c.filter((cl) => cl.activa !== false))).catch(() => setClasesSede([]));
+    clasesApi.getAll(sedeId, 1, 100).then((res) => setClasesSede(res.data.filter((cl) => cl.activa !== false))).catch(() => setClasesSede([]));
   }, [sedeId]);
 
   // Huecos libres de un día: franjas menos lo ocupado por otras clases

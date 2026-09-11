@@ -1,36 +1,43 @@
 import { api } from '../../api/axios';
+import type { PaginatedResponse } from '../../shared/types/pagination';
 
 export interface DashboardResumen {
   clasesHoy: number;
   horasCanchasAgendadasHoy: number;
 }
 
-export interface ReservaAdmin {
+export interface ReservaClaseAdminItem {
+  id: string;
+  clase: string;
+  sede: string;
+  usuario: string;
+  fecha: string;
+  horario: string;
+  estado: string;
+  ocupadas: number;
+  capacidad: number;
+}
+
+export interface ReservaCanchaAdminItem {
+  id: string;
+  cancha: string;
+  sede: string;
+  usuario: string;
+  fecha: string;
+  horario: string;
+  estado: string;
+  precioFinal: string;
+}
+
+// Forma real de GET /admin/reservas: resumen global + los dos sub-listados
+// paginados con UN SOLO page/limit compartido (no uno por lista).
+export interface ReservasAdminPaginadas {
   resumen: {
     canchasReservadas: number;
     clasesConOcupacionAlta: number;
   };
-  clases: Array<{
-    id: string;
-    clase: string;
-    sede: string;
-    usuario: string;
-    fecha: string;
-    horario: string;
-    estado: string;
-    ocupadas: number;
-    capacidad: number;
-  }>;
-  canchas: Array<{
-    id: string;
-    cancha: string;
-    sede: string;
-    usuario: string;
-    fecha: string;
-    horario: string;
-    estado: string;
-    precioFinal: string;
-  }>;
+  clases: PaginatedResponse<ReservaClaseAdminItem>;
+  canchas: PaginatedResponse<ReservaCanchaAdminItem>;
 }
 
 export interface AuditoriaRegistro {
@@ -71,8 +78,9 @@ export const adminApi = {
   getDashboardResumen: () =>
     api.get<DashboardResumen>('/admin/dashboard/resumen').then((response) => response.data),
   // Trae el resumen de reservas de clases y canchas para la pantalla de gestión del staff.
-  getReservas: () =>
-    api.get<ReservaAdmin>('/admin/reservas').then((response) => response.data),
+  // El backend pagina ambos sub-listados con el mismo page/limit compartido.
+  getReservas: (page = 1, limit = 20) =>
+    api.get<ReservasAdminPaginadas>('/admin/reservas', { params: { page, limit } }).then((response) => response.data),
   // Trae los ingresos de hoy y del mes, abiertos por método de pago y por sede — solo para gerentes.
   getReporteFinanciero: () =>
     api.get<ReporteFinanciero>('/admin/reportes/financiero').then((r) => r.data),
@@ -84,7 +92,8 @@ export const adminApi = {
   getPopularidadPlanes: () =>
     api.get<PlanPopularidad[]>('/admin/reportes/precios-popularidad').then((r) => r.data),
   // Trae el registro de quién hizo qué en el sistema; los filtros
-  // (entidad, desde, hasta) son todos opcionales.
-  getAuditoria: (params?: { entidad?: string; desde?: string; hasta?: string }) =>
-    api.get<AuditoriaRegistro[]>('/admin/auditoria', { params }).then((r) => r.data),
+  // (entidad, desde, hasta) son todos opcionales. Viene paginado:
+  // page arranca en 1 y limit trae 20 por defecto.
+  getAuditoria: (params?: { entidad?: string; desde?: string; hasta?: string }, page = 1, limit = 20) =>
+    api.get<PaginatedResponse<AuditoriaRegistro>>('/admin/auditoria', { params: { ...params, page, limit } }).then((r) => r.data),
 };

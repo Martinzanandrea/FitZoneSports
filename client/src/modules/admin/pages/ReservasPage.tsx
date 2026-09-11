@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Clock3, Search, AlertTriangle } from 'lucide-react';
-import { Badge, Card, Chip } from '../../../shared/components/ui';
-import { adminApi, type ReservaAdmin } from '../admin.api';
+import { Badge, Card, Chip, Pagination } from '../../../shared/components/ui';
+import { adminApi, type ReservaCanchaAdminItem, type ReservaClaseAdminItem, type ReservasAdminPaginadas } from '../admin.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 
 export function ReservasPage() {
-  const [reservas, setReservas] = useState<ReservaAdmin | null>(null);
+  const [reservas, setReservas] = useState<ReservasAdminPaginadas | null>(null);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [sedeFiltro, setSedeFiltro] = useState('TODAS');
   const [fecha, setFecha] = useState('');
@@ -15,13 +15,17 @@ export function ReservasPage() {
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
+  // Un solo page/limit compartido: el backend pagina ambos sub-listados juntos.
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    adminApi.getReservas().then(setReservas).catch(() => setError(true)).finally(() => setCargando(false));
-    sedesApi.getAll().then(setSedes).catch(() => setSedes([]));
-  }, []);
+    adminApi.getReservas(page).then((res) => { setReservas(res); setTotalPages(Math.max(res.clases.totalPages, res.canchas.totalPages)); }).catch(() => setError(true)).finally(() => setCargando(false));
+    sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
+  }, [page]);
 
-  const clases = useMemo(() => (reservas?.clases ?? []).filter((reserva) => {
+  // TODO: estos filtros solo aplican a la página actual, no al total — filtrar server-side en el futuro.
+  const clases: ReservaClaseAdminItem[] = useMemo(() => (reservas?.clases.data ?? []).filter((reserva) => {
     const coincideSede = sedeFiltro === 'TODAS' || reserva.sede === sedes.find((s) => s.id === sedeFiltro)?.nombre;
     const coincideFecha = !fecha || reserva.fecha === fecha;
     const coincideEstado = estado === 'TODOS' || reserva.estado === estado;
@@ -29,7 +33,7 @@ export function ReservasPage() {
     return coincideSede && coincideFecha && coincideEstado && texto.includes(busqueda.toLowerCase());
   }), [reservas, fecha, estado, busqueda, sedeFiltro, sedes]);
 
-  const canchas = useMemo(() => (reservas?.canchas ?? []).filter((reserva) => {
+  const canchas: ReservaCanchaAdminItem[] = useMemo(() => (reservas?.canchas.data ?? []).filter((reserva) => {
     const coincideSede = sedeFiltro === 'TODAS' || reserva.sede === sedes.find((s) => s.id === sedeFiltro)?.nombre;
     const coincideFecha = !fecha || reserva.fecha === fecha;
     const coincideEstado = estado === 'TODOS' || reserva.estado === estado;
@@ -99,6 +103,7 @@ export function ReservasPage() {
       {mostrarClases && <section className="mb-6"><h2 className="mb-3 text-base font-bold text-[#111111]">Clases reservadas</h2>{clases.length === 0 ? <Empty text="No hay clases que coincidan con los filtros." /> : <div className="space-y-2">{clases.map((reserva) => <Card key={reserva.id} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-semibold text-[#111111]">{reserva.clase}</p><p className="mt-1 text-xs text-[#6B7280]">{reserva.sede} · {reserva.usuario}</p><p className="mt-1 flex items-center gap-1 text-xs text-[#6B7280]"><CalendarDays size={13} />{reserva.fecha} · <Clock3 size={13} />{reserva.horario}</p></div><div className="flex items-center gap-3"><span className="text-xs text-[#6B7280]">Cupo {reserva.ocupadas}/{reserva.capacidad}</span><Badge variant={reserva.estado === 'LISTA_ESPERA' ? 'amber' : reserva.estado === 'CANCELADA' ? 'red' : 'green'}>{reserva.estado}</Badge></div></Card>)}</div>}</section>}
 
       {mostrarCanchas && <section><h2 className="mb-3 text-base font-bold text-[#111111]">Canchas reservadas</h2>{canchas.length === 0 ? <Empty text="No hay canchas que coincidan con los filtros." /> : <div className="space-y-2">{canchas.map((reserva) => <Card key={reserva.id} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-semibold text-[#111111]">{reserva.cancha}</p><p className="mt-1 text-xs text-[#6B7280]">{reserva.sede} · {reserva.usuario}</p><p className="mt-1 flex items-center gap-1 text-xs text-[#6B7280]"><CalendarDays size={13} />{reserva.fecha} · <Clock3 size={13} />{reserva.horario}</p></div><div className="flex items-center gap-3"><span className="text-sm font-bold text-[#111111]">${reserva.precioFinal}</span><Badge variant={reserva.estado === 'CANCELADA' ? 'red' : 'green'}>{reserva.estado}</Badge></div></Card>)}</div>}</section>}
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }

@@ -49,10 +49,10 @@ export function GerenteDashboard() {
 
   useEffect(() => {
     cargarResumen();
-    sedesApi.getAll().then((s) => setSedesActivas(s.filter((x) => x.activa).length)).catch(() => setSedesActivas(null));
-    usuariosApi.getAll().then((u) => setTotalUsuarios(u.length)).catch(() => setTotalUsuarios(null));
+    sedesApi.getAll(1, 100).then((res) => setSedesActivas(res.data.filter((x) => x.activa).length)).catch(() => setSedesActivas(null));
+    usuariosApi.getAll().then((res) => setTotalUsuarios(res.total)).catch(() => setTotalUsuarios(null));
     adminApi.getReporteFinanciero().then((r) => setIngresosMes(r.ingresosMes)).catch(() => setIngresosMes(null));
-    adminApi.getAuditoria().then((regs) => setActividad(regs.slice(0, 5))).catch(() => setActError(true));
+    adminApi.getAuditoria(undefined, 1, 5).then((res) => setActividad(res.data)).catch(() => setActError(true));
   }, []);
 
   useEffect(() => {

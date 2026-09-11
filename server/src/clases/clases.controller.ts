@@ -23,6 +23,7 @@ import { CreateClaseDto } from './dto/create-clase.dto';
 import { UpdateClaseDto } from './dto/update-clase.dto';
 import { AsignarInstructorDto } from './dto/asignar-instructor.dto';
 import { RepartoHorasService } from './reparto-horas.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
@@ -46,8 +47,8 @@ export class ClasesController {
 
   @Get()
   @ApiOperation({ summary: 'Listar clases (filtrable por sede)' })
-  findAll(@Query('sedeId') sedeId?: string) {
-    return this.clasesService.findAll(sedeId);
+  findAll(@Query('sedeId') sedeId?: string, @Query() query?: PaginationQueryDto) {
+    return this.clasesService.findAll(sedeId, query);
   }
 
   // Va ANTES que ':id' para que Nest no lo confunda con un ID.
@@ -78,8 +79,9 @@ export class ClasesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
+    @Query() query?: PaginationQueryDto,
   ) {
-    return this.clasesService.listarOcurrencias(id, desde, hasta);
+    return this.clasesService.listarOcurrencias(id, desde, hasta, query);
   }
 
   @Roles(TipoActor.GERENTE)

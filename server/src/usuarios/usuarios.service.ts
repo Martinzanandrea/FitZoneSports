@@ -12,6 +12,8 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { ConfigService } from '@nestjs/config';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
 
 const SALT_ROUNDS = 10; // "costo" del hasheo: más alto = más lento pero más seguro. 10 es el estándar razonable hoy.
 
@@ -50,21 +52,33 @@ export class UsuariosService {
     return this.usuariosRepo.save(usuario);
   }
 
-  findAll(): Promise<Usuario[]> {
+  async findAll(query: PaginationQueryDto): Promise<PaginatedResponse<Usuario>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     // passwordHash no viene igual, porque en la entidad tiene select:false.
-    return this.usuariosRepo.find({ relations: { sede: true } });
+    const [data, total] = await this.usuariosRepo.findAndCount({
+      relations: { sede: true },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
   // Lista solo el personal interno (RECEPCIONISTA/GERENTE), con su sede
   // cargada, para el panel de "Personal" del Gerente.
-  findStaff(): Promise<Usuario[]> {
-    return this.usuariosRepo.find({
+  async findStaff(query: PaginationQueryDto): Promise<PaginatedResponse<Usuario>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const [data, total] = await this.usuariosRepo.findAndCount({
       where: [
         { tipoActor: TipoActor.RECEPCIONISTA },
         { tipoActor: TipoActor.GERENTE },
       ],
       relations: { sede: true },
       order: { creadoEn: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 
   // Reasigna la sede de un Recepcionista. No aplica a Gerente (no tiene

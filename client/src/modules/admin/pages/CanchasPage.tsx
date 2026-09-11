@@ -4,7 +4,7 @@ import { canchasApi } from '../../canchas/canchas.api';
 import { EstadoCancha, TipoCancha, type Cancha, type CanchaPayload } from '../../canchas/canchas.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
-import { Chip, StatCard } from '../../../shared/components/ui';
+import { Chip, Pagination, StatCard } from '../../../shared/components/ui';
 
 type CanchaForm = CanchaPayload & { estado: Cancha['estado'] };
 const EMPTY_FORM: CanchaForm = { sedeId: '', nombre: '', tipo: TipoCancha.PADDLE, costoHoraBase: 0, estado: EstadoCancha.ACTIVA };
@@ -20,21 +20,27 @@ export function CanchasPage() {
   const [error, setError] = useState('');
   const [filtroSede, setFiltroSede] = useState('TODAS');
   const [filtroTipo, setFiltroTipo] = useState('TODOS');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    Promise.all([canchasApi.getAll(), sedesApi.getAll()])
-      .then(([canchasCargadas, sedesCargadas]) => { setCanchas(canchasCargadas); setSedes(sedesCargadas); })
+    Promise.all([canchasApi.getAll(page), sedesApi.getAll(1, 100)])
+      .then(([canchasRes, sedesRes]) => { setCanchas(canchasRes.data); setTotalPages(canchasRes.totalPages); setTotal(canchasRes.total); setSedes(sedesRes.data); })
       .catch(() => setError('No se pudieron cargar las canchas.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page]);
 
+  // TODO: estos filtros y conteos solo aplican a la página actual, no al total —
+  // filtrar/contar server-side en el futuro.
   const filtradas = useMemo(() => canchas.filter((c) => {
     const okSede = filtroSede === 'TODAS' || c.sede.id === filtroSede;
     const okTipo = filtroTipo === 'TODOS' || c.tipo === filtroTipo;
     return okSede && okTipo;
   }), [canchas, filtroSede, filtroTipo]);
 
-  const total = canchas.length;
+  // "Total canchas" viene del total del backend; "En mantenimiento" se cuenta
+  // sobre la página visible (ver TODO de arriba).
   const enMantenimiento = canchas.filter((c) => c.estado === EstadoCancha.MANTENIMIENTO).length;
 
   async function guardar(event: FormEvent) {
@@ -83,5 +89,6 @@ export function CanchasPage() {
 
     {showForm && <form onSubmit={guardar} className="mb-6 grid gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5 md:grid-cols-2"><label className="text-sm font-medium text-[#374151]">Nombre<input required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label><label className="text-sm font-medium text-[#374151]">Sede<select required value={form.sedeId} onChange={(e) => setForm({ ...form, sedeId: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}><option value="">Seleccionar sede...</option>{sedes.map((sede) => <option key={sede.id} value={sede.id}>{sede.nombre}</option>)}</select></label><label className="text-sm font-medium text-[#374151]">Tipo<select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as CanchaPayload['tipo'] })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}><option value={TipoCancha.PADDLE}>Paddle</option><option value={TipoCancha.FUTBOL5}>Fútbol 5</option></select></label><label className="text-sm font-medium text-[#374151]">Precio por hora<input required min={0.01} type="number" step="0.01" value={form.costoHoraBase} onChange={(e) => setForm({ ...form, costoHoraBase: Number(e.target.value) })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label><label className="text-sm font-medium text-[#374151]">Estado<select value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value as Cancha['estado'] })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}><option value={EstadoCancha.ACTIVA}>Activa</option><option value={EstadoCancha.MANTENIMIENTO}>Mantenimiento</option></select></label><div className="flex items-end md:justify-end"><button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" style={{ minHeight: 44 }}><Check size={16} />{saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Guardar'}</button></div></form>}
     {loading ? <p className="text-sm text-[#6B7280]">Cargando canchas...</p> : filtradas.length === 0 ? <p className="text-sm text-[#6B7280]">Sin canchas para ese filtro.</p> : <div className="grid gap-3 md:grid-cols-2">{filtradas.map((cancha) => <article key={cancha.id} className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"><div className="flex aspect-[16/7] items-center justify-center bg-[#F3E8FF] text-sm text-[#8B2EFF]">Imagen de la cancha</div><div className="p-5"><div className="flex items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-[#111111]">{cancha.nombre}</h2><p className="mt-1 flex items-center gap-1 text-xs text-[#6B7280]"><MapPin size={13} />{cancha.sede.nombre}</p></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${cancha.estado === EstadoCancha.ACTIVA ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-[#FFFBEB] text-[#B45309]'}`}>{cancha.estado === EstadoCancha.ACTIVA ? 'Activa' : 'Mantenimiento'}</span></div><div className="mt-5 flex items-center justify-between border-t border-[#F3F4F6] pt-3 text-xs text-[#6B7280]"><span>{cancha.tipo} · <strong className="text-[#111111]">${cancha.costoHoraBase}/h</strong></span><button type="button" onClick={() => editar(cancha)} className="inline-flex items-center gap-1.5 font-semibold hover:text-[#8B2EFF]" style={{ minHeight: 44 }}><Pencil size={14} />Editar</button></div></div></article>)}</div>}
+    <Pagination page={page} totalPages={totalPages} onChange={setPage} />
   </div>;
 }

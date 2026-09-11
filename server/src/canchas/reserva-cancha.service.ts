@@ -10,6 +10,8 @@ import { CreateReservaCanchaDto } from './dto/create-reserva-cancha.dto';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
 
 @Injectable()
 export class ReservasCanchaService {
@@ -104,14 +106,23 @@ export class ReservasCanchaService {
     });
   }
 
-  findPorCancha(canchaId: string, fecha?: string): Promise<ReservaCancha[]> {
-    return this.reservasRepo.find({
+  async findPorCancha(
+    canchaId: string,
+    fecha?: string,
+    query?: PaginationQueryDto,
+  ): Promise<PaginatedResponse<ReservaCancha>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const [data, total] = await this.reservasRepo.findAndCount({
       where: fecha
         ? { cancha: { id: canchaId }, fecha }
         : { cancha: { id: canchaId } },
       relations: { usuario: true },
       order: { horaInicio: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 
   async cancelar(

@@ -6,8 +6,10 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -36,8 +38,8 @@ export class CanchasController {
 
   @Get()
   @ApiOperation({ summary: 'Listar canchas' })
-  findAll() {
-    return this.canchasService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.canchasService.findAll(query);
   }
 
   @Get(':id')

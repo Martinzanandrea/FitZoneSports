@@ -73,7 +73,10 @@ export function GestionReservasClases() {
     setLoading(true);
     setError(null);
     try {
-      const [allClases, allUsuarios] = await Promise.all([clasesApi.getAll(), usuariosApi.getAll()]);
+      const [clasesRes, usuariosRes] = await Promise.all([clasesApi.getAll(undefined, 1, 100), usuariosApi.getAll(1, 100)]);
+      const allClases = clasesRes.data;
+      // TODO: este buscador solo aplica a la página actual, no al total — filtrar server-side en el futuro.
+      const allUsuarios = usuariosRes.data;
       setClases(allClases);
       setUsuarios(allUsuarios);
       const deSede = sedeId ? allClases.filter((c) => c.sede.id === sedeId && c.activa) : [];
@@ -84,7 +87,7 @@ export function GestionReservasClases() {
       await Promise.all(
         deSede.map(async (c) => {
           try {
-            occMap[c.id] = await clasesApi.getOcurrencias(c.id, hoy, hasta);
+            occMap[c.id] = (await clasesApi.getOcurrencias(c.id, hoy, hasta)).data;
           } catch {
             occMap[c.id] = [];
           }
@@ -97,7 +100,7 @@ export function GestionReservasClases() {
           .flat()
           .map(async (o) => {
             try {
-              resMap[o.id] = await clasesApi.getReservasPorOcurrencia(o.id);
+              resMap[o.id] = (await clasesApi.getReservasPorOcurrencia(o.id)).data;
             } catch {
               resMap[o.id] = [];
             }

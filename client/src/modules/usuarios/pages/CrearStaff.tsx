@@ -19,7 +19,7 @@ export function CrearStaff() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    sedesApi.getAll().then(setSedes).catch(() => setSedes([]));
+    sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
   }, []);
 
   const esRecepcionista = form.tipoActor === TipoActor.RECEPCIONISTA;

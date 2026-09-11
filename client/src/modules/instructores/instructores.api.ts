@@ -1,4 +1,5 @@
 import { api } from '../../api/axios';
+import type { PaginatedResponse } from '../../shared/types/pagination';
 
 export interface Instructor {
   id: string;
@@ -9,7 +10,9 @@ export interface Instructor {
 
 export const instructoresApi = {
   // Trae la lista de instructores para mostrarlos o elegir uno al crear una clase.
-  getAll: () => api.get<Instructor[]>('/instructores').then((response) => response.data),
+  // Viene paginada: page arranca en 1 y limit trae 20 por defecto.
+  getAll: (page = 1, limit = 20) =>
+    api.get<PaginatedResponse<Instructor>>('/instructores', { params: { page, limit } }).then((response) => response.data),
   // Trae los datos de un solo instructor; el id dice cuál ver en detalle.
   getOne: (id: string) => api.get<Instructor>(`/instructores/${id}`).then((r) => r.data),
   // Da de alta a un instructor nuevo; la especialidad y el teléfono son opcionales.

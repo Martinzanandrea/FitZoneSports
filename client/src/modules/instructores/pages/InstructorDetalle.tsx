@@ -20,11 +20,11 @@ export function InstructorDetalle() {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([instructoresApi.getOne(id), clasesApi.getAll().catch(() => [] as Clase[])])
+    Promise.all([instructoresApi.getOne(id), clasesApi.getAll(undefined, 1, 100).catch(() => ({ data: [] as Clase[] }))])
       .then(([instructor, todasClases]) => {
         setInst(instructor);
         setForm({ nombre: instructor.nombre, especialidad: instructor.especialidad ?? '' });
-        setClases(todasClases.filter((c) => c.instructor.id === id));
+        setClases(todasClases.data.filter((c) => c.instructor.id === id));
       })
       .catch(() => setMsg({ type: 'err', text: 'No se pudo cargar.' }))
       .finally(() => setLoading(false));

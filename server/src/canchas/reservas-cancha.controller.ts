@@ -15,6 +15,7 @@ import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type'
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { ReservasCanchaService } from './reserva-cancha.service';
 import { CreateReservaCanchaDto } from './dto/create-reserva-cancha.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -50,8 +51,9 @@ export class ReservasCanchaController {
   findPorCancha(
     @Param('canchaId', ParseUUIDPipe) canchaId: string,
     @Query('fecha') fecha?: string,
+    @Query() query?: PaginationQueryDto,
   ) {
-    return this.reservasService.findPorCancha(canchaId, fecha);
+    return this.reservasService.findPorCancha(canchaId, fecha, query);
   }
 
   @Post(':id/cancelar')

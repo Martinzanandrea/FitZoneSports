@@ -4,7 +4,7 @@ import { Building2, MapPin } from 'lucide-react';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { clasesApi } from '../../clases/clases.api';
-import { Badge, Button, Card, PageHeader, ProgressBar } from '../../../shared/components/ui';
+import { Badge, Button, Card, PageHeader, Pagination, ProgressBar } from '../../../shared/components/ui';
 
 function aMinutos(hora: string) {
   const [h = '0', m = '0'] = hora.slice(0, 5).split(':');
@@ -21,16 +21,20 @@ export function SedesConHorarios() {
   const [usos, setUsos] = useState<UsoSede[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     async function cargar() {
       try {
-        const sedes = await sedesApi.getAll();
+        const sedesRes = await sedesApi.getAll(page);
+        setTotalPages(sedesRes.totalPages);
+        const sedes = sedesRes.data;
         const lista = await Promise.all(
           sedes.map(async (sede) => {
             const [franjas, clases] = await Promise.all([
               sedesApi.getFranjas(sede.id).catch(() => []),
-              clasesApi.getAll(sede.id).catch(() => []),
+              clasesApi.getAll(sede.id, 1, 100).catch(() => ({ data: [] as never[] })),
             ]);
             // Las franjas aplican los 7 días (no distinguen día de semana),
             // así que la disponibilidad DIARIA se multiplica ×7 para la semanal.
@@ -39,7 +43,7 @@ export function SedesConHorarios() {
                 (acc, f) => acc + Math.max(0, (aMinutos(f.cierre) - aMinutos(f.apertura)) / 60),
                 0,
               ) * 7;
-            const usadas = clases
+            const usadas = clases.data
               .filter((c) => c.activa !== false)
               .reduce((acc, c) => acc + Number(c.horasSemanalesTotales ?? 0), 0);
             return { sede, usadas, disponibles };
@@ -53,7 +57,7 @@ export function SedesConHorarios() {
       }
     }
     void cargar();
-  }, []);
+  }, [page]);
 
   return (
     <div className="max-w-5xl">
@@ -123,6 +127,7 @@ export function SedesConHorarios() {
           })}
         </div>
       )}
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }

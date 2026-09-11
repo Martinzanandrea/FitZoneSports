@@ -1,5 +1,6 @@
 import { api } from "../../api/axios";
 import type { Sede, CreateSedePayload, FranjaHoraria } from "./sedes.types";
+import type { PaginatedResponse } from "../../shared/types/pagination";
 
 export const sedesApi = {
   // Trae solo los datos públicos de las sedes, sin necesitar estar
@@ -7,7 +8,10 @@ export const sedesApi = {
   getAllPublico:()=> api.get<Sede[]>("/sedes/publico").then((res) => res.data),
   // Le pide al backend la lista completa de sedes que puede administrar
   // el usuario logueado (el propio backend ya filtra según su rol).
-  getAll: () => api.get<Sede[]>("/sedes").then((res) => res.data),
+  // Viene paginada: page arranca en 1 y limit trae 20 por defecto
+  // (getAllPublico, en cambio, sigue sin paginar porque es para la landing).
+  getAll: (page = 1, limit = 20) =>
+    api.get<PaginatedResponse<Sede>>("/sedes", { params: { page, limit } }).then((res) => res.data),
   // Trae los datos de una sola sede; el id es la sede que se quiere ver en detalle.
   getOne: (id: string) => api.get<Sede>(`/sedes/${id}`).then((res) => res.data),
   // Crea una sede nueva en la cadena — solo para gerentes.

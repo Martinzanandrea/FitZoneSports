@@ -1,13 +1,17 @@
 import { api } from "../../api/axios";
 import type { Usuario, CrearStaffPayload } from "./usuarios.types";
+import type { PaginatedResponse } from "../../shared/types/pagination";
 
 export const usuariosApi = {
   // Le pide al backend la lista de todos los usuarios (solo la ven
   // recepcionistas y gerentes, se usa para buscar a alguien por nombre).
-  getAll: () => api.get<Usuario[]>("/usuarios").then((res) => res.data),
+  // Viene paginada: page arranca en 1 y limit trae 20 por defecto.
+  getAll: (page = 1, limit = 20) =>
+    api.get<PaginatedResponse<Usuario>>("/usuarios", { params: { page, limit } }).then((res) => res.data),
   // Trae solo al personal (recepcionistas y gerentes), que es lo que
-  // muestra la pantalla de Personal.
-  getStaff: () => api.get<Usuario[]>("/usuarios/staff").then((res) => res.data),
+  // muestra la pantalla de Personal. También viene paginado.
+  getStaff: (page = 1, limit = 20) =>
+    api.get<PaginatedResponse<Usuario>>("/usuarios/staff", { params: { page, limit } }).then((res) => res.data),
   // Da de alta a un recepcionista o gerente nuevo — solo lo puede hacer un gerente.
   crearStaff: (payload: CrearStaffPayload) =>
     api.post<Usuario>("/usuarios/staff", payload).then((res) => res.data),

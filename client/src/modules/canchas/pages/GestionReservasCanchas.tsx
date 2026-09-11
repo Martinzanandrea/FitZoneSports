@@ -52,7 +52,10 @@ export function GestionReservasCanchas() {
   useEffect(() => {
     async function init() {
       try {
-        const [allCanchas, allUsuarios] = await Promise.all([canchasApi.getAll(), usuariosApi.getAll()]);
+        const [canchasRes, usuariosRes] = await Promise.all([canchasApi.getAll(1, 100), usuariosApi.getAll(1, 100)]);
+        const allCanchas = canchasRes.data;
+        // TODO: este buscador solo aplica a la página actual, no al total — filtrar server-side en el futuro.
+        const allUsuarios = usuariosRes.data;
         setCanchas(allCanchas);
         setUsuarios(allUsuarios);
         const filtradas = sedeId ? allCanchas.filter((c) => c.sede.id === sedeId) : [];
@@ -75,7 +78,7 @@ export function GestionReservasCanchas() {
 
   useEffect(() => {
     if (!canchaId) return;
-    canchasApi.getReservasPorCancha(canchaId, fecha).then(setReservas).catch(() => setReservas([]));
+    canchasApi.getReservasPorCancha(canchaId, fecha).then((res) => setReservas(res.data)).catch(() => setReservas([]));
   }, [canchaId, fecha]);
 
   const ocupadas = useMemo(() => new Set(reservas.filter((r) => r.estado === 'CONFIRMADA').map((r) => r.horaInicio.slice(0, 5))), [reservas]);

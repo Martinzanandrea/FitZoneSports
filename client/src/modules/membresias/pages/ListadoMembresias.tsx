@@ -5,7 +5,7 @@ import type { Membresia } from '../membresias.types';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
 import { useAuth } from '../../auth/AuthContext';
-import { Badge, Chip, PageHeader } from '../../../shared/components/ui';
+import { Badge, Chip, PageHeader, Pagination } from '../../../shared/components/ui';
 
 type FiltroEstado = 'TODOS' | 'ACTIVO' | 'VENCIDO' | 'SUSPENDIDO';
 
@@ -33,13 +33,16 @@ export function ListadoMembresias() {
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCargando(true);
-    membresiasApi.getAll()
-      .then((data) => {
-        setMembresias(data);
+    membresiasApi.getAll(page)
+      .then((res) => {
+        setMembresias(res.data);
+        setTotalPages(res.totalPages);
         setError('');
       })
       .catch(() => {
@@ -47,13 +50,14 @@ export function ListadoMembresias() {
         setError('No se pudieron cargar las membresías.');
       })
       .finally(() => setCargando(false));
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (!esGerente) return;
-    sedesApi.getAll().then(setSedes).catch(() => setSedes([]));
+    sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
   }, [esGerente]);
 
+  // TODO: este filtro solo aplica a la página actual, no al total — filtrar server-side en el futuro.
   const filtradas = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
     return membresias.filter((m) => {
@@ -143,6 +147,7 @@ export function ListadoMembresias() {
           )}
         </div>
       )}
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }

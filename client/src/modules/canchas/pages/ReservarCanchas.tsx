@@ -30,7 +30,8 @@ export function ReservarCanchas() {
   const fechas = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
 
   useEffect(() => {
-    canchasApi.getAll().then((data) => {
+    canchasApi.getAll(1, 100).then((res) => {
+      const data = res.data;
       setCanchas(data);
       if (data.length) setCanchaId(data[0].id);
       setLoading(false);
@@ -39,7 +40,7 @@ export function ReservarCanchas() {
 
   useEffect(() => {
     if (!canchaId) return;
-    canchasApi.getReservasPorCancha(canchaId, fecha).then(setReservas).catch(() => setReservas([]));
+    canchasApi.getReservasPorCancha(canchaId, fecha).then((res) => setReservas(res.data)).catch(() => setReservas([]));
   }, [canchaId, fecha]);
 
   const ocupadas = useMemo(() => new Set(reservas.filter((r) => r.estado === 'CONFIRMADA').map((r) => r.horaInicio.slice(0,5))), [reservas]);

@@ -1,5 +1,6 @@
 import { api } from "../../api/axios";
 import type { Pago, PagoPasarelaPayload } from "./pagos.types";
+import type { PaginatedResponse } from "../../shared/types/pagination";
 
 export interface OpcionesCobroEfectivo {
   usuarios: Array<{
@@ -55,8 +56,9 @@ export const pagosApi = {
     api.post<Pago>("/pagos/pasarela", payload).then((res) => res.data),
   // Trae el historial de pagos de una persona; el usuarioId dice de quién
   // (cada uno solo puede ver el propio, salvo el staff).
-  getPorUsuario: (usuarioId: string) =>
-    api.get<Pago[]>(`/pagos/usuario/${usuarioId}`).then((res) => res.data),
+  // Viene paginado: page arranca en 1 y limit trae 20 por defecto.
+  getPorUsuario: (usuarioId: string, page = 1, limit = 20) =>
+    api.get<PaginatedResponse<Pago>>(`/pagos/usuario/${usuarioId}`, { params: { page, limit } }).then((res) => res.data),
   // Registra un cobro en efectivo hecho en el mostrador — solo para
   // recepcionistas y gerentes; se pasa una sola de las tres referencias
   // (membresía, reserva de clase o de cancha).

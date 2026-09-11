@@ -2,6 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Auditoria } from '../entities';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
+import { paginarQueryBuilder } from '../common/helpers/paginate.helper';
 
 interface RegistrarInput {
   actorId?: string;
@@ -34,15 +37,17 @@ export class AuditoriaService {
     }
   }
 
-  findAll(filtros: { entidad?: string; desde?: string; hasta?: string }) {
+  findAll(
+    filtros: { entidad?: string; desde?: string; hasta?: string },
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<Auditoria>> {
     const qb = this.auditoriaRepo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.actor', 'actor')
-      .orderBy('a.creado_en', 'DESC')
-      .limit(200);
+      .orderBy('a.creado_en', 'DESC');
     if (filtros.entidad) qb.andWhere('a.entidad = :entidad', { entidad: filtros.entidad });
     if (filtros.desde) qb.andWhere('a.creado_en >= :desde', { desde: filtros.desde });
     if (filtros.hasta) qb.andWhere('a.creado_en <= :hasta', { hasta: filtros.hasta });
-    return qb.getMany();
+    return paginarQueryBuilder(qb, query.page ?? 1, query.limit ?? 20);
   }
 }

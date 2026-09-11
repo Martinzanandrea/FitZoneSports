@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { instructoresApi, type Instructor } from '../instructores.api';
-import { Card, Avatar } from '../../../shared/components/ui';
+import { Card, Avatar, Pagination } from '../../../shared/components/ui';
 
 export function CrearInstructor() {
   const [form, setForm] = useState({ nombre: '', especialidad: '', telefono: '' });
@@ -10,11 +10,13 @@ export function CrearInstructor() {
   const [submitting, setSubmitting] = useState(false);
   const [instructores, setInstructores] = useState<Instructor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   function cargar() {
-    instructoresApi.getAll().then(setInstructores).catch(() => setInstructores([])).finally(() => setLoading(false));
+    instructoresApi.getAll(page).then((res) => { setInstructores(res.data); setTotalPages(res.totalPages); }).catch(() => setInstructores([])).finally(() => setLoading(false));
   }
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); }, [page]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -52,6 +54,8 @@ export function CrearInstructor() {
           </div>
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       <h2 className="text-base font-bold text-[#111111] mb-3">Crear instructor</h2>
       <form onSubmit={handleSubmit} className="max-w-sm space-y-4 rounded-xl border border-[#E5E7EB] bg-white p-5">

@@ -16,10 +16,36 @@ import {
 } from '../entities';
 import { TipoActor } from '../entities/enums';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
+import { paginarArray } from '../common/helpers/paginate.helper';
 
 export interface DashboardResumen {
   clasesHoy: number;
   horasCanchasAgendadasHoy: number;
+}
+
+export interface ReservaClaseAdmin {
+  id: string;
+  clase: string;
+  sede: string;
+  usuario: string;
+  fecha: string;
+  horario: string;
+  estado: EstadoResClase;
+  ocupadas: number;
+  capacidad: number;
+}
+
+export interface ReservaCanchaAdmin {
+  id: string;
+  cancha: string;
+  sede: string;
+  usuario: string;
+  fecha: string;
+  horario: string;
+  estado: EstadoResCancha;
+  precioFinal: string;
 }
 
 export interface ReservasAdmin {
@@ -27,27 +53,8 @@ export interface ReservasAdmin {
     canchasReservadas: number;
     clasesConOcupacionAlta: number;
   };
-  clases: Array<{
-    id: string;
-    clase: string;
-    sede: string;
-    usuario: string;
-    fecha: string;
-    horario: string;
-    estado: EstadoResClase;
-    ocupadas: number;
-    capacidad: number;
-  }>;
-  canchas: Array<{
-    id: string;
-    cancha: string;
-    sede: string;
-    usuario: string;
-    fecha: string;
-    horario: string;
-    estado: EstadoResCancha;
-    precioFinal: string;
-  }>;
+  clases: PaginatedResponse<ReservaClaseAdmin>;
+  canchas: PaginatedResponse<ReservaCanchaAdmin>;
 }
 
 export interface ReporteFinanciero {
@@ -146,7 +153,10 @@ export class AdminService {
 
   async obtenerReservas(
     currentUser: UsuarioAutenticado,
+    query?: PaginationQueryDto,
   ): Promise<ReservasAdmin> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
     const filtrarPorSede = currentUser.tipoActor === TipoActor.RECEPCIONISTA;
 
     const reservasClaseQuery = this.reservasClaseRepo
@@ -226,8 +236,11 @@ export class AdminService {
         ).length,
         clasesConOcupacionAlta,
       },
-      clases,
-      canchas,
+      // Un solo page/limit para ambos arrays. Se pagina el mapeo final
+      // en memoria (no en la query) para que resumen y ocupación sigan
+      // calculados sobre el total filtrado por sede, no sobre la página.
+      clases: paginarArray(clases, page, limit),
+      canchas: paginarArray(canchas, page, limit),
     };
   }
 

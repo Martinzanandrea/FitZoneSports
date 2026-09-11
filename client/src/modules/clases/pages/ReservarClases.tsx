@@ -40,7 +40,8 @@ export function ReservarClases() {
     setLoading(true);
     setError(null);
     try {
-      const data = await clasesApi.getAll();
+      const clasesRes = await clasesApi.getAll(undefined, 1, 100);
+      const data = clasesRes.data;
       setClases(data);
       const hoy = aYMD(new Date());
       const hasta = aYMD(new Date(Date.now() + DIAS_A_FUTURO * 24 * 60 * 60 * 1000));
@@ -48,7 +49,7 @@ export function ReservarClases() {
       await Promise.all(
         data.map(async (c) => {
           try {
-            occMap[c.id] = await clasesApi.getOcurrencias(c.id, hoy, hasta);
+            occMap[c.id] = (await clasesApi.getOcurrencias(c.id, hoy, hasta)).data;
           } catch {
             occMap[c.id] = [];
           }
@@ -61,7 +62,7 @@ export function ReservarClases() {
           .flat()
           .map(async (o) => {
             try {
-              resMap[o.id] = await clasesApi.getReservasPorOcurrencia(o.id);
+              resMap[o.id] = (await clasesApi.getReservasPorOcurrencia(o.id)).data;
             } catch {
               resMap[o.id] = [];
             }

@@ -4,7 +4,7 @@ import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { canchasApi } from '../../canchas/canchas.api';
 import { clasesApi } from '../../clases/clases.api';
-import { Badge, Card, Chip, SectionTitle, formatMoney } from '../../../shared/components/ui';
+import { Badge, Card, Chip, Pagination, SectionTitle, formatMoney } from '../../../shared/components/ui';
 
 const TAB = { AUDITORIA: 'AUDITORIA', POR_SEDE: 'POR_SEDE' } as const;
 type Tab = (typeof TAB)[keyof typeof TAB];
@@ -27,6 +27,8 @@ export function Reportes() {
   const [hasta, setHasta] = useState('');
   const [loadingA, setLoadingA] = useState(true);
   const [errA, setErrA] = useState('');
+  const [pageA, setPageA] = useState(1);
+  const [totalPagesA, setTotalPagesA] = useState(1);
 
   // por sede tab
   const [sedes, setSedes] = useState<Sede[]>([]);
@@ -37,23 +39,23 @@ export function Reportes() {
   const [loadingS, setLoadingS] = useState(false);
   const [errS, setErrS] = useState('');
 
-  function cargarAuditoria() {
+  function cargarAuditoria(pagina = pageA) {
     setLoadingA(true); setErrA('');
-    adminApi.getAuditoria({ entidad: entidad || undefined, desde: desde || undefined, hasta: hasta || undefined })
-      .then(setRegs)
+    adminApi.getAuditoria({ entidad: entidad || undefined, desde: desde || undefined, hasta: hasta || undefined }, pagina)
+      .then((res) => { setRegs(res.data); setTotalPagesA(res.totalPages); })
       .catch(() => setErrA('No se pudo cargar la auditoría.'))
       .finally(() => setLoadingA(false));
   }
 
   useEffect(() => {
-    cargarAuditoria();
+    cargarAuditoria(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    sedesApi.getAll().then((s) => {
-      setSedes(s);
-      if (s.length && !sedeId) setSedeId(s[0].id);
+    sedesApi.getAll(1, 100).then((res) => {
+      setSedes(res.data);
+      if (res.data.length && !sedeId) setSedeId(res.data[0].id);
     }).catch(() => setSedes([]));
   }, [sedeId]);
 
@@ -63,8 +65,8 @@ export function Reportes() {
     Promise.allSettled([
       adminApi.getReporteFinanciero(),
       adminApi.getMembresiasPorSede(sedeId),
-      canchasApi.getAll(),
-      clasesApi.getAll(),
+      canchasApi.getAll(1, 100),
+      clasesApi.getAll(undefined, 1, 100),
     ]).then((results) => {
       const [finRes, membRes, canchasRes, clasesRes] = results;
       if (finRes.status === 'fulfilled') {
@@ -78,8 +80,8 @@ export function Reportes() {
       } else setErrS((prev) => prev + ' Membresías no disponibles.');
       if (canchasRes.status === 'fulfilled' && clasesRes.status === 'fulfilled') {
         const sede = sedes.find((s) => s.id === sedeId);
-        const canchas = (canchasRes.value as unknown as { sede: { id: string } }[]).filter((c) => c.sede.id === sedeId).length;
-        const clases = (clasesRes.value as unknown as { sede: { id: string } }[]).filter((c) => c.sede.id === sedeId).length;
+        const canchas = (canchasRes.value.data as unknown as { sede: { id: string } }[]).filter((c) => c.sede.id === sedeId).length;
+        const clases = (clasesRes.value.data as unknown as { sede: { id: string } }[]).filter((c) => c.sede.id === sedeId).length;
         void sede;
         setCounts({ canchas, clases });
       }
@@ -122,7 +124,7 @@ export function Reportes() {
                 <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} />
               </label>
               <div className="flex items-end">
-                <button type="button" onClick={cargarAuditoria} className="w-full rounded-lg bg-[#8B2EFF] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7A25E6]" style={{ minHeight: 44 }}>Filtrar</button>
+                <button type="button" onClick={() => { setPageA(1); cargarAuditoria(1); }} className="w-full rounded-lg bg-[#8B2EFF] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7A25E6]" style={{ minHeight: 44 }}>Filtrar</button>
               </div>
             </div>
           </Card>
@@ -149,6 +151,7 @@ export function Reportes() {
               </div>
             </div>
           )}
+          <Pagination page={pageA} totalPages={totalPagesA} onChange={(p) => { setPageA(p); cargarAuditoria(p); }} />
         </div>
       )}
 

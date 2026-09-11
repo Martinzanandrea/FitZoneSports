@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cancha, Sede, BloqueoCancha } from '../entities';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import { CreateCanchaDto } from './dto/create-cancha.dto';
 import { UpdateCanchaDto } from './dto/update-cancha.dto';
 import { CreateBloqueoDto } from './dto/create-bloqueo.dto';
@@ -30,8 +32,21 @@ export class CanchasService {
     return this.canchasRepo.save(cancha);
   }
 
-  findAll(): Promise<Cancha[]> {
-    return this.canchasRepo.find({ relations: { sede: true } });
+  async findAll(query: PaginationQueryDto): Promise<PaginatedResponse<Cancha>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const [data, total] = await this.canchasRepo.findAndCount({
+      relations: { sede: true },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
   async findOne(id: string): Promise<Cancha> {

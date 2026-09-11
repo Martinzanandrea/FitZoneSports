@@ -6,8 +6,10 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -60,8 +62,8 @@ export class MembresiasController {
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Get()
   @ApiOperation({ summary: 'Listar membresías' })
-  findAll(@CurrentUser() user: UsuarioAutenticado) {
-    return this.membresiasService.findAll(user);
+  findAll(@CurrentUser() user: UsuarioAutenticado, @Query() query: PaginationQueryDto) {
+    return this.membresiasService.findAll(user, query);
   }
 
   @Get(':id')

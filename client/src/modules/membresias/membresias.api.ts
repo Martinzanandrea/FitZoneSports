@@ -1,5 +1,6 @@
 import { api } from "../../api/axios";
 import type { Membresia, CreateMembresiaPayload } from "./membresias.types";
+import type { PaginatedResponse } from "../../shared/types/pagination";
 
 export const membresiasApi = {
   // Crea la membresía de un socio eligiendo plan y sede de alta; se usa
@@ -8,7 +9,9 @@ export const membresiasApi = {
     api.post<Membresia>("/membresias", payload).then((res) => res.data),
   // Trae las membresías que le corresponde ver al usuario logueado
   // (el backend ya las filtra por sede si es recepcionista).
-  getAll: () => api.get<Membresia[]>("/membresias").then((res) => res.data),
+  // Viene paginado: page arranca en 1 y limit trae 20 por defecto.
+  getAll: (page = 1, limit = 20) =>
+    api.get<PaginatedResponse<Membresia>>("/membresias", { params: { page, limit } }).then((res) => res.data),
   // Busca la membresía vigente de un usuario; el usuarioId dice de quién;
   // puede venir null si no tiene ninguna activa.
   getVigente: (usuarioId: string) =>

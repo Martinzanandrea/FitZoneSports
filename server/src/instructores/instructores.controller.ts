@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -14,10 +15,16 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { TipoActor } from '../entities/enums';
 import { InstructoresService } from './instructores.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
-import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Instructores')
@@ -36,8 +43,8 @@ export class InstructoresController {
 
   @Get()
   @ApiOperation({ summary: 'Listar instructores' })
-  findAll() {
-    return this.instructoresService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.instructoresService.findAll(query);
   }
 
   @Get(':id')

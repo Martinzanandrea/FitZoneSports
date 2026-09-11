@@ -5,8 +5,10 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -40,8 +42,9 @@ export class ReservasClaseController {
   @ApiParam({ name: 'ocurrenciaId', description: 'UUID de la ocurrencia' })
   findPorOcurrencia(
     @Param('ocurrenciaId', ParseUUIDPipe) ocurrenciaId: string,
+    @Query() query: PaginationQueryDto,
   ) {
-    return this.reservasService.findPorOcurrencia(ocurrenciaId);
+    return this.reservasService.findPorOcurrencia(ocurrenciaId, query);
   }
 
   @Post('reservas/:reservaId/cancelar')

@@ -6,6 +6,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TipoActor } from '../entities/enums';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { AdminService } from './admin.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ApiCookieAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 @Controller('admin')
@@ -25,8 +26,8 @@ export class AdminController {
   @Get('reservas')
   @ApiOperation({ summary: 'Obtener reservas para administración' })
   @Roles(TipoActor.GERENTE, TipoActor.RECEPCIONISTA)
-  obtenerReservas(@CurrentUser() user: UsuarioAutenticado) {
-    return this.adminService.obtenerReservas(user);
+  obtenerReservas(@CurrentUser() user: UsuarioAutenticado, @Query() query: PaginationQueryDto) {
+    return this.adminService.obtenerReservas(user, query);
   }
 
   @Get('reportes/financiero')

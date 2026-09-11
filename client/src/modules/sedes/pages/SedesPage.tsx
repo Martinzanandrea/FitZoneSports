@@ -3,6 +3,7 @@ import { Building2, Check, Pencil, Plus, Power, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { sedesApi } from '../sedes.api';
 import type { CreateSedePayload, Sede } from '../sedes.types';
+import { Pagination } from '../../../shared/components/ui';
 
 const EMPTY_FORM: CreateSedePayload = {
   nombre: '',
@@ -18,15 +19,18 @@ export function SedesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadSedes() {
       try {
-        const sedesCargadas = await sedesApi.getAll();
+        const res = await sedesApi.getAll(page);
         if (!cancelled) {
-          setSedes(sedesCargadas);
+          setSedes(res.data);
+          setTotalPages(res.totalPages);
           setError(null);
           setLoading(false);
         }
@@ -42,7 +46,7 @@ export function SedesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [page]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -180,6 +184,7 @@ export function SedesPage() {
           ))}
         </div>
       )}
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }

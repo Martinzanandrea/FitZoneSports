@@ -6,7 +6,7 @@ import { sedesApi } from '../../sedes/sedes.api';
 import type { Usuario } from '../usuarios.types';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
-import { Avatar, StatCard } from '../../../shared/components/ui';
+import { Avatar, Pagination, StatCard } from '../../../shared/components/ui';
 
 export function PersonalPage() {
   const [staff, setStaff] = useState<Usuario[]>([]);
@@ -16,14 +16,18 @@ export function PersonalPage() {
   const [formulario, setFormulario] = useState({ nombre: '', apellido: '', email: '', telefono: '', dni: '' });
   const [guardando, setGuardando] = useState(false);
   const [errorEdicion, setErrorEdicion] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalStaff, setTotalStaff] = useState(0);
 
   useEffect(() => {
-    cargar();
-    sedesApi.getAll().then(setSedes).catch(() => setSedes([]));
-  }, []);
+    cargar(page);
+    sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
-  function cargar() {
-    usuariosApi.getStaff().then(setStaff).catch(() => setStaff([]));
+  function cargar(pagina: number) {
+    usuariosApi.getStaff(pagina).then((res) => { setStaff(res.data); setTotalPages(res.totalPages); setTotalStaff(res.total); }).catch(() => setStaff([]));
   }
 
   const recepcionistas = useMemo(() => staff.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA), [staff]);
@@ -37,7 +41,7 @@ export function PersonalPage() {
     setCambiando(usuarioId);
     try {
       await usuariosApi.asignarSede(usuarioId, sedeId);
-      cargar();
+      cargar(page);
     } catch {
       alert('No se pudo reasignar la sede.');
     } finally {
@@ -69,7 +73,7 @@ export function PersonalPage() {
         dni: formulario.dni || undefined,
       });
       setEditando(null);
-      cargar();
+      cargar(page);
     } catch {
       setErrorEdicion('No se pudieron guardar los cambios. Revisá los datos.');
     } finally {
@@ -90,7 +94,7 @@ export function PersonalPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard label="Total personal" value={String(staff.length)} />
+        <StatCard label="Total personal" value={String(totalStaff)} />
         <StatCard label="Recepcionistas" value={String(recepcionistas.length)} />
         <div className={`rounded-xl p-4 border ${sedesSinRecepcionista.length > 0 ? 'bg-[#FFFBEB] border-[#FDE68A]' : 'bg-white border-[#E5E7EB]'}`}>
           <p className="text-[13px] font-medium text-[#6B7280]">Sedes sin recepcionista</p>
@@ -143,6 +147,7 @@ export function PersonalPage() {
         </table>
         {staff.length === 0 && <p className="p-8 text-center text-sm text-[#6B7280]">Todavía no hay personal cargado.</p>}
       </div>
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       {editando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">

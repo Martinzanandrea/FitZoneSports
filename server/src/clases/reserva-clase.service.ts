@@ -22,6 +22,8 @@ import {
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
 
 const HORAS_LIMITE_RESERVA_PROPIA = 48;
 const MINUTOS_LIMITE_RESERVA_STAFF = 30;
@@ -165,14 +167,22 @@ export class ReservasClaseService {
     return guardada;
   }
 
-  findPorOcurrencia(ocurrenciaId: string): Promise<ReservaClase[]> {
-    return this.reservasRepo.find({
+  async findPorOcurrencia(
+    ocurrenciaId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<ReservaClase>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const [data, total] = await this.reservasRepo.findAndCount({
       where: { ocurrencia: { id: ocurrenciaId } },
       relations: {
         usuario: true,
         ocurrencia: { clase: { sede: true } },
       },
       order: { creadaEn: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 }

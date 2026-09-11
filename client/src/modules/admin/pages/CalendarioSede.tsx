@@ -66,11 +66,11 @@ export function CalendarioSede() {
       const [s, f, c] = await Promise.all([
         sedesApi.getOne(sedeId),
         sedesApi.getFranjas(sedeId).catch(() => [] as FranjaHoraria[]),
-        clasesApi.getAll(sedeId).catch(() => [] as Clase[]),
+        clasesApi.getAll(sedeId, 1, 100).catch(() => ({ data: [] as Clase[] })),
       ]);
       setSede(s);
       setFranjas(f);
-      setClases(c.filter((cl) => cl.activa !== false));
+      setClases(c.data.filter((cl) => cl.activa !== false));
     } catch {
       setError('No se pudo cargar el calendario de la sede.');
     } finally {

@@ -5,8 +5,10 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { PagosService } from './pagos.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { RegistrarPagoEfectivoDto } from './dto/registrar-pago-efectivo.dto';
@@ -19,7 +21,12 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
-import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Pagos')
@@ -59,10 +66,11 @@ export class PagosController {
   findPorUsuario(
     @Param('usuarioId', ParseUUIDPipe) usuarioId: string,
     @CurrentUser() user: any,
+    @Query() query: PaginationQueryDto,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     assertOwnerOrStaff(user, usuarioId);
-    return this.pagosService.findPorUsuario(usuarioId);
+    return this.pagosService.findPorUsuario(usuarioId, query);
   }
 
   @Get(':id')

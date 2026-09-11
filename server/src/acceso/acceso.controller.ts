@@ -5,8 +5,10 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { AccesoService } from './acceso.service';
 import { ValidarQrDto } from './dto/validar-qr.dto';
 import { RegistrarEgresoDto } from './dto/registrar-egreso.dto';
@@ -70,8 +72,9 @@ export class AccesoController {
   findHistorial(
     @Param('usuarioId', ParseUUIDPipe) usuarioId: string,
     @CurrentUser() user: any,
+    @Query() query: PaginationQueryDto,
   ) {
     assertOwnerOrStaff(user, usuarioId);
-    return this.accesoService.findHistorialPorUsuario(usuarioId);
+    return this.accesoService.findHistorialPorUsuario(usuarioId, query);
   }
 }

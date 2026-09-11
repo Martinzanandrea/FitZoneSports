@@ -33,21 +33,23 @@ export function SedeDetalle() {
     setLoading(true);
     Promise.all([
       sedesApi.getOne(id),
-      usuariosApi.getStaff(),
-      canchasApi.getAll().catch(() => [] as any),
-      clasesApi.getAll().catch(() => [] as any),
-      usuariosApi.getAll().catch(() => [] as Usuario[]),
+      usuariosApi.getStaff(1, 100),
+      canchasApi.getAll(1, 100).catch(() => ({ data: [] as any[] })),
+      clasesApi.getAll(undefined, 1, 100).catch(() => ({ data: [] as any[] })),
+      // TODO: estos conteos por sede se calculan sobre la página visible, no sobre el
+      // total — contar server-side en el futuro (sobre todo usuarios, que son miles).
+      usuariosApi.getAll(1, 100).catch(() => ({ data: [] as Usuario[] })),
       sedesApi.getFranjas(id).catch(() => [] as FranjaHoraria[]),
     ]).then(([s, staff, canchas, clases, usuarios, franjasData]) => {
       setSede(s);
       setForm({ nombre: s.nombre, direccion: s.direccion, aforoMaximo: s.aforoMaximo });
-      const receps = (staff as Usuario[]).filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
+      const receps = (staff.data as Usuario[]).filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
       setRecepcionistas(receps);
       const asignado = receps.find((r) => r.sede?.id === s.id);
       setSelectedRecep(asignado ? asignado.id : '');
-      const canchasCount = (canchas as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length;
-      const clasesCount = (clases as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length;
-      const usuariosCount = (usuarios as Usuario[]).filter((u) => (u as any).sede?.id === s.id).length;
+      const canchasCount = (canchas.data as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length;
+      const clasesCount = (clases.data as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length;
+      const usuariosCount = (usuarios.data as Usuario[]).filter((u) => (u as any).sede?.id === s.id).length;
       setCounts({ canchas: canchasCount, clases: clasesCount, usuarios: usuariosCount });
       setFranjas(franjasData);
     }).catch(() => setMsg({ type: 'err', text: 'No se pudo cargar la sede.' }))
@@ -72,8 +74,8 @@ export function SedeDetalle() {
     try {
       await usuariosApi.asignarSede(selectedRecep, id);
       setMsg({ type: 'ok', text: 'Recepcionista asignado.' });
-      const staff = await usuariosApi.getStaff();
-      const receps = staff.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
+      const staff = await usuariosApi.getStaff(1, 100);
+      const receps = staff.data.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
       setRecepcionistas(receps);
     } catch { setMsg({ type: 'err', text: 'No se pudo asignar.' }); }
     finally { setAssigning(false); }

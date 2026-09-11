@@ -1,4 +1,5 @@
 import { api } from '../../api/axios';
+import type { PaginatedResponse } from '../../shared/types/pagination';
 import type {
   Clase,
   ClaseHorarioSemanal,
@@ -50,17 +51,19 @@ export interface SugerenciaReparto {
 
 export const clasesApi = {
   // Trae las plantillas de clases (no los horarios sueltos); si se pasa una
-  // sede, devuelve solo las de esa sede.
-  getAll: (sedeId?: string) =>
-    api.get<ClaseCruda[]>('/clases', { params: sedeId ? { sedeId } : {} }).then((r) => r.data.map(normalizarClase)),
+  // sede, devuelve solo las de esa sede. Viene paginado: page arranca
+  // en 1 y limit trae 20 por defecto.
+  getAll: (sedeId?: string, page = 1, limit = 20) =>
+    api.get<PaginatedResponse<ClaseCruda>>('/clases', { params: { ...(sedeId ? { sedeId } : {}), page, limit } }).then((r) => ({ ...r.data, data: r.data.data.map(normalizarClase) })),
   // Trae el detalle de una clase con su grilla semanal; el id dice cuál.
   getOne: (id: string) =>
     api.get<ClaseCruda>(`/clases/${id}`).then((r) => normalizarClase(r.data)),
   // Trae las fechas concretas generadas de una clase (el claseId dice cuál);
   // desde/hasta recortan el rango con formato "YYYY-MM-DD" y son opcionales.
-  getOcurrencias: (claseId: string, desde?: string, hasta?: string) =>
+  // También viene paginado.
+  getOcurrencias: (claseId: string, desde?: string, hasta?: string, page = 1, limit = 20) =>
     api
-      .get<ClaseOcurrencia[]>(`/clases/${claseId}/ocurrencias`, { params: { desde, hasta } })
+      .get<PaginatedResponse<ClaseOcurrencia>>(`/clases/${claseId}/ocurrencias`, { params: { desde, hasta, page, limit } })
       .then((r) => r.data),
   // Crea una clase con su grilla semanal ya confirmada (pasó por la sugerencia
   // + edición antes de llegar acá) — solo para gerentes.
@@ -82,8 +85,9 @@ export const clasesApi = {
   reservar: (ocurrenciaId: string, usuarioId: string) =>
     api.post<ReservaClase>(`/clases/ocurrencias/${ocurrenciaId}/reservas`, { usuarioId }).then((r) => r.data),
   // Trae quiénes están anotados (y en espera) en una fecha concreta; el ocurrenciaId dice cuál.
-  getReservasPorOcurrencia: (ocurrenciaId: string) =>
-    api.get<ReservaClase[]>(`/clases/ocurrencias/${ocurrenciaId}/reservas`).then((r) => r.data),
+  // Viene paginado: page arranca en 1 y limit trae 20 por defecto.
+  getReservasPorOcurrencia: (ocurrenciaId: string, page = 1, limit = 20) =>
+    api.get<PaginatedResponse<ReservaClase>>(`/clases/ocurrencias/${ocurrenciaId}/reservas`, { params: { page, limit } }).then((r) => r.data),
   // Cancela la inscripción a una clase (el reservaId dice cuál); si había gente
   // en espera, se promueve sola a la primera.
   cancelarReserva: (reservaId: string) =>

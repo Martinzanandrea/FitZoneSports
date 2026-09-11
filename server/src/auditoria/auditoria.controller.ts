@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { TipoActor } from '../entities/enums';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { AuditoriaService } from './auditoria.service';
 import { ApiCookieAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
@@ -23,7 +24,8 @@ export class AuditoriaController {
     @Query('entidad') entidad?: string,
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
+    @Query() query?: PaginationQueryDto,
   ) {
-    return this.auditoriaService.findAll({ entidad, desde, hasta });
+    return this.auditoriaService.findAll({ entidad, desde, hasta }, query ?? {});
   }
 }

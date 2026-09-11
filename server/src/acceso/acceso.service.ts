@@ -10,6 +10,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ControlAcceso, Usuario, Sede } from '../entities';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import type { PaginatedResponse } from '../common/types/paginated-response.type';
 
 interface QrPayload {
   usuarioId: string;
@@ -131,11 +133,19 @@ export class AccesoService {
     return this.accesoRepo.save(sesionAbierta);
   }
 
-  findHistorialPorUsuario(usuarioId: string): Promise<ControlAcceso[]> {
-    return this.accesoRepo.find({
+  async findHistorialPorUsuario(
+    usuarioId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<ControlAcceso>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const [data, total] = await this.accesoRepo.findAndCount({
       where: { usuario: { id: usuarioId } },
       relations: { sede: true },
       order: { horaIngreso: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 }

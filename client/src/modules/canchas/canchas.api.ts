@@ -1,18 +1,22 @@
 import { api } from '../../api/axios';
 import type { Cancha, ReservaCancha, CanchaPayload } from './canchas.types';
+import type { PaginatedResponse } from '../../shared/types/pagination';
 
 export const canchasApi = {
   // Le pide al backend la lista de canchas (el propio backend ya filtra según el rol).
-  getAll: () => api.get<Cancha[]>('/canchas').then((r) => r.data),
+  // Viene paginada: page arranca en 1 y limit trae 20 por defecto.
+  getAll: (page = 1, limit = 20) =>
+    api.get<PaginatedResponse<Cancha>>('/canchas', { params: { page, limit } }).then((r) => r.data),
   // Da de alta una cancha nueva en una sede — solo para gerentes.
   create: (payload: CanchaPayload) => api.post<Cancha>('/canchas', payload).then((r) => r.data),
   // Guarda cambios en una cancha (el id dice cuál); también se usa para pasarla
   // a mantenimiento sin borrar las reservas ya hechas.
   update: (id: string, payload: Partial<CanchaPayload> & { estado?: Cancha['estado'] }) => api.patch<Cancha>(`/canchas/${id}`, payload).then((r) => r.data),
   // Trae las reservas de una cancha (canchaId dice cuál); si se pasa una fecha,
-  // devuelve solo las de ese día para armar la grilla horaria.
-  getReservasPorCancha: (canchaId: string, fecha?: string) =>
-    api.get<ReservaCancha[]>(`/reservas-cancha/cancha/${canchaId}`, { params: fecha ? { fecha } : {} }).then((r) => r.data),
+  // devuelve solo las de ese día para armar la grilla horaria. También viene
+  // paginado (un día tiene 15 turnos como máximo, así que una página alcanza).
+  getReservasPorCancha: (canchaId: string, fecha?: string, page = 1, limit = 20) =>
+    api.get<PaginatedResponse<ReservaCancha>>(`/reservas-cancha/cancha/${canchaId}`, { params: { ...(fecha ? { fecha } : {}), page, limit } }).then((r) => r.data),
   // Reserva un turno pasando cancha, usuario, fecha y horario; el precio lo
   // calcula el backend, acá no se manda ningún monto.
   reservar: (payload: { canchaId: string; usuarioId: string; fecha: string; horaInicio: string; horaFin: string }) =>

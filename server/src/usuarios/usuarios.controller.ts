@@ -7,8 +7,10 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
@@ -46,8 +48,8 @@ export class UsuariosController {
   @Roles(TipoActor.GERENTE)
   @Get('staff')
   @ApiOperation({ summary: 'Listar usuarios de staff' })
-  findStaff() {
-    return this.usuariosService.findStaff();
+  findStaff(@Query() query: PaginationQueryDto) {
+    return this.usuariosService.findStaff(query);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -77,8 +79,8 @@ export class UsuariosController {
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Get()
   @ApiOperation({ summary: 'Listar usuarios' })
-  findAll() {
-    return this.usuariosService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.usuariosService.findAll(query);
   }
 
   @UseGuards(JwtAuthGuard) // sin RolesGuard: cualquier logueado, se valida ownership abajo

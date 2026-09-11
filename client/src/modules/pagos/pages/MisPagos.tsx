@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { pagosApi } from '../pagos.api';
 import type { Pago } from '../pagos.types';
-import { Badge, Card } from '../../../shared/components/ui';
+import { Badge, Card, Pagination } from '../../../shared/components/ui';
 
 function concepto(p: Pago) {
   if (p.membresia) return 'Membresía';
@@ -16,11 +16,13 @@ export function MisPagos() {
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (!user) return;
-    pagosApi.getPorUsuario(user.id).then(setPagos).catch(() => setError('No se pudieron cargar los pagos.')).finally(() => setLoading(false));
-  }, [user]);
+    pagosApi.getPorUsuario(user.id, page).then((res) => { setPagos(res.data); setTotalPages(res.totalPages); }).catch(() => setError('No se pudieron cargar los pagos.')).finally(() => setLoading(false));
+  }, [user, page]);
 
   if (loading) return <div className="max-w-lg mx-auto px-4 py-6 text-sm text-[#6B7280]">Cargando pagos...</div>;
 
@@ -48,6 +50,7 @@ export function MisPagos() {
           );
         })
       )}
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }
