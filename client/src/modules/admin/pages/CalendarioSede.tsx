@@ -6,32 +6,11 @@ import type { Sede, FranjaHoraria } from '../../sedes/sedes.types';
 import { clasesApi } from '../../clases/clases.api';
 import type { Clase } from '../../clases/clases.types';
 import { Badge, Button, Card, Chip, PageHeader } from '../../../shared/components/ui';
+import { colorPorTipo } from '../../../shared/utils/colorClase';
 import { NuevaClasePanel, nombreDia } from './NuevaClasePanel';
 
 // Columnas Lun-Dom (diaSemana JS: 0 = domingo).
 const DIAS_COLUMNAS = [1, 2, 3, 4, 5, 6, 0];
-
-// Una clase, un color: paleta pastel fija, asignación determinística por id
-// (texto siempre oscuro para que contraste sobre el pastel).
-const PALETA_CLASES = [
-  { fondo: '#EDE9FE', borde: '#8B5CF6' }, // lavanda
-  { fondo: '#E0F2FE', borde: '#0284C7' }, // celeste
-  { fondo: '#D1FAE5', borde: '#059669' }, // verde menta
-  { fondo: '#FFEDD5', borde: '#EA580C' }, // durazno
-  { fondo: '#FCE7F3', borde: '#DB2777' }, // rosa
-  { fondo: '#FEF9C3', borde: '#CA8A04' }, // amarillo pálido
-  { fondo: '#FFE4E6', borde: '#E11D48' }, // salmón
-  { fondo: '#CCFBF1', borde: '#0D9488' }, // turquesa
-  { fondo: '#ECFCCB', borde: '#65A30D' }, // lima pálido
-];
-
-function colorDeClase(claseId: string) {
-  let hash = 0;
-  for (let i = 0; i < claseId.length; i++) {
-    hash = (hash * 31 + claseId.charCodeAt(i)) >>> 0;
-  }
-  return PALETA_CLASES[hash % PALETA_CLASES.length];
-}
 
 function aMinutos(hora: string) {
   const [h = '0', m = '0'] = hora.slice(0, 5).split(':');
@@ -217,7 +196,7 @@ export function CalendarioSede() {
                         title={libre ? 'Clic para crear una clase acá' : undefined}
                       >
                         {bloques.map(({ clase, horaInicio, horaFin }, i) => {
-                          const color = colorDeClase(clase.id);
+                          const color = colorPorTipo(clase.tipoClase);
                           return (
                           <div
                             key={`${clase.id}-${i}`}
@@ -271,7 +250,7 @@ export function CalendarioSede() {
             ) : (
               <div className="space-y-2">
                 {bloquesDiaMovil.map(({ clase, horaInicio, horaFin }, i) => {
-                  const color = colorDeClase(clase.id);
+                  const color = colorPorTipo(clase.tipoClase);
                   return (
                   <Card
                     key={`${clase.id}-${i}`}

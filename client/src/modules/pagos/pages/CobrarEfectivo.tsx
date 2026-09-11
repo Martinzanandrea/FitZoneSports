@@ -10,6 +10,12 @@ const TipoReferencia = {
 } as const;
 type TipoReferencia = (typeof TipoReferencia)[keyof typeof TipoReferencia];
 
+// Mismo criterio que GestionReservasClases: fecha DD/MM + hora HH:MM.
+function formatearFecha(fechaYMD: string) {
+  const [y, m, d] = fechaYMD.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 export function CobrarEfectivo() {
   const [tipo, setTipo] = useState<TipoReferencia>(TipoReferencia.MEMBRESIA);
   const [usuarioId, setUsuarioId] = useState('');
@@ -136,7 +142,7 @@ export function CobrarEfectivo() {
                 <button key={m.id} type="button" onClick={() => setReferenciaId(m.id)} className={`w-full text-left rounded-lg border px-3 py-2 text-sm ${referenciaId === m.id ? 'border-[#8B2EFF] bg-[#F3E8FF]' : 'border-[#E5E7EB] bg-white'}`}>Plan {m.plan} · {m.estado} · hasta {m.fechaFin}</button>
               ))}
               {tipo === TipoReferencia.RESERVA_CLASE && reservasClaseUsuario.map((r) => (
-                <button key={r.id} type="button" onClick={() => setReferenciaId(r.id)} className={`w-full text-left rounded-lg border px-3 py-2 text-sm ${referenciaId === r.id ? 'border-[#8B2EFF] bg-[#F3E8FF]' : 'border-[#E5E7EB] bg-white'}`}>{r.clase.tipoClase} · {new Date(r.clase.horarioInicio).toLocaleString('es-AR')} · {r.estado}</button>
+                <button key={r.id} type="button" onClick={() => setReferenciaId(r.id)} className={`w-full text-left rounded-lg border px-3 py-2 text-sm ${referenciaId === r.id ? 'border-[#8B2EFF] bg-[#F3E8FF]' : 'border-[#E5E7EB] bg-white'}`}>{r.ocurrencia.clase.tipoClase} · {formatearFecha(r.ocurrencia.fecha)} {r.ocurrencia.horaInicio.slice(0, 5)} · {r.estado}</button>
               ))}
               {tipo === TipoReferencia.RESERVA_CANCHA && reservasCanchaUsuario.map((r) => (
                 <button key={r.id} type="button" onClick={() => setReferenciaId(r.id)} className={`w-full text-left rounded-lg border px-3 py-2 text-sm ${referenciaId === r.id ? 'border-[#8B2EFF] bg-[#F3E8FF]' : 'border-[#E5E7EB] bg-white'}`}>{r.cancha.nombre} · {r.fecha} {r.horaInicio.slice(0, 5)} · Precio final: ${r.precioFinal}</button>

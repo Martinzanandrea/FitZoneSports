@@ -23,7 +23,13 @@ export interface OpcionesCobroEfectivo {
     id: string;
     estado: string;
     usuario: { id: string; nombre: string; apellido: string; dni?: string | null };
-    clase: { tipoClase: string; horarioInicio: string; sede: { id: string; nombre: string } };
+    ocurrencia: {
+      id: string;
+      fecha: string;
+      horaInicio: string;
+      horaFin: string;
+      clase: { tipoClase: string; sede: { id: string; nombre: string } };
+    };
   }>;
   reservasCancha: Array<{
     id: string;
