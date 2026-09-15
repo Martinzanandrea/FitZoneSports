@@ -24,6 +24,10 @@ import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
+import {
+  CLASE_CUPO_LIBERADO,
+  type CupoLiberadoPayload,
+} from './events/clase.events';
 
 const HORAS_LIMITE_RESERVA_PROPIA = 48;
 const MINUTOS_LIMITE_RESERVA_STAFF = 30;
@@ -159,9 +163,10 @@ export class ReservasClaseService {
     const guardada = await this.reservasRepo.save(reserva);
 
     if (liberoCupo) {
-      this.eventEmitter.emit('clase.cupo-liberado', {
+      const payload: CupoLiberadoPayload = {
         ocurrenciaId: reserva.ocurrencia.id,
-      });
+      };
+      this.eventEmitter.emit(CLASE_CUPO_LIBERADO, payload);
     }
 
     return guardada;

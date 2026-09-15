@@ -50,8 +50,8 @@ export function SedesPage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setSaving(true);
-    setError(null);
+    setSaving(true);//Marca la operacion como en curso para deshabilitar el boton de guardar y mostrar un mensaje de guardando
+    setError(null);//Limpia cualquier error previo
     try {
       const payload = {
         ...form,
@@ -94,6 +94,7 @@ export function SedesPage() {
     setError(null);
   }
 
+  //activa o desactiva una sede, actualizando su estado en la API y en el estado local
   async function toggleSede(sede: Sede) {
     try {
       const actualizada = await sedesApi.update(sede.id, { activa: !sede.activa });

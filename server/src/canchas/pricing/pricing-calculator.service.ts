@@ -1,25 +1,33 @@
-import { Injectable } from '@nestjs/common';
-import { MemberDiscountPricing } from './member-discount-pricing.strategy';
-import { PeakHourPricing } from './peak-hour-pricing.strategy';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  PRICING_STRATEGIES,
+  PricingContext,
+  PricingStrategy,
+} from './pricing-strategy.interface';
 import { TipoEstrategiaPrecio } from '../../entities/enums';
 
 @Injectable()
 export class PricingCalculatorService {
   constructor(
-    private readonly memberDiscount: MemberDiscountPricing,
-    private readonly peakHour: PeakHourPricing,
+    @Inject(PRICING_STRATEGIES)
+    private readonly strategies: PricingStrategy[],
   ) {}
 
   calcular(
     precioBase: number,
-    context: { esSocioActivo: boolean; esHoraPico: boolean },
+    context: PricingContext,
   ): { precioFinal: number; estrategia: TipoEstrategiaPrecio } {
     let precio = precioBase;
-    const aplicaDescuento = this.memberDiscount.aplica(context);
-    const aplicaRecargo = this.peakHour.aplica(context);
+    const aplicadas: string[] = [];
+    for (const strategy of this.strategies) {
+      if (strategy.aplica(context)) {
+        precio = strategy.calcular(precio);
+        aplicadas.push(strategy.constructor.name);
+      }
+    }
 
-    if (aplicaDescuento) precio = this.memberDiscount.calcular(precio);
-    if (aplicaRecargo) precio = this.peakHour.calcular(precio);
+    const aplicaDescuento = aplicadas.includes('MemberDiscountPricing');
+    const aplicaRecargo = aplicadas.includes('PeakHourPricing');
 
     let estrategia: TipoEstrategiaPrecio;
     if (aplicaDescuento && aplicaRecargo)

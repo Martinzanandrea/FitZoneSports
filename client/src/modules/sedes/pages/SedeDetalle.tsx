@@ -30,6 +30,7 @@ export function SedeDetalle() {
 
   useEffect(() => {
     if (!id) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     Promise.all([
       sedesApi.getOne(id),

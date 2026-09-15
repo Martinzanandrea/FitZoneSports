@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 import { useAuth } from '../../modules/auth/AuthContext';
 
 export function ClienteHeader() {
@@ -39,6 +40,19 @@ export function ClienteHeader() {
       </nav>
 
       <div className="flex items-center gap-2">
+        <NavLink
+          to="/mi-cuenta/password"
+          title="Cambiar contraseña"
+          aria-label="Cambiar contraseña"
+          className={({ isActive }) =>
+            `flex items-center justify-center rounded-lg transition-colors ${
+              isActive ? 'text-[#8B2EFF] bg-[#F3E8FF]/10' : 'text-white/50 hover:text-white'
+            }`
+          }
+          style={{ minHeight: 44, minWidth: 44 }}
+        >
+          <Settings size={18} />
+        </NavLink>
         <div className="flex items-center justify-center rounded-full font-bold text-sm text-white w-9 h-9 bg-[#8B2EFF]" style={{ minHeight: 44, minWidth: 44 }}>
           {iniciales}
         </div>

@@ -12,9 +12,12 @@ import { CanchasService } from './canchas.service';
 import { CanchasController } from './canchas.controller';
 import { ReservasCanchaService } from './reserva-cancha.service';
 import { ReservasCanchaController } from './reservas-cancha.controller';
-import { BookingCanchaRepository } from './booking-cancha.repository';
+import {
+  BOOKING_CANCHA_REPOSITORY,
+  TypeOrmBookingCanchaRepository,
+} from './booking-cancha.repository';
 import { PricingCalculatorService } from './pricing/pricing-calculator.service';
-import { StandardPricing } from './pricing/standard-pricing.strategy';
+import { PRICING_STRATEGIES } from './pricing/pricing-strategy.interface';
 import { MemberDiscountPricing } from './pricing/member-discount-pricing.strategy';
 import { PeakHourPricing } from './pricing/peak-hour-pricing.strategy';
 
@@ -33,11 +36,22 @@ import { PeakHourPricing } from './pricing/peak-hour-pricing.strategy';
   providers: [
     CanchasService,
     ReservasCanchaService,
-    BookingCanchaRepository,
+    TypeOrmBookingCanchaRepository,
+    {
+      provide: BOOKING_CANCHA_REPOSITORY,
+      useClass: TypeOrmBookingCanchaRepository,
+    },
     PricingCalculatorService,
-    StandardPricing,
     MemberDiscountPricing,
     PeakHourPricing,
+    {
+      provide: PRICING_STRATEGIES,
+      useFactory: (
+        memberDiscount: MemberDiscountPricing,
+        peakHour: PeakHourPricing,
+      ) => [memberDiscount, peakHour],
+      inject: [MemberDiscountPricing, PeakHourPricing],
+    },
   ],
   exports: [CanchasService, ReservasCanchaService],
 })

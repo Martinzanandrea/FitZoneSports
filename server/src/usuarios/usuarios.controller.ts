@@ -23,7 +23,13 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { TipoActor } from 'src/entities';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  FileTypeValidator,
+  MaxFileSizeValidator,
+  ParseFilePipe,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { AsignarSedeDto } from './dto/asignar-sede.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
@@ -67,10 +73,21 @@ export class UsuariosController {
 
   @Post()
   @ApiOperation({ summary: 'Crear un usuario' })
-  @UseInterceptors(FileInterceptor('foto'))
+  @UseInterceptors(FileInterceptor('foto', { limits: { fileSize: 5 * 1024 * 1024 } }))
   create(
     @Body() dto: CreateUsuarioDto,
-    @UploadedFile() foto?: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipe({
+        fileIsRequired: false,
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({
+            fileType: /^(image\/jpeg|image\/png|image\/webp)$/,
+          }),
+        ],
+      }),
+    )
+    foto?: Express.Multer.File,
   ) {
     return this.usuariosService.create(dto, foto);
   }
@@ -127,7 +144,7 @@ export class UsuariosController {
     @CurrentUser() user: any,
   ) {
     assertOwnerOrStaff(user, id);
-    await this.usuariosService.changePassword(id, dto.password);
+    await this.usuariosService.changePassword(id, dto.passwordActual, dto.password);
     return { message: 'Contraseña actualizada' };
   }
 

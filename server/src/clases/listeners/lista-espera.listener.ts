@@ -4,6 +4,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReservaClase } from '../../entities';
 import { EstadoResClase } from '../../entities/enums';
+import {
+  CLASE_CUPO_LIBERADO,
+  type CupoLiberadoPayload,
+} from '../events/clase.events';
 
 // Este es el "Observer" del patrón: no lo llama nadie directamente,
 // reacciona solo cuando alguien emite el evento 'clase.cupo-liberado'.
@@ -16,8 +20,8 @@ export class ListaEsperaListener {
     private readonly reservasRepo: Repository<ReservaClase>,
   ) {}
 
-  @OnEvent('clase.cupo-liberado')
-  async promoverSiguienteEnEspera(payload: { ocurrenciaId: string }) {
+  @OnEvent(CLASE_CUPO_LIBERADO)
+  async promoverSiguienteEnEspera(payload: CupoLiberadoPayload) {
     const siguiente = await this.reservasRepo.findOne({
       where: {
         ocurrencia: { id: payload.ocurrenciaId },

@@ -11,6 +11,7 @@ import { TipoActor } from '../shared/types/enums';
 import { SedesPage } from '../modules/sedes/pages/SedesPage';
 import { PersonalPage } from '../modules/usuarios/pages/PersonalPage';
 import { RegistroPage } from '../modules/usuarios/pages/RegistroPage';
+import { CambiarPassword } from '../modules/usuarios/pages/CambiarPassword';
 import { ClienteLayout } from '../shared/components/ClienteLayout';
 import { Dashboard } from '../modules/inicio/pages/Dashboard';
 import { MiQr } from '../modules/acceso/pages/MiQr';
@@ -66,6 +67,7 @@ export function AppRoutes() {
         <Route path="/canchas" element={<ReservarCanchas />} />
         <Route path="/pagos" element={<MisPagos />} />
         <Route path="/membresia" element={<MiMembresia />} />
+        <Route path="/mi-cuenta/password" element={<CambiarPassword />} />
       </Route>
 
       <Route

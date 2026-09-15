@@ -29,4 +29,8 @@ export const usuariosApi = {
   // estar logueado; se manda FormData porque puede incluir la foto de perfil.
   registrarPublico: (data: FormData) =>
     api.post<Usuario>("/usuarios", data).then((res) => res.data),
+  // Cambia la contraseña propia: el backend exige { passwordActual, password }
+  // según ChangePasswordDto (PATCH /usuarios/:id/password).
+  cambiarPassword: (id: string, payload: { passwordActual: string; password: string }) =>
+    api.patch(`/usuarios/${id}/password`, payload).then((res) => res.data),
 };

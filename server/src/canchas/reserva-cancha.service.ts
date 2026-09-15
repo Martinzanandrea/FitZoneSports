@@ -1,10 +1,18 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cancha, Usuario, ReservaCancha } from '../entities';
 import { TipoActor, EstadoMembresia, EstadoResCancha } from '../entities/enums';
 import { MembresiasService } from '../membresias/membresias.service';
-import { BookingCanchaRepository } from './booking-cancha.repository';
+import {
+  BOOKING_CANCHA_REPOSITORY,
+  type IBookingCanchaRepository,
+} from './booking-cancha.repository';
 import { PricingCalculatorService } from './pricing/pricing-calculator.service';
 import { CreateReservaCanchaDto } from './dto/create-reserva-cancha.dto';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -22,7 +30,8 @@ export class ReservasCanchaService {
     private readonly usuariosRepo: Repository<Usuario>,
     @InjectRepository(ReservaCancha)
     private readonly reservasRepo: Repository<ReservaCancha>,
-    private readonly bookingRepo: BookingCanchaRepository,
+    @Inject(BOOKING_CANCHA_REPOSITORY)
+    private readonly bookingRepo: IBookingCanchaRepository,
     private readonly pricingCalculator: PricingCalculatorService,
     private readonly membresiasService: MembresiasService,
   ) {}

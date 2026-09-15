@@ -1,13 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { ControlAcceso, Usuario, Sede } from '../entities';
+import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
+import { EstadoMembresia, TipoActor } from '../entities/enums';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -27,8 +29,31 @@ export class AccesoService {
     private readonly usuariosRepo: Repository<Usuario>,
     @InjectRepository(Sede)
     private readonly sedesRepo: Repository<Sede>,
+    @InjectRepository(Membresia)
+    private readonly membresiasRepo: Repository<Membresia>,
     private readonly jwtService: JwtService,
   ) {}
+
+  // RF-04: el QR de acceso es exclusivo de Socios con membresía activa.
+  // Mismo criterio que RN-03 en reserva-clase.service.ts.
+  private async exigirSocioConMembresiaActiva(
+    usuario: Usuario,
+  ): Promise<void> {
+    if (usuario.tipoActor !== TipoActor.SOCIO) {
+      throw new ForbiddenException('El acceso por QR es exclusivo de socios');
+    }
+    const membresiaActiva = await this.membresiasRepo.findOne({
+      where: {
+        usuario: { id: usuario.id },
+        estado: EstadoMembresia.ACTIVO,
+      },
+    });
+    if (!membresiaActiva) {
+      throw new ForbiddenException(
+        'Necesitás una membresía activa para generar tu código de acceso',
+      );
+    }
+  }
 
   // RF04: QR dinámico que rota cada minuto.
   async generarQr(
@@ -39,6 +64,8 @@ export class AccesoService {
     });
     if (!usuario)
       throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
+
+    await this.exigirSocioConMembresiaActiva(usuario);
 
     const payload: QrPayload = { usuarioId, tipo: 'qr-acceso' };
     const qrToken = this.jwtService.sign(payload, { expiresIn: '60s' });
@@ -84,6 +111,10 @@ export class AccesoService {
     });
     if (!usuario) throw new NotFoundException('Usuario del QR no encontrado');
     if (!usuario.activo) throw new BadRequestException('Usuario inactivo');
+
+    // Defensa en profundidad: el QR pudo generarse cuando la membresía
+    // estaba activa y vencer en los 60 segundos intermedios.
+    await this.exigirSocioConMembresiaActiva(usuario);
 
     const sede = await this.sedesRepo.findOne({ where: { id: sedeId } });
     if (!sede) throw new NotFoundException(`Sede ${sedeId} no encontrada`);

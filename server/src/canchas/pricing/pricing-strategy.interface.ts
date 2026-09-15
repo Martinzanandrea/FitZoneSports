@@ -8,3 +8,5 @@ export interface PricingStrategy {
   aplica(context: PricingContext): boolean;
   calcular(precioBase: number): number;
 }
+
+export const PRICING_STRATEGIES = 'PRICING_STRATEGIES';

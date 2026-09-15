@@ -146,7 +146,25 @@ export class UsuariosService {
     return this.usuariosRepo.save(usuario);
   }
 
-  async changePassword(id: string, password: string): Promise<void> {
+  async changePassword(
+    id: string,
+    passwordActual: string,
+    password: string,
+  ): Promise<void> {
+    // El hash tiene select:false, hay que pedirlo explícito (igual que en el login).
+    const usuario = await this.usuariosRepo.findOne({
+      where: { id },
+      select: { id: true, passwordHash: true },
+    });
+    if (!usuario) {
+      throw new NotFoundException(`Usuario ${id} no encontrado`);
+    }
+    const coincide =
+      !!usuario.passwordHash &&
+      (await bcrypt.compare(passwordActual, usuario.passwordHash));
+    if (!coincide) {
+      throw new BadRequestException('La contraseña actual no es correcta');
+    }
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     await this.usuariosRepo.update(id, { passwordHash });
   }

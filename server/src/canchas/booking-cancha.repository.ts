@@ -12,7 +12,7 @@ import {
   TipoEstrategiaPrecio,
 } from '../entities/enums';
 
-interface DatosNuevaReserva {
+export interface DatosNuevaReserva {
   canchaId: string;
   usuario: Usuario;
   fecha: string;
@@ -22,10 +22,18 @@ interface DatosNuevaReserva {
   estrategiaPrecio: TipoEstrategiaPrecio;
 }
 
+export interface IBookingCanchaRepository {
+  crearReservaSegura(datos: DatosNuevaReserva): Promise<ReservaCancha>;
+}
+
+export const BOOKING_CANCHA_REPOSITORY = 'BOOKING_CANCHA_REPOSITORY';
+
 // Repository pattern (GoF): aísla la lógica de acceso a datos Y de
 // concurrencia, separada del ReservasCanchaService que orquesta el flujo.
 @Injectable()
-export class BookingCanchaRepository {
+export class TypeOrmBookingCanchaRepository
+  implements IBookingCanchaRepository
+{
   constructor(private readonly dataSource: DataSource) {}
 
   async crearReservaSegura(datos: DatosNuevaReserva): Promise<ReservaCancha> {
