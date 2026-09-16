@@ -32,7 +32,12 @@ import {
 } from '@nestjs/common';
 import { AsignarSedeDto } from './dto/asignar-sede.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
-import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @ApiTags('Usuarios')
 @ApiCookieAuth('token')
@@ -73,7 +78,9 @@ export class UsuariosController {
 
   @Post()
   @ApiOperation({ summary: 'Crear un usuario' })
-  @UseInterceptors(FileInterceptor('foto', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  @UseInterceptors(
+    FileInterceptor('foto', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
   create(
     @Body() dto: CreateUsuarioDto,
     @UploadedFile(
@@ -105,6 +112,7 @@ export class UsuariosController {
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     assertOwnerOrStaff(user, id);
     return this.usuariosService.findOne(id);
   }
@@ -144,7 +152,11 @@ export class UsuariosController {
     @CurrentUser() user: any,
   ) {
     assertOwnerOrStaff(user, id);
-    await this.usuariosService.changePassword(id, dto.passwordActual, dto.password);
+    await this.usuariosService.changePassword(
+      id,
+      dto.passwordActual,
+      dto.password,
+    );
     return { message: 'Contraseña actualizada' };
   }
 

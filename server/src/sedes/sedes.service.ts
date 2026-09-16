@@ -26,7 +26,13 @@ export class SedesService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
   async findOne(id: string): Promise<Sede> {

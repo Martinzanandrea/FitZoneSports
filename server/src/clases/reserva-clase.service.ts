@@ -7,12 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import {
-  ReservaClase,
-  ClaseOcurrencia,
-  Membresia,
-  Usuario,
-} from '../entities';
+import { ReservaClase, ClaseOcurrencia, Membresia, Usuario } from '../entities';
 import {
   EstadoMembresia,
   EstadoOcurrenciaClase,
@@ -143,7 +138,8 @@ export class ReservasClaseService {
       throw new NotFoundException(`Reserva ${reservaId} no encontrada`);
 
     assertOwnerOrStaff(currentUser, reserva.usuario.id);
-
+    //Patron de diseño Strategy aplicado para validar la cancelación de reservas según el tipo de usuario
+    // y el tiempo restante para la clase.
     if (reserva.estado === EstadoResClase.RESERVADA) {
       const inicioOcurrencia = new Date(
         `${reserva.ocurrencia.fecha}T${reserva.ocurrencia.horaInicio}`,
@@ -188,6 +184,12 @@ export class ReservasClaseService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 }

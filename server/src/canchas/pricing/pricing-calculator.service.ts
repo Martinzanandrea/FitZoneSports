@@ -5,7 +5,7 @@ import {
   PricingStrategy,
 } from './pricing-strategy.interface';
 import { TipoEstrategiaPrecio } from '../../entities/enums';
-
+// Este servicio calcula el precio final de una reserva aplicando las estrategias de precios registradas en el sistema.
 @Injectable()
 export class PricingCalculatorService {
   constructor(

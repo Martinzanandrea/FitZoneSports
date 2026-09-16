@@ -1,6 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Clase } from './clase.entity';
 
+//@entity('instructores') indica que esta clase representa una entidad de la base de datos llamada "instructores"
+//primaryGeneratedColumn('uuid') indica que la columna "id" es una clave primaria generada automáticamente como un UUID
 @Entity('instructores')
 export class Instructor {
   @PrimaryGeneratedColumn('uuid')

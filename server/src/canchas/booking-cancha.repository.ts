@@ -31,20 +31,19 @@ export const BOOKING_CANCHA_REPOSITORY = 'BOOKING_CANCHA_REPOSITORY';
 // Repository pattern (GoF): aísla la lógica de acceso a datos Y de
 // concurrencia, separada del ReservasCanchaService que orquesta el flujo.
 @Injectable()
-export class TypeOrmBookingCanchaRepository
-  implements IBookingCanchaRepository
-{
+export class TypeOrmBookingCanchaRepository implements IBookingCanchaRepository {
   constructor(private readonly dataSource: DataSource) {}
 
+  //Patron Repository: encapsula la lógica de acceso a datos y concurrencia para reservas de canchas.
   async crearReservaSegura(datos: DatosNuevaReserva): Promise<ReservaCancha> {
     //transacction abre un bloque de código que se ejecuta de manera atómica, si algo falla se hace rollback
     return this.dataSource.transaction(async (manager) => {
-      // 1) Lock pesimista sobre la FILA DE LA CANCHA (no del horario puntual).
-      // Esto serializa cualquier otra transacción que intente reservar
-      // ESTA cancha (en cualquier horario) mientras esta transacción esté
-      // abierta. Es lo que cierra la carrera "leer disponibilidad -> insertar":
-      // sin este lock, dos requests simultáneas podrían leer "libre" ambas
-      // y las dos intentarían insertar.
+      /* 1) Lock pesimista sobre la FILA DE LA CANCHA (no del horario puntual).
+       Esto serializa cualquier otra transacción que intente reservar
+       ESTA cancha (en cualquier horario) mientras esta transacción esté
+       abierta. Es lo que cierra la carrera "leer disponibilidad -> insertar":
+       sin este lock, dos requests simultáneas podrían leer "libre" ambas
+       y las dos intentarían insertar.*/
       const cancha = await manager //manager sirve para hacer queries dentro de la transacción,todo sucede dentro de la transacción, si algo falla se hace rollback
         .createQueryBuilder(Cancha, 'cancha')
         .setLock('pessimistic_write') // esto es el "FOR UPDATE"

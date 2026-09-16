@@ -10,6 +10,8 @@ import { UpdateInstructorDto } from './dto/update-instructor.dto';
 @Injectable()
 export class InstructoresService {
   constructor(
+    //@injectRepository(Instructor) inyecta el repositorio de la entidad Instructor para poder
+    //realizar operaciones de base de datos
     @InjectRepository(Instructor)
     private readonly instructoresRepo: Repository<Instructor>,
   ) {}

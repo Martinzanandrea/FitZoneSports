@@ -28,7 +28,11 @@ export class UsuariosService {
 
   async create(
     dto: CreateUsuarioDto,
-    foto?: Express.Multer.File,
+    foto?: {
+      buffer: Buffer;
+      originalname: string;
+      mimetype: string;
+    },
   ): Promise<Usuario> {
     const { password, sedeId, ...resto } = dto;
     const fotoUrl = foto
@@ -52,7 +56,9 @@ export class UsuariosService {
     return this.usuariosRepo.save(usuario);
   }
 
-  async findAll(query: PaginationQueryDto): Promise<PaginatedResponse<Usuario>> {
+  async findAll(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<Usuario>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     // passwordHash no viene igual, porque en la entidad tiene select:false.
@@ -61,11 +67,19 @@ export class UsuariosService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
   // Lista solo el personal interno (RECEPCIONISTA/GERENTE), con su sede
   // cargada, para el panel de "Personal" del Gerente.
-  async findStaff(query: PaginationQueryDto): Promise<PaginatedResponse<Usuario>> {
+  async findStaff(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<Usuario>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const [data, total] = await this.usuariosRepo.findAndCount({
@@ -78,7 +92,13 @@ export class UsuariosService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
   // Reasigna la sede de un Recepcionista. No aplica a Gerente (no tiene
