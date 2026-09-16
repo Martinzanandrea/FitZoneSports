@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { accesoApi } from '../acceso.api';
 import { Badge, Button, Card, SectionTitle } from '../../../shared/components/ui';
+import { TipoActor } from '../../../shared/types/enums';
 // The ControlAcceso component handles the access control functionality, including validating QR codes and registering user exits.
 export function ControlAcceso() {
   const { user } = useAuth();
@@ -86,7 +87,11 @@ export function ControlAcceso() {
     }
   }
 
-  if (!sedeId) {
+  // Solo el Recepcionista necesita sede asignada para operar. El Gerente
+  // tiene sedeId null por diseño ("todas las sedes") y no debe bloquearse
+  // (sus acciones degradan con gracia: aforo/validación requieren sede,
+  // el egreso no).
+  if (!sedeId && user?.tipoActor === TipoActor.RECEPCIONISTA) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
         <h1 className="text-xl font-bold text-[#111111]">Control de acceso</h1>

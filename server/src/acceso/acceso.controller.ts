@@ -59,6 +59,13 @@ export class AccesoController {
     return this.accesoService.registrarEgreso(dto.usuarioId, user);
   }
 
+  @Roles(TipoActor.GERENTE)
+  @Get('resumen')
+  @ApiOperation({ summary: 'Obtener resumen de accesos por sede (solo lectura)' })
+  obtenerResumenAccesos() {
+    return this.accesoService.obtenerResumenAccesos();
+  }
+
   @Get('aforo/:sedeId') // sin ownership: es info de la sede, no de un usuario
   @ApiOperation({ summary: 'Consultar aforo actual de una sede' })
   @ApiParam({ name: 'sedeId', description: 'UUID de la sede' })

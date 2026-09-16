@@ -15,6 +15,7 @@ import { CambiarPassword } from '../modules/usuarios/pages/CambiarPassword';
 import { ClienteLayout } from '../shared/components/ClienteLayout';
 import { Dashboard } from '../modules/inicio/pages/Dashboard';
 import { MiQr } from '../modules/acceso/pages/MiQr';
+import { MetricasAccesos } from '../modules/acceso/pages/MetricasAccesos';
 import { CompletarMembresia } from '../modules/membresias/pages/CompletarMembresia';
 import { ReservarClases } from '../modules/clases/pages/ReservarClases';
 import { ReservarCanchas } from '../modules/canchas/pages/ReservarCanchas';
@@ -24,6 +25,7 @@ import { ReservasPage } from '../modules/admin/pages/ReservasPage';
 import { CanchasPage } from '../modules/admin/pages/CanchasPage';
 import { SedesConHorarios } from '../modules/admin/pages/SedesConHorarios';
 import { CalendarioSede } from '../modules/admin/pages/CalendarioSede';
+import { ConfiguracionClases } from '../modules/admin/pages/ConfiguracionClases';
 import { CrearInstructor } from '../modules/instructores/pages/CrearInstructor';
 import { EditarPrecios } from '../modules/precios/pages/EditarPrecios';
 import { ControlAcceso } from '../modules/acceso/pages/ControlAcceso';
@@ -133,10 +135,12 @@ export function AppRoutes() {
         />
         <Route path="canchas" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><CanchasPage /></ProtectedRoute>} />
         <Route path="clases" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><SedesConHorarios /></ProtectedRoute>} />
+        <Route path="clases/configuracion" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><ConfiguracionClases /></ProtectedRoute>} />
         <Route path="clases/:sedeId" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><CalendarioSede /></ProtectedRoute>} />
         <Route path="instructores" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE, TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><CrearInstructor /></ProtectedRoute>} />
         <Route path="precios" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><EditarPrecios /></ProtectedRoute>} />
-        <Route path="acceso" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><ControlAcceso /></ProtectedRoute>} />
+        <Route path="acceso" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><ControlAcceso /></ProtectedRoute>} />
+        <Route path="accesos" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><MetricasAccesos /></ProtectedRoute>} />
         <Route path="reservas-clases" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasClases /></ProtectedRoute>} />
         <Route path="reservas-canchas" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasCanchas /></ProtectedRoute>} />
         <Route path="cobrar" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><CobrarEfectivo /></ProtectedRoute>} />

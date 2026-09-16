@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CalendarDays, Clock3, DollarSign } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { canchasApi } from '../canchas.api';
 import type { Cancha, ReservaCancha } from '../canchas.types';
@@ -7,6 +8,7 @@ import type { Usuario } from '../../usuarios/usuarios.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede, FranjaHoraria } from '../../sedes/sedes.types';
 import { Badge, Button, Card, Chip, StatCard, ProgressBar } from '../../../shared/components/ui';
+import { TipoActor } from '../../../shared/types/enums';
 
 function formatFecha(d: Date) {
   return d.toISOString().split('T')[0];
@@ -249,7 +251,9 @@ export function GestionReservasCanchas() {
     }
   }
 
-  if (!sedeId) {
+  // Solo el Recepcionista necesita sede asignada para operar. El Gerente
+  // tiene sedeId null por diseño ("todas las sedes") y no debe bloquearse.
+  if (!sedeId && user?.tipoActor === TipoActor.RECEPCIONISTA) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
         <h1 className="text-xl font-bold text-[#111111]">Reservas de canchas</h1>
@@ -271,9 +275,9 @@ export function GestionReservasCanchas() {
 
       {/* Estadísticas reales del día */}
       <div className="grid grid-cols-3 gap-2">
-        <StatCard label="Reservas hoy" value={String(stats.count)} />
-        <StatCard label="Ocupación hoy" value={`${stats.horasOcupadas}/${stats.horasDisponibles}h`} sub={`${pctOcupacion}%`} />
-        <StatCard label="Ingreso est. hoy" value={`$${stats.ingreso.toLocaleString('es-AR')}`} />
+        <StatCard label="Reservas hoy" value={String(stats.count)} icon={CalendarDays} iconColor="#8B2EFF" />
+        <StatCard label="Ocupación hoy" value={`${stats.horasOcupadas}/${stats.horasDisponibles}h`} sub={`${pctOcupacion}%`} icon={Clock3} iconColor="#3B82F6" />
+        <StatCard label="Ingreso est. hoy" value={`$${stats.ingreso.toLocaleString('es-AR')}`} icon={DollarSign} iconColor="#16A34A" />
       </div>
       <ProgressBar value={pctOcupacion} color={pctOcupacion >= 90 ? '#DC2626' : pctOcupacion >= 70 ? '#D97706' : '#8B2EFF'} />
 

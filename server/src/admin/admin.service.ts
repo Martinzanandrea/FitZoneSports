@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   Cancha,
-  Clase,
+  ClaseOcurrencia,
   EstadoResCancha,
   EstadoResClase,
   EstadoMembresia,
@@ -14,7 +14,7 @@ import {
   ReservaCancha,
   ReservaClase,
 } from '../entities';
-import { TipoActor } from '../entities/enums';
+import { EstadoOcurrenciaClase, TipoActor } from '../entities/enums';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
@@ -89,8 +89,8 @@ export interface PlanPopularidad {
 @Injectable()
 export class AdminService {
   constructor(
-    @InjectRepository(Clase)
-    private readonly clasesRepo: Repository<Clase>,
+    @InjectRepository(ClaseOcurrencia)
+    private readonly ocurrenciasRepo: Repository<ClaseOcurrencia>,
     @InjectRepository(Cancha)
     private readonly canchasRepo: Repository<Cancha>,
     @InjectRepository(ReservaClase)
@@ -108,22 +108,24 @@ export class AdminService {
   async obtenerDashboardResumen(
     currentUser: UsuarioAutenticado,
   ): Promise<DashboardResumen> {
-    const inicioHoy = new Date();
-    inicioHoy.setHours(0, 0, 0, 0);
-    const finHoy = new Date(inicioHoy);
-    finHoy.setDate(finHoy.getDate() + 1);
-
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     const filtrarPorSede = currentUser.tipoActor === TipoActor.RECEPCIONISTA;
 
-    const clasesQuery = this.clasesRepo
-      .createQueryBuilder('clase')
-      .where('clase.horarioInicio >= :inicioHoy', { inicioHoy })
-      .andWhere('clase.horarioInicio < :finHoy', { finHoy });
-    if (filtrarPorSede) {
-      clasesQuery.andWhere('clase.sede_id = :sedeId', {
-        sedeId: currentUser.sedeId,
+    // Las "clases de hoy" son ocurrencias (instancias en una fecha), no la
+    // plantilla Clase: se cuenta ClaseOcurrencia con fecha = hoy y PROGRAMADA.
+    const clasesQuery = this.ocurrenciasRepo
+      .createQueryBuilder('ocurrencia')
+      .where('ocurrencia.fecha = CURRENT_DATE')
+      .andWhere('ocurrencia.estado = :estado', {
+        estado: EstadoOcurrenciaClase.PROGRAMADA,
       });
+    if (filtrarPorSede) {
+      clasesQuery
+        .innerJoin('ocurrencia.clase', 'clase')
+        .innerJoin('clase.sede', 'sede')
+        .andWhere('sede.id = :sedeId', {
+          sedeId: currentUser.sedeId,
+        });
     }
     const clasesHoy = await clasesQuery.getCount();
 
@@ -293,7 +295,8 @@ export class AdminService {
       .leftJoin('pago.membresia', 'membresia')
       .leftJoin('membresia.sedeAlta', 'sedeMembresia')
       .leftJoin('pago.reservaClase', 'reservaClase')
-      .leftJoin('reservaClase.clase', 'claseDeReserva')
+      .leftJoin('reservaClase.ocurrencia', 'ocurrenciaDeReserva')
+      .leftJoin('ocurrenciaDeReserva.clase', 'claseDeReserva')
       .leftJoin('claseDeReserva.sede', 'sedeClase')
       .leftJoin('pago.reservaCancha', 'reservaCancha')
       .leftJoin('reservaCancha.cancha', 'canchaDeReserva')

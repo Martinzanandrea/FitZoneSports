@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Clock3, Search, AlertTriangle } from 'lucide-react';
-import { Badge, Card, Chip, Pagination } from '../../../shared/components/ui';
+import { useNavigate } from 'react-router-dom';
+import { CalendarDays, Clock3, Search, AlertTriangle, Users } from 'lucide-react';
+import { Badge, Button, Card, Chip, Pagination, StatCard } from '../../../shared/components/ui';
 import { adminApi, type ReservaCanchaAdminItem, type ReservaClaseAdminItem, type ReservasAdminPaginadas } from '../admin.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 
 export function ReservasPage() {
+  const navigate = useNavigate();
   const [reservas, setReservas] = useState<ReservasAdminPaginadas | null>(null);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [sedeFiltro, setSedeFiltro] = useState('TODAS');
@@ -45,6 +47,18 @@ export function ReservasPage() {
   const mostrarCanchas = tipo === 'TODOS' || tipo === 'CANCHA';
   const alertaOcupacion = (reservas?.resumen.clasesConOcupacionAlta ?? 0) > 0;
 
+  // "Canceladas hoy" no es derivable (las filas no traen fecha de cancelación),
+  // así que se omiten; lista de espera sí se puede contar.
+  const statsReservas = useMemo(() => {
+    const cl = reservas?.clases.data ?? [];
+    const ca = reservas?.canchas.data ?? [];
+    return {
+      clasesActivas: cl.filter((r) => r.estado === 'RESERVADA').length,
+      canchasActivas: ca.filter((r) => r.estado === 'CONFIRMADA').length,
+      enEspera: cl.filter((r) => r.estado === 'LISTA_ESPERA').length,
+    };
+  }, [reservas]);
+
   return (
     <div>
       <div className="mb-6">
@@ -60,11 +74,14 @@ export function ReservasPage() {
 
       {error && <p className="mb-6 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">No se pudieron cargar las reservas.</p>}
 
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-        <Metric label="Canchas reservadas" value={reservas?.resumen.canchasReservadas} loading={cargando} />
-        <Metric label="Clases con 80% o más de ocupación" value={reservas?.resumen.clasesConOcupacionAlta} loading={cargando} />
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard label="Clases activas" value={cargando ? '...' : String(statsReservas.clasesActivas)} icon={CalendarDays} />
+        <StatCard label="Canchas activas" value={cargando ? '...' : String(statsReservas.canchasActivas)} icon={Clock3} iconColor="#16A34A" />
+        <StatCard label="En lista de espera" value={cargando ? '...' : String(statsReservas.enEspera)} icon={Users} iconColor="#D97706" />
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+      <div>
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
         <Chip label="Todas las sedes" active={sedeFiltro === 'TODAS'} onClick={() => setSedeFiltro('TODAS')} />
         {sedes.map((s) => <Chip key={s.id} label={s.nombre} active={sedeFiltro === s.id} onClick={() => setSedeFiltro(s.id)} />)}
@@ -100,16 +117,21 @@ export function ReservasPage() {
         </div>
       </div>
 
-      {mostrarClases && <section className="mb-6"><h2 className="mb-3 text-base font-bold text-[#111111]">Clases reservadas</h2>{clases.length === 0 ? <Empty text="No hay clases que coincidan con los filtros." /> : <div className="space-y-2">{clases.map((reserva) => <Card key={reserva.id} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-semibold text-[#111111]">{reserva.clase}</p><p className="mt-1 text-xs text-[#6B7280]">{reserva.sede} · {reserva.usuario}</p><p className="mt-1 flex items-center gap-1 text-xs text-[#6B7280]"><CalendarDays size={13} />{reserva.fecha} · <Clock3 size={13} />{reserva.horario}</p></div><div className="flex items-center gap-3"><span className="text-xs text-[#6B7280]">Cupo {reserva.ocupadas}/{reserva.capacidad}</span><Badge variant={reserva.estado === 'LISTA_ESPERA' ? 'amber' : reserva.estado === 'CANCELADA' ? 'red' : 'green'}>{reserva.estado}</Badge></div></Card>)}</div>}</section>}
+      {mostrarClases && <section className="mb-6"><h2 className="mb-3 text-base font-bold text-[#111111]">Clases reservadas</h2>{clases.length === 0 ? <Empty text="No hay clases que coincidan con los filtros." /> : <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-[#E5E7EB] text-left text-xs text-[#6B7280] uppercase tracking-wide"><th className="px-5 py-3 font-medium">Socio</th><th className="px-5 py-3 font-medium">Clase</th><th className="px-5 py-3 font-medium">Fecha/Hora</th><th className="px-5 py-3 font-medium">Estado</th><th className="px-5 py-3 font-medium">Acciones</th></tr></thead><tbody>{clases.map((reserva) => (<tr key={reserva.id} className="border-b border-[#E5E7EB] last:border-0"><td className="px-5 py-3.5 font-medium text-[#111111]">{reserva.usuario}</td><td className="px-5 py-3.5 text-[#374151]">{reserva.clase}<span className="block text-xs text-[#6B7280]">{reserva.sede}</span></td><td className="px-5 py-3.5 text-[#374151] whitespace-nowrap">{reserva.fecha} · {reserva.horario}</td><td className="px-5 py-3.5"><Badge variant={reserva.estado === 'LISTA_ESPERA' ? 'amber' : reserva.estado === 'CANCELADA' ? 'red' : 'green'}>{reserva.estado}</Badge></td><td className="px-5 py-3.5 text-xs text-[#6B7280] whitespace-nowrap">Cupo {reserva.ocupadas}/{reserva.capacidad}</td></tr>))}</tbody></table></div></div>}</section>}
 
       {mostrarCanchas && <section><h2 className="mb-3 text-base font-bold text-[#111111]">Canchas reservadas</h2>{canchas.length === 0 ? <Empty text="No hay canchas que coincidan con los filtros." /> : <div className="space-y-2">{canchas.map((reserva) => <Card key={reserva.id} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-semibold text-[#111111]">{reserva.cancha}</p><p className="mt-1 text-xs text-[#6B7280]">{reserva.sede} · {reserva.usuario}</p><p className="mt-1 flex items-center gap-1 text-xs text-[#6B7280]"><CalendarDays size={13} />{reserva.fecha} · <Clock3 size={13} />{reserva.horario}</p></div><div className="flex items-center gap-3"><span className="text-sm font-bold text-[#111111]">${reserva.precioFinal}</span><Badge variant={reserva.estado === 'CANCELADA' ? 'red' : 'green'}>{reserva.estado}</Badge></div></Card>)}</div>}</section>}
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      </div>
+      <div>
+        <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+          <Button fullWidth onClick={() => navigate('/admin/clases')}>Ver calendario de clases</Button>
+          <Button variant="outline" fullWidth onClick={() => navigate('/admin/canchas')}>Ver canchas</Button>
+        </div>
+      </div>
+      </div>
     </div>
   );
-}
-
-function Metric({ label, value, loading }: { label: string; value?: number; loading: boolean }) {
-  return <div className="rounded-xl border border-[#E5E7EB] bg-white p-4"><p className="text-2xl font-extrabold text-[#111111]">{loading ? '...' : value ?? 0}</p><p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">{label}</p></div>;
 }
 
 function Empty({ text }: { text: string }) {

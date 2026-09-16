@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Plus, Users, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { clasesApi } from '../clases.api';
 import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
@@ -8,6 +8,7 @@ import type { Usuario } from '../../usuarios/usuarios.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import { Badge, Button, Card, Chip, StatCard } from '../../../shared/components/ui';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
+import { TipoActor } from '../../../shared/types/enums';
 
 const DIAS_A_FUTURO = 14;
 
@@ -247,7 +248,9 @@ export function GestionReservasClases() {
     }
   }
 
-  if (!sedeId) {
+  // Solo el Recepcionista necesita sede asignada para operar. El Gerente
+  // tiene sedeId null por diseño ("todas las sedes") y no debe bloquearse.
+  if (!sedeId && user?.tipoActor === TipoActor.RECEPCIONISTA) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
         <h1 className="text-xl font-bold text-[#111111]">Reservas de clases</h1>
@@ -271,9 +274,9 @@ export function GestionReservasClases() {
       {msg && <p className={`rounded-lg border p-3 text-sm ${msg.type==='ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>{msg.text}</p>}
 
       <div className="grid grid-cols-3 gap-2">
-        <StatCard label="Clases hoy" value={String(statsHoy.clasesHoy)} />
-        <StatCard label="Cupo ocupado hoy" value={`${statsHoy.ocupadas}/${statsHoy.capacidad}`} />
-        <StatCard label="Casi llenas (>80%)" value={String(statsHoy.casiLlenas)} />
+        <StatCard label="Clases hoy" value={String(statsHoy.clasesHoy)} icon={CalendarDays} iconColor="#8B2EFF" />
+        <StatCard label="Cupo ocupado hoy" value={`${statsHoy.ocupadas}/${statsHoy.capacidad}`} icon={Users} iconColor="#3B82F6" />
+        <StatCard label="Casi llenas (>80%)" value={String(statsHoy.casiLlenas)} icon={AlertTriangle} iconColor="#D97706" />
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">

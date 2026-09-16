@@ -20,6 +20,21 @@ interface QrPayload {
   tipo: 'qr-acceso';
 }
 
+export interface ResumenAccesoSede {
+  sedeId: string;
+  sede: string;
+  aforoActual: number;
+  aforoMaximo: number;
+  ingresosHoy: number;
+  egresosHoy: number;
+}
+
+export interface ResumenAccesos {
+  porSede: ResumenAccesoSede[];
+  totalIngresosHoy: number;
+  totalEgresosHoy: number;
+}
+
 @Injectable()
 export class AccesoService {
   constructor(
@@ -162,6 +177,54 @@ export class AccesoService {
 
     sesionAbierta.horaEgreso = new Date();
     return this.accesoRepo.save(sesionAbierta);
+  }
+
+  // Agregado de solo lectura para el Gerente: métricas de accesos de
+  // todas las sedes activas. Reusa el criterio de obtenerAforo
+  // (hora_egreso IS NULL) para el aforo actual.
+  async obtenerResumenAccesos(): Promise<ResumenAccesos> {
+    const inicioHoy = new Date();
+    inicioHoy.setHours(0, 0, 0, 0);
+
+    const sedes = await this.sedesRepo.find({
+      where: { activa: true },
+      order: { nombre: 'ASC' },
+    });
+
+    const porSede: ResumenAccesoSede[] = [];
+    for (const sede of sedes) {
+      const [aforoActual, ingresosHoy, egresosHoy] = await Promise.all([
+        this.accesoRepo
+          .createQueryBuilder('a')
+          .where('a.sede_id = :sedeId', { sedeId: sede.id })
+          .andWhere('a.hora_egreso IS NULL')
+          .getCount(),
+        this.accesoRepo
+          .createQueryBuilder('a')
+          .where('a.sede_id = :sedeId', { sedeId: sede.id })
+          .andWhere('a.hora_ingreso >= :inicioHoy', { inicioHoy })
+          .getCount(),
+        this.accesoRepo
+          .createQueryBuilder('a')
+          .where('a.sede_id = :sedeId', { sedeId: sede.id })
+          .andWhere('a.hora_egreso >= :inicioHoy', { inicioHoy })
+          .getCount(),
+      ]);
+      porSede.push({
+        sedeId: sede.id,
+        sede: sede.nombre,
+        aforoActual,
+        aforoMaximo: sede.aforoMaximo,
+        ingresosHoy,
+        egresosHoy,
+      });
+    }
+
+    return {
+      porSede,
+      totalIngresosHoy: porSede.reduce((acc, s) => acc + s.ingresosHoy, 0),
+      totalEgresosHoy: porSede.reduce((acc, s) => acc + s.egresosHoy, 0),
+    };
   }
 
   async findHistorialPorUsuario(

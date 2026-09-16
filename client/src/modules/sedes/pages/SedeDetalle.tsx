@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import { BookOpen, Building2, Trash2, Users } from 'lucide-react';
 import { sedesApi } from '../sedes.api';
 import type { FranjaHoraria, Sede } from '../sedes.types';
 import { usuariosApi } from '../../usuarios/usuarios.api';
@@ -116,9 +116,9 @@ export function SedeDetalle() {
       {msg && <p className={`mb-4 rounded-lg border p-3 text-sm ${msg.type==='ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>{msg.text}</p>}
 
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard label="Canchas" value={String(counts?.canchas ?? 0)} />
-        <StatCard label="Clases" value={String(counts?.clases ?? 0)} />
-        <StatCard label="Usuarios asignados" value={String(counts?.usuarios ?? 0)} />
+        <StatCard label="Canchas" value={String(counts?.canchas ?? 0)} icon={Building2} iconColor="#8B2EFF" />
+        <StatCard label="Clases" value={String(counts?.clases ?? 0)} icon={BookOpen} iconColor="#3B82F6" />
+        <StatCard label="Usuarios asignados" value={String(counts?.usuarios ?? 0)} icon={Users} iconColor="#16A34A" />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

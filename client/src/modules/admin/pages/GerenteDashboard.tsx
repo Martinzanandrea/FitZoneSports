@@ -84,26 +84,33 @@ export function GerenteDashboard() {
         </div>
       )}
 
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        <div>
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <MetricCard icon={CalendarDays} label="Clases de hoy" value={resumen?.clasesHoy} loading={cargando} />
-        <MetricCard icon={Clock3} label="Horas de cancha reservadas hoy" value={resumen?.horasCanchasAgendadasHoy} loading={cargando} suffix=" h" />
-        <StatCard label="Ingresos del mes" value={ingresosMes !== null ? formatMoney(ingresosMes) : cargando ? '...' : '—'} icon={DollarSign} sub={ingresosMes === null && !cargando ? 'No disponible' : undefined} />
+        <StatCard label="Clases de hoy" value={cargando ? '...' : String(resumen?.clasesHoy ?? 0)} icon={CalendarDays} iconColor="#8B2EFF" />
+        <StatCard label="Horas de cancha reservadas hoy" value={cargando ? '...' : `${resumen?.horasCanchasAgendadasHoy ?? 0} h`} icon={Clock3} iconColor="#8B2EFF" />
+        <StatCard label="Ingresos del mes" value={ingresosMes !== null ? formatMoney(ingresosMes) : cargando ? '...' : '—'} icon={DollarSign} iconColor="#16A34A" sub={ingresosMes === null && !cargando ? 'No disponible' : undefined} />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard label="Sedes activas" value={sedesActivas !== null ? String(sedesActivas) : '—'} icon={Building2} />
-        <StatCard label="Total usuarios" value={totalUsuarios !== null ? String(totalUsuarios) : '—'} icon={Users} />
-        <div className="rounded-xl p-4 bg-white border border-[#E5E7EB] flex items-center justify-between">
+        <StatCard label="Sedes activas" value={sedesActivas !== null ? String(sedesActivas) : '—'} icon={Building2} iconColor="#8B2EFF" />
+        <StatCard label="Total usuarios" value={totalUsuarios !== null ? String(totalUsuarios) : '—'} icon={Users} iconColor="#3B82F6" />
+        <div className="rounded-xl p-4 bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-between">
           <div>
-            <p className="text-[13px] font-medium text-[#6B7280]">Estado operativo</p>
-            <p className="text-sm font-bold text-[#111111] mt-1">Todo al día</p>
+            <p className="text-[13px] font-medium text-[#15803D]">Estado operativo</p>
+            <p className="text-sm font-bold text-[#15803D] mt-1">Todo al día</p>
           </div>
-          <Activity size={18} className="text-[#16A34A]" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16A34A]/15">
+            <Activity size={18} className="text-[#16A34A] animate-pulse" />
+          </span>
         </div>
       </div>
 
       <div className="mb-6">
-        <h2 className="text-base font-bold text-[#111111] mb-3 flex items-center gap-2"><Activity size={16} className="text-[#8B2EFF]" /> Actividad reciente</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-bold text-[#111111] flex items-center gap-2"><Activity size={16} className="text-[#8B2EFF]" /> Actividad reciente</h2>
+          <Link to="/admin/reportes" className="text-sm font-semibold text-[#8B2EFF] hover:underline" style={{ minHeight: 44 }}>Ver todo</Link>
+        </div>
         {actError ? (
           <Card className="py-6 text-center text-sm text-[#6B7280]">No se pudo cargar la actividad.</Card>
         ) : actividad.length === 0 ? (
@@ -121,9 +128,36 @@ export function GerenteDashboard() {
                 </div>
               </Card>
             ))}
-            <Link to="/admin/reportes" className="inline-flex text-sm font-semibold text-[#8B2EFF] hover:underline">Ver toda la auditoría →</Link>
           </div>
         )}
+      </div>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+            <Link to="/admin/sedes" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#8B2EFF1A' }}><Building2 size={16} style={{ color: '#8B2EFF' }} /></span>
+              Sedes
+            </Link>
+            <Link to="/admin/personal" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#3B82F61A' }}><Users size={16} style={{ color: '#3B82F6' }} /></span>
+              Personal
+            </Link>
+            <Link to="/admin/clases" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#8B2EFF1A' }}><BookOpen size={16} style={{ color: '#8B2EFF' }} /></span>
+              Clases
+            </Link>
+            <Link to="/admin/canchas" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#D977061A' }}><ScanLine size={16} style={{ color: '#D97706' }} /></span>
+              Canchas
+            </Link>
+            <Link to="/admin/reportes" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#16A34A1A' }}><TrendingUp size={16} style={{ color: '#16A34A' }} /></span>
+              Reportes
+            </Link>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -145,16 +179,3 @@ export function GerenteDashboard() {
   );
 }
 
-function MetricCard({ icon: Icon, label, value, loading, suffix = '' }: { icon: typeof Users; label: string; value?: number; loading: boolean; suffix?: string }) {
-  return (
-    <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F3E8FF]">
-          <Icon size={17} className="text-[#8B2EFF]" />
-        </span>
-        <span className="text-2xl font-extrabold text-[#111111]">{loading ? '...' : `${value ?? 0}${suffix}`}</span>
-      </div>
-      <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">{label}</p>
-    </div>
-  );
-}

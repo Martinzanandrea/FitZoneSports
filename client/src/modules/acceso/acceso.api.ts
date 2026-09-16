@@ -1,5 +1,5 @@
 import { api } from "../../api/axios";
-import type { Aforo } from "./acceso.types";
+import type { Aforo, ResumenAccesos } from "./acceso.types";
 // Funciones para hablar con el backend en todo lo referido al ingreso a las sedes.
 export const accesoApi = {
   // Trae cuánta gente hay ahora mismo en una sede; el sedeId dice cuál sede consultar.
@@ -18,4 +18,7 @@ export const accesoApi = {
   // Registra que una persona salió (el usuarioId dice quién), para liberar su lugar en el aforo.
   registrarEgreso: (payload: { usuarioId: string }) =>
     api.post("/acceso/egreso", payload).then((res) => res.data),
+  // Resumen de accesos de todas las sedes activas (solo Gerente, solo lectura).
+  getResumenAccesos: () =>
+    api.get<ResumenAccesos>("/acceso/resumen").then((res) => res.data),
 };

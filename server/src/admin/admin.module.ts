@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   Cancha,
-  Clase,
+  ClaseOcurrencia,
   Membresia,
   Pago,
   ReservaCancha,
@@ -15,7 +15,7 @@ import { AdminService } from './admin.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Clase,
+      ClaseOcurrencia,
       Cancha,
       ReservaClase,
       ReservaCancha,

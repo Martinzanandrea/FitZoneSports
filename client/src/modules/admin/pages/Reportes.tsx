@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { adminApi, type AuditoriaRegistro } from '../admin.api';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Activity, DollarSign, TrendingUp } from 'lucide-react';
+import { adminApi, type AuditoriaRegistro, type ReporteFinanciero } from '../admin.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { canchasApi } from '../../canchas/canchas.api';
 import { clasesApi } from '../../clases/clases.api';
-import { Badge, Card, Chip, Pagination, SectionTitle, formatMoney } from '../../../shared/components/ui';
+import { Badge, Card, Chip, PageHeader, Pagination, SectionTitle, StatCard, formatMoney } from '../../../shared/components/ui';
 
 const TAB = { AUDITORIA: 'AUDITORIA', POR_SEDE: 'POR_SEDE' } as const;
 type Tab = (typeof TAB)[keyof typeof TAB];
@@ -39,6 +41,9 @@ export function Reportes() {
   const [loadingS, setLoadingS] = useState(false);
   const [errS, setErrS] = useState('');
 
+  // Resumen general para los StatCards superiores (independiente de los tabs).
+  const [finGeneral, setFinGeneral] = useState<ReporteFinanciero | null>(null);
+
   function cargarAuditoria(pagina = pageA) {
     setLoadingA(true); setErrA('');
     adminApi.getAuditoria({ entidad: entidad || undefined, desde: desde || undefined, hasta: hasta || undefined }, pagina)
@@ -49,6 +54,7 @@ export function Reportes() {
 
   useEffect(() => {
     cargarAuditoria(1);
+    adminApi.getReporteFinanciero().then(setFinGeneral).catch(() => setFinGeneral(null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -90,10 +96,28 @@ export function Reportes() {
     });
   }, [sedeId, sedes]);
 
+  // TODO: estos conteos aplican a la página cargada, no al total — agregar agregación server-side en el futuro.
+  const accionesHoy = useMemo(() => {
+    const hoy = new Date().toDateString();
+    return regs.filter((r) => new Date(r.creadoEn).toDateString() === hoy).length;
+  }, [regs]);
+
+  const sedeTop = useMemo(() => {
+    const porSede = finGeneral?.porSede ?? [];
+    if (porSede.length === 0) return null;
+    return porSede.reduce((a, b) => (b.total > a.total ? b : a));
+  }, [finGeneral]);
+
   return (
-    <div className="max-w-5xl">
-      <h1 className="text-2xl font-bold text-[#111111]">Reportes</h1>
-      <p className="mt-1 text-sm text-[#6B7280]">Auditoría y métricas por sede.</p>
+    <div className="max-w-6xl">
+      <PageHeader title="Reportes" />
+      <p className="-mt-4 mb-4 text-sm text-[#6B7280]">Auditoría y métricas por sede.</p>
+
+      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <StatCard label="Acciones auditadas hoy" value={loadingA ? '...' : String(accionesHoy)} icon={Activity} iconColor="#8B2EFF" />
+        <StatCard label="Sede con más actividad" value={sedeTop ? sedeTop.sede : finGeneral ? '—' : '...'} sub={sedeTop ? `Por ingresos · ${formatMoney(sedeTop.total)}` : undefined} icon={TrendingUp} iconColor="#8B2EFF" />
+        <StatCard label="Ingresos del mes" value={finGeneral ? formatMoney(finGeneral.ingresosMes) : '—'} icon={DollarSign} iconColor="#16A34A" sub={finGeneral ? undefined : 'No disponible'} />
+      </div>
 
       <div className="mt-6 flex gap-2">
         <Chip label="Auditoría" active={tab === TAB.AUDITORIA} onClick={() => setTab(TAB.AUDITORIA)} />
@@ -156,7 +180,8 @@ export function Reportes() {
       )}
 
       {tab === TAB.POR_SEDE && (
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_280px]">
+          <div className="space-y-4">
           <Card>
             <label className="text-sm font-medium text-[#374151]">Sede
               <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] bg-white" style={{ minHeight: 44 }}>
@@ -195,6 +220,18 @@ export function Reportes() {
               </div>
             </>
           )}
+          </div>
+
+          <div>
+            <h2 className="mb-3 text-base font-bold text-[#111111]">Accesos relacionados</h2>
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+              <Link to="/admin/reservas" className="flex items-center rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>Ver reservas</Link>
+              <Link to="/admin/accesos" className="flex items-center rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>Métricas de accesos</Link>
+              <Link to="/admin/membresias" className="flex items-center rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>Ver membresías</Link>
+              {sedeId && <Link to={`/admin/clases/${sedeId}`} className="flex items-center rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>Calendario de la sede</Link>}
+              {sedeId && <Link to={`/admin/sedes/${sedeId}`} className="flex items-center rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>Detalle de la sede</Link>}
+            </div>
+          </div>
         </div>
       )}
     </div>

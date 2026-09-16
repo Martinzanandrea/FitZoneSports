@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Pencil, UserPlus, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, GraduationCap, Pencil, UserPlus, Users, X } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Usuario } from '../usuarios.types';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
-import { Avatar, Pagination, StatCard } from '../../../shared/components/ui';
+import { Avatar, Button, Card, PageHeader, Pagination, StatCard } from '../../../shared/components/ui';
 
 export function PersonalPage() {
+  const navigate = useNavigate();
   const [staff, setStaff] = useState<Usuario[]>([]);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [cambiando, setCambiando] = useState<string | null>(null);
@@ -19,6 +20,7 @@ export function PersonalPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalStaff, setTotalStaff] = useState(0);
+  const [mostrarSinRecep, setMostrarSinRecep] = useState(false);
 
   useEffect(() => {
     cargar(page);
@@ -82,20 +84,22 @@ export function PersonalPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#111111]">Personal</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">Recepcionistas y gerentes de la cadena</p>
-        </div>
-        <Link to="/admin/personal/nuevo" className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#8B2EFF] text-white text-sm font-semibold hover:bg-[#7A25E6] transition-colors" style={{ minHeight: 44 }}>
-          <UserPlus size={16} /> Nuevo
-        </Link>
-      </div>
+    <div className="max-w-6xl">
+      <PageHeader
+        title="Personal"
+        action={
+          <Button size="sm" onClick={() => navigate('/admin/personal/nuevo')}>
+            <UserPlus size={16} /> Nuevo integrante
+          </Button>
+        }
+      />
+      <p className="-mt-4 mb-4 text-sm text-[#6B7280]">
+        Recepcionistas y gerentes de la cadena
+      </p>
 
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard label="Total personal" value={String(totalStaff)} />
-        <StatCard label="Recepcionistas" value={String(recepcionistas.length)} />
+        <StatCard label="Total personal" value={String(totalStaff)} icon={Users} iconColor="#8B2EFF" />
+        <StatCard label="Recepcionistas" value={String(recepcionistas.length)} icon={UserPlus} iconColor="#3B82F6" />
         <div className={`rounded-xl p-4 border ${sedesSinRecepcionista.length > 0 ? 'bg-[#FFFBEB] border-[#FDE68A]' : 'bg-white border-[#E5E7EB]'}`}>
           <p className="text-[13px] font-medium text-[#6B7280]">Sedes sin recepcionista</p>
           <p className={`text-[28px] font-bold tracking-tight mt-2 ${sedesSinRecepcionista.length > 0 ? 'text-[#92400E]' : 'text-[#111111]'}`}>{sedesSinRecepcionista.length}</p>
@@ -103,6 +107,8 @@ export function PersonalPage() {
         </div>
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        <div>
       <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -148,6 +154,36 @@ export function PersonalPage() {
         {staff.length === 0 && <p className="p-8 text-center text-sm text-[#6B7280]">Todavía no hay personal cargado.</p>}
       </div>
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+            <Button fullWidth onClick={() => navigate('/admin/personal/nuevo')}>
+              <UserPlus size={16} /> Nuevo integrante
+            </Button>
+            <Button variant="outline" fullWidth onClick={() => setMostrarSinRecep((v) => !v)}>
+              <Building2 size={16} /> {mostrarSinRecep ? 'Ocultar sedes sin recepcionista' : 'Ver sedes sin recepcionista'}
+            </Button>
+            <Button variant="outline" fullWidth onClick={() => navigate('/admin/instructores')}>
+              <GraduationCap size={16} /> Ir a Instructores
+            </Button>
+          </div>
+          {mostrarSinRecep && (
+            <Card className="mt-3">
+              {sedesSinRecepcionista.length === 0 ? (
+                <p className="text-xs text-[#6B7280]">Todas las sedes tienen recepcionista asignado.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {sedesSinRecepcionista.map((s) => (
+                    <li key={s.id} className="text-sm text-[#111111]">· {s.nombre}</li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
+        </div>
+      </div>
 
       {editando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">

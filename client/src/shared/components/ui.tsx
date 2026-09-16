@@ -79,14 +79,21 @@ export function Chip({ label, active, onClick }: { label: string; active: boolea
   );
 }
 
-export function StatCard({ label, value, sub, icon: Icon, trend }: {
-  label: string; value: string; sub?: string; icon?: LucideIcon; trend?: 'up' | 'down';
+export function StatCard({ label, value, sub, icon: Icon, iconColor = '#8B2EFF', trend }: {
+  label: string; value: string; sub?: string; icon?: LucideIcon; iconColor?: string; trend?: 'up' | 'down';
 }) {
   return (
     <div className="rounded-xl p-4 bg-white border border-[#E5E7EB]">
       <div className="flex items-start justify-between">
         <span className="text-[13px] font-medium text-[#6B7280]">{label}</span>
-        {Icon && <Icon size={18} className="text-[#8B2EFF]" />}
+        {Icon && (
+          <span
+            className="flex h-9 w-9 items-center justify-center rounded-full shrink-0"
+            style={{ backgroundColor: `${iconColor}1A` }}
+          >
+            <Icon size={18} style={{ color: iconColor }} />
+          </span>
+        )}
       </div>
       <div className="text-[28px] font-bold text-[#111111] tracking-tight mt-2">{value}</div>
       {sub && (
