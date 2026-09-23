@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CalendarDays, HelpCircle, Plus, Users, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { clasesApi } from '../clases.api';
@@ -6,6 +7,7 @@ import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
 import { usuariosApi } from '../../usuarios/usuarios.api';
 import type { Usuario } from '../../usuarios/usuarios.types';
 import { sedesApi } from '../../sedes/sedes.api';
+import type { Sede } from '../../sedes/sedes.types';
 import { Badge, Button, Card, Chip, StatCard, Tooltip } from '../../../shared/components/ui';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
 import { TipoActor } from '../../../shared/types/enums';
@@ -31,6 +33,12 @@ function formatearFecha(fechaYMD: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function etiquetaDia(fechaYMD: string): string {
+  const fecha = new Date(`${fechaYMD}T00:00:00`);
+  const dia = fecha.toLocaleDateString('es-AR', { weekday: 'long' });
+  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${formatearFecha(fechaYMD)}`;
+}
+
 function inicioOcurrencia(o: ClaseOcurrencia): number {
   return new Date(`${o.fecha}T${o.horaInicio}`).getTime();
 }
@@ -41,9 +49,11 @@ function etiquetaOcurrencia(o: ClaseOcurrencia): string {
 
 export function GestionReservasClases() {
   const { user } = useAuth();
-  const sedeId = user?.sedeId ?? null;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sedeId = searchParams.get('sedeId') ?? user?.sedeId ?? null;
 
   const [sedeNombre, setSedeNombre] = useState('');
+  const [sedes, setSedes] = useState<Sede[]>([]);
   const [clases, setClases] = useState<Clase[]>([]);
   const [ocurrenciasPorClase, setOcurrenciasPorClase] = useState<Record<string, ClaseOcurrencia[]>>({});
   const [reservasPorOcurrencia, setReservasPorOcurrencia] = useState<Record<string, ReservaClase[]>>({});
@@ -61,6 +71,11 @@ export function GestionReservasClases() {
   const [occSelId, setOccSelId] = useState('');
   const [usuarioSelId, setUsuarioSelId] = useState('');
   const [busquedaUsuario, setBusquedaUsuario] = useState('');
+
+  useEffect(() => {
+    if (user?.tipoActor !== TipoActor.GERENTE) return;
+    sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
+  }, [user?.tipoActor]);
 
   const clasesDeSede = useMemo(() => {
     if (!sedeId) return [];
@@ -118,6 +133,16 @@ export function GestionReservasClases() {
     return ocurrenciasDeSede.filter((o) => inicioOcurrencia(o) >= limite);
   }, [ocurrenciasDeSede]);
 
+  const anotablesPorDia = useMemo(() => {
+    const grupos = new Map<string, ClaseOcurrencia[]>();
+    for (const ocurrencia of anotables) {
+      const grupo = grupos.get(ocurrencia.fecha) ?? [];
+      grupo.push(ocurrencia);
+      grupos.set(ocurrencia.fecha, grupo);
+    }
+    return Array.from(grupos.entries());
+  }, [anotables]);
+
   const usuariosFiltrados = useMemo(() => {
     const q = busquedaUsuario.trim().toLowerCase();
     const base = usuarios.filter((u) => u.tipoActor === 'SOCIO' || u.tipoActor === 'EXTERNO');
@@ -141,7 +166,7 @@ export function GestionReservasClases() {
     setError(null);
     try {
       const [clasesRes, usuariosRes, sede] = await Promise.all([
-        clasesApi.getAll(undefined, 1, 100),
+        clasesApi.getAll(sedeId ?? undefined, 1, 100),
         usuariosApi.getAll(1, 100),
         sedeId ? sedesApi.getOne(sedeId).catch(() => null) : Promise.resolve(null),
       ]);
@@ -151,14 +176,14 @@ export function GestionReservasClases() {
       setClases(allClases);
       setUsuarios(allUsuarios);
       if (sede) setSedeNombre(sede.nombre);
-      const deSede = sedeId ? allClases.filter((c) => c.sede.id === sedeId && c.activa) : [];
+      const deSede = allClases.filter((c) => c.activa && sedeId !== null && c.sede.id === sedeId);
       const hoy = aYMD(new Date());
       const hasta = aYMD(new Date(Date.now() + DIAS_A_FUTURO * 24 * 60 * 60 * 1000));
       const occMap: Record<string, ClaseOcurrencia[]> = {};
       await Promise.all(
         deSede.map(async (c) => {
           try {
-            occMap[c.id] = (await clasesApi.getOcurrencias(c.id, hoy, hasta)).data;
+            occMap[c.id] = (await clasesApi.getOcurrencias(c.id, hoy, hasta, 1, 100)).data;
           } catch {
             occMap[c.id] = [];
           }
@@ -270,14 +295,41 @@ export function GestionReservasClases() {
         <p className="text-sm text-[#6B7280] mt-1">{sedeNombre || 'Tu sede'}</p>
       </div>
 
+      {user?.tipoActor === TipoActor.GERENTE && (
+        <label className="block text-sm font-medium text-[#374151]">
+          Sede
+          <select
+            value={sedeId ?? ''}
+            onChange={(e) => setSearchParams(e.target.value ? { sedeId: e.target.value } : {})}
+            className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] bg-white px-3 py-2.5 outline-none focus:border-[#8B2EFF]"
+            style={{ minHeight: 44 }}
+          >
+            <option value="">Seleccionar sede...</option>
+            {sedes.map((sede) => (
+              <option key={sede.id} value={sede.id}>
+                {sede.nombre}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       {error && <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{error}</p>}
       {msg && <p className={`rounded-lg border p-3 text-sm ${msg.type==='ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>{msg.text}</p>}
 
+      {!sedeId && user?.tipoActor === TipoActor.GERENTE ? (
+        <Card className="text-center py-8">
+          <p className="text-sm text-[#6B7280]">Seleccioná una sede para gestionar sus reservas.</p>
+        </Card>
+      ) : (
+      <>
       <div className="grid grid-cols-3 gap-2">
         <StatCard label="Clases hoy" value={String(statsHoy.clasesHoy)} icon={CalendarDays} iconColor="#8B2EFF" />
         <StatCard label="Cupo ocupado hoy" value={`${statsHoy.ocupadas}/${statsHoy.capacidad}`} icon={Users} iconColor="#3B82F6" />
         <StatCard label="Casi llenas (>80%)" value={String(statsHoy.casiLlenas)} icon={AlertTriangle} iconColor="#D97706" />
       </div>
+      </>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {DIAS_SEMANA.map((d) => (
@@ -401,25 +453,32 @@ export function GestionReservasClases() {
                 {anotables.length === 0 ? (
                   <p className="text-sm text-[#6B7280]">No hay fechas disponibles para anotar.</p>
                 ) : (
-                  anotables.map((o) => {
-                    const clase = clasePorId.get(o.claseId);
-                    if (!clase) return null;
-                    const ocupadas = ocupadasDe(o.id);
-                    return (
-                      <button
-                        key={o.id}
-                        type="button"
-                        onClick={() => { setOccSelId(o.id); setPaso(2); }}
-                        className="w-full rounded-xl border border-[#E5E7EB] bg-white p-3 text-left hover:border-[#8B2EFF]"
-                        style={{ minHeight: 44 }}
-                      >
-                        <p className="text-sm font-semibold text-[#111111]">{clase.tipoClase}</p>
-                        <p className="mt-0.5 text-xs text-[#6B7280]">
-                          {etiquetaOcurrencia(o)} · Cupo {ocupadas}/{clase.capacidad}
-                        </p>
-                      </button>
-                    );
-                  })
+                  anotablesPorDia.map(([fecha, ocurrencias]) => (
+                    <section key={fecha} className="space-y-2">
+                      <h3 className="pt-2 text-sm font-bold text-[#111111]">
+                        {etiquetaDia(fecha)}
+                      </h3>
+                      {ocurrencias.map((o) => {
+                        const clase = clasePorId.get(o.claseId);
+                        if (!clase) return null;
+                        const ocupadas = ocupadasDe(o.id);
+                        return (
+                          <button
+                            key={o.id}
+                            type="button"
+                            onClick={() => { setOccSelId(o.id); setPaso(2); }}
+                            className="w-full rounded-xl border border-[#E5E7EB] bg-white p-3 text-left hover:border-[#8B2EFF]"
+                            style={{ minHeight: 44 }}
+                          >
+                            <p className="text-sm font-semibold text-[#111111]">{clase.tipoClase}</p>
+                            <p className="mt-0.5 text-xs text-[#6B7280]">
+                              {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)} · Cupo {ocupadas}/{clase.capacidad}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </section>
+                  ))
                 )}
               </div>
             )}

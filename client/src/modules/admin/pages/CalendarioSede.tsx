@@ -80,7 +80,7 @@ export function CalendarioSede() {
       await Promise.all(
         activas.map(async (cl) => {
           try {
-            occMap[cl.id] = (await clasesApi.getOcurrencias(cl.id, hoy, hasta)).data;
+            occMap[cl.id] = (await clasesApi.getOcurrencias(cl.id, hoy, hasta, 1, 100)).data;
           } catch {
             occMap[cl.id] = [];
           }
@@ -352,7 +352,11 @@ export function CalendarioSede() {
                   <Button variant="outline" fullWidth onClick={() => setVista('calendario')}>
                     <CalendarDays size={16} /> Ver Calendario
                   </Button>
-                  <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-clases')}>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    onClick={() => navigate(`/admin/reservas-clases?sedeId=${sedeId}`)}
+                  >
                     <ClipboardList size={16} /> Gestionar Reservas
                   </Button>
                   <Button variant="outline" fullWidth onClick={() => navigate('/admin/clases/configuracion')}>
