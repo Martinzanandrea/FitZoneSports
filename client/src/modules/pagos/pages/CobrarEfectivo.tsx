@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { HelpCircle } from 'lucide-react';
 import { pagosApi, type OpcionesCobroEfectivo } from '../pagos.api';
 import type { Pago } from '../pagos.types';
-import { Button, Card, Chip, SectionTitle } from '../../../shared/components/ui';
+import { Button, Card, Chip, SectionTitle, Tooltip } from '../../../shared/components/ui';
 
 const TipoReferencia = {
   MEMBRESIA: 'MEMBRESIA',
@@ -89,8 +90,8 @@ export function CobrarEfectivo() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[#111111]">Cobrar en efectivo</h1>
-        <p className="text-sm text-[#6B7280] mt-1">Registrá un pago manual.</p>
+        <h1 className="text-xl font-bold text-[#111111]">Cobrar</h1>
+        <p className="text-sm text-[#6B7280] mt-1">Registrá un pago manual en efectivo.</p>
       </div>
 
       <Card>
@@ -153,7 +154,12 @@ export function CobrarEfectivo() {
 
           {tipo === TipoReferencia.RESERVA_CLASE && (
             <label className="block">
-              <span className="text-sm font-medium text-[#374151]">Monto de la clase</span>
+              <span className="text-sm font-medium text-[#374151] inline-flex items-center gap-1">
+                Monto de la clase
+                <Tooltip text="Las clases no tienen precio fijo: ingresá el monto a cobrar">
+                  <HelpCircle size={14} className="text-[#9CA3AF]" />
+                </Tooltip>
+              </span>
               <input
                 type="number"
                 step="0.01"

@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Clock, User } from 'lucide-react';
+import { CalendarDays, Clock } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
-import { clasesApi } from '../clases.api';
+import { clasesApi, fetchMapaReservasClase } from '../clases.api';
 import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
-import { Badge, Button, Card, Chip, SectionTitle } from '../../../shared/components/ui';
+import { Badge, Card } from '../../../shared/components/ui';
+import { colorPorTipo } from '../../../shared/utils/colorClase';
 
 const DIAS_A_FUTURO = 14;
-
-function aYMD(d: Date): string {
-  return d.toISOString().split('T')[0];
-}
 
 function formatearFecha(fechaYMD: string): string {
   const [y, m, d] = fechaYMD.split('-');
@@ -40,37 +37,12 @@ export function ReservarClases() {
     setLoading(true);
     setError(null);
     try {
-      const clasesRes = await clasesApi.getAll(undefined, 1, 100);
-      const data = clasesRes.data;
-      setClases(data);
-      const hoy = aYMD(new Date());
-      const hasta = aYMD(new Date(Date.now() + DIAS_A_FUTURO * 24 * 60 * 60 * 1000));
-      const occMap: Record<string, ClaseOcurrencia[]> = {};
-      await Promise.all(
-        data.map(async (c) => {
-          try {
-            occMap[c.id] = (await clasesApi.getOcurrencias(c.id, hoy, hasta)).data;
-          } catch {
-            occMap[c.id] = [];
-          }
-        }),
-      );
-      setOcurrenciasPorClase(occMap);
-      const resMap: Record<string, ReservaClase[]> = {};
-      await Promise.all(
-        Object.values(occMap)
-          .flat()
-          .map(async (o) => {
-            try {
-              resMap[o.id] = (await clasesApi.getReservasPorOcurrencia(o.id)).data;
-            } catch {
-              resMap[o.id] = [];
-            }
-          }),
-      );
-      setReservasPorOcurrencia(resMap);
+      const mapa = await fetchMapaReservasClase(DIAS_A_FUTURO);
+      setClases(mapa.clases);
+      setOcurrenciasPorClase(mapa.occMap);
+      setReservasPorOcurrencia(mapa.resMap);
       if (user) {
-        const todas = Object.values(resMap).flat();
+        const todas = Object.values(mapa.resMap).flat();
         setMisReservas(todas.filter((r) => r.usuario.id === user.id && r.estado !== 'CANCELADA'));
       }
     } catch {
@@ -126,24 +98,32 @@ export function ReservarClases() {
     }
   }
 
-  if (loading) return <div className="max-w-lg mx-auto px-4 py-6 text-sm text-[#6B7280]">Cargando clases...</div>;
+  if (loading) return <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-sm text-[#6B7280]">Cargando clases...</div>;
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-[#111111]">Reservar clases</h1>
-        <p className="text-sm text-[#6B7280] mt-1">Elegí tu clase y reservá tu lugar.</p>
+    <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <h2 className="text-2xl font-black tracking-tight text-gray-900">Reservar clase</h2>
+
+      {error && <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-500 font-medium">{error}</p>}
+
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-5">
+        {tipos.map((t) => {
+          const color = t === 'TODOS' ? '#8B2EFF' : colorPorTipo(t).borde;
+          const activo = tipoFiltro === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setTipoFiltro(t)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all ${activo ? 'text-white border-transparent' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
+              style={activo ? { backgroundColor: color } : {}}
+            >
+              {t === 'TODOS' ? 'Todas' : t}
+            </button>
+          );
+        })}
       </div>
 
-      {error && <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{error}</p>}
-
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {tipos.map((t) => (
-          <Chip key={t} label={t} active={tipoFiltro === t} onClick={() => setTipoFiltro(t)} />
-        ))}
-      </div>
-
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
         {filtradas.length === 0 ? (
           <Card className="text-center py-8">
             <p className="text-sm text-[#6B7280]">No hay clases para ese filtro.</p>
@@ -153,20 +133,22 @@ export function ReservarClases() {
             const proximas = (ocurrenciasPorClase[clase.id] ?? [])
               .filter((o) => o.estado === 'PROGRAMADA' && inicioOcurrencia(o) >= limiteReserva)
               .sort((a, b) => inicioOcurrencia(a) - inicioOcurrencia(b));
+            const color = colorPorTipo(clase.tipoClase);
             return (
-              <Card key={clase.id}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-[#111111]">{clase.tipoClase}</p>
-                    <p className="text-xs text-[#6B7280] mt-0.5">{clase.sede.nombre}</p>
+              <div key={clase.id} className="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-5 pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full" style={{ backgroundColor: color.borde + '15', color: color.borde }}>{clase.tipoClase}</span>
+                      <h4 className="text-base font-black tracking-tight text-gray-900 mt-1.5">{clase.tipoClase}</h4>
+                      <p className="text-xs text-gray-400 mt-0.5">con {clase.instructor.nombre} · {clase.sede.nombre}</p>
+                    </div>
+                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color.borde + '15' }}>
+                      <CalendarDays size={20} style={{ color: color.borde }} />
+                    </div>
                   </div>
-                  <Badge variant="green">Cupo {clase.capacidad}</Badge>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-3 text-xs text-[#6B7280]">
-                  <span className="inline-flex items-center gap-1"><User size={14} />{clase.instructor.nombre}</span>
-                  <span className="inline-flex items-center gap-1"><CalendarDays size={14} />{proximas.length} fecha(s) disponible(s)</span>
-                </div>
-                <div className="mt-4 space-y-2">
+                <div className="px-5 pb-5 space-y-2">
                   {proximas.length === 0 ? (
                     <p className="text-xs text-[#6B7280]">Sin fechas próximas por ahora.</p>
                   ) : (
@@ -174,37 +156,43 @@ export function ReservarClases() {
                       const reservas = reservasPorOcurrencia[o.id] ?? [];
                       const ocupadas = reservas.filter((r) => r.estado === 'RESERVADA').length;
                       const llena = ocupadas >= clase.capacidad;
+                      const pctOcupacion = clase.capacidad > 0 ? ocupadas / clase.capacidad : 0;
+                      const colorCupo = llena ? '#DC2626' : pctOcupacion >= 0.8 ? '#D97706' : '#16A34A';
                       const yaReservada = misReservas.some((r) => r.ocurrencia.id === o.id);
                       return (
-                        <div key={o.id} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] p-2.5">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-[#111111]">
-                              {formatearFecha(o.fecha)} · {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)}
-                            </p>
-                            <p className="text-xs text-[#6B7280] inline-flex items-center gap-1 mt-0.5">
-                              <Clock size={12} />{ocupadas}/{clase.capacidad}{llena ? ' · Llena' : ''}
-                            </p>
+                        <div key={o.id} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border transition-all ${yaReservada ? 'bg-[#F3EAFF] border-[#8B2EFF]/20' : 'bg-gray-50 border-gray-100'}`}>
+                          <div className="flex-1">
+                            <p className="text-xs font-bold text-gray-900">{formatearFecha(o.fecha)} · {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colorCupo }} />
+                              <p className="text-xs text-gray-400">{ocupadas}/{clase.capacidad} lugares</p>
+                            </div>
                           </div>
                           {yaReservada ? (
                             <Badge variant="violet">Ya reservada</Badge>
                           ) : (
-                            <Button size="sm" onClick={() => handleReservar(o.id)} disabled={accionId === o.id}>
+                            <button
+                              onClick={() => handleReservar(o.id)}
+                              disabled={accionId === o.id}
+                              className="text-xs font-bold px-3.5 py-1.5 rounded-full border transition-all text-white border-transparent disabled:opacity-60"
+                              style={{ backgroundColor: color.borde }}
+                            >
                               {accionId === o.id ? '...' : llena ? 'Espera' : 'Reservar'}
-                            </Button>
+                            </button>
                           )}
                         </div>
                       );
                     })
                   )}
                 </div>
-              </Card>
+              </div>
             );
           })
         )}
       </div>
 
       <div>
-        <SectionTitle>Mis reservas</SectionTitle>
+        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Mis reservas</h2>
         {misReservas.length === 0 ? (
           <Card className="text-center py-6">
             <p className="text-sm text-[#6B7280]">Todavía no tenés reservas.</p>
@@ -212,16 +200,23 @@ export function ReservarClases() {
         ) : (
           <div className="space-y-2">
             {misReservas.map((r) => (
-              <Card key={r.id} className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-[#111111]">{r.ocurrencia.clase.tipoClase}</p>
-                  <p className="text-xs text-[#6B7280]">{formatearFecha(r.ocurrencia.fecha)} · {r.ocurrencia.horaInicio.slice(0, 5)}</p>
+              <div key={r.id} className="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colorPorTipo(r.ocurrencia.clase.tipoClase).borde + '15' }}>
+                  <Clock size={18} style={{ color: colorPorTipo(r.ocurrencia.clase.tipoClase).borde }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-gray-900 truncate">{r.ocurrencia.clase.tipoClase}</p>
+                  <p className="text-xs text-gray-400">{formatearFecha(r.ocurrencia.fecha)} · {r.ocurrencia.horaInicio.slice(0, 5)}</p>
                   <div className="mt-1"><Badge variant={r.estado === 'LISTA_ESPERA' ? 'amber' : 'green'}>{r.estado}</Badge></div>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => handleCancelar(r.id)} disabled={accionId === r.id}>
+                <button
+                  onClick={() => handleCancelar(r.id)}
+                  disabled={accionId === r.id}
+                  className="text-xs text-red-500 font-bold bg-red-50 border border-red-100 px-3 py-1.5 rounded-full hover:bg-red-100 transition-colors disabled:opacity-60"
+                >
                   {accionId === r.id ? '...' : 'Cancelar'}
-                </Button>
-              </Card>
+                </button>
+              </div>
             ))}
           </div>
         )}

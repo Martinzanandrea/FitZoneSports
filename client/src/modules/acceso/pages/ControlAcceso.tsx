@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { HelpCircle } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { accesoApi } from '../acceso.api';
-import { Badge, Button, Card, SectionTitle } from '../../../shared/components/ui';
+import { sedesApi } from '../../sedes/sedes.api';
+import { Button, Card, SectionTitle, StatCard, Tooltip } from '../../../shared/components/ui';
 import { TipoActor } from '../../../shared/types/enums';
 // The ControlAcceso component handles the access control functionality, including validating QR codes and registering user exits.
 export function ControlAcceso() {
@@ -14,6 +16,7 @@ export function ControlAcceso() {
 
   const [aforo, setAforo] = useState<{ actual: number; maximo: number } | null>(null);
   const [loadingAforo, setLoadingAforo] = useState(true);
+  const [sedeNombre, setSedeNombre] = useState('');
 
   const [usuarioIdEgreso, setUsuarioIdEgreso] = useState('');
   const [egresoLoading, setEgresoLoading] = useState(false);
@@ -22,8 +25,12 @@ export function ControlAcceso() {
   async function cargarAforo() {
     if (!sedeId) { setLoadingAforo(false); return; }
     try {
-      const data = await accesoApi.getAforo(sedeId);
+      const [data, sede] = await Promise.all([
+        accesoApi.getAforo(sedeId),
+        sedesApi.getOne(sedeId).catch(() => null),
+      ]);
       setAforo(data);
+      if (sede) setSedeNombre(sede.nombre);
     } catch {
       setAforo(null);
     } finally {
@@ -107,35 +114,23 @@ export function ControlAcceso() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-[#111111]">Control de acceso</h1>
-        <p className="text-sm text-[#6B7280] mt-1">Validá ingresos por QR y registrá egresos de tu sede.</p>
+        <h1 className="text-xl font-bold text-[#111111]">Control de Acceso</h1>
+        <p className="text-sm text-[#6B7280] mt-1">{sedeNombre ? `Validá ingresos por QR y registrá egresos de ${sedeNombre}.` : 'Validá ingresos por QR y registrá egresos de tu sede.'}</p>
       </div>
 
       {/* Aforo */}
-      <Card>
-        <SectionTitle>Aforo actual</SectionTitle>
-        {loadingAforo ? (
-          <p className="text-sm text-[#6B7280]">Cargando aforo...</p>
-        ) : aforo ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-[#111111]">{aforo.actual} / {aforo.maximo}</span>
-              <Badge variant={pct >= 90 ? 'red' : pct >= 70 ? 'amber' : 'green'}>{pct}%</Badge>
-            </div>
-            <div className="h-2.5 rounded-full bg-[#F3F4F6] border border-[#E5E7EB] overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${pct}%`, background: pct >= 90 ? '#DC2626' : pct >= 70 ? '#D97706' : '#8B2EFF' }}
-              />
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => { setLoadingAforo(true); void cargarAforo(); }}>
-              Actualizar
-            </Button>
-          </div>
-        ) : (
-          <p className="text-sm text-[#6B7280]">No se pudo cargar el aforo.</p>
-        )}
-      </Card>
+      {loadingAforo ? (
+        <p className="text-sm text-[#6B7280]">Cargando aforo...</p>
+      ) : aforo ? (
+        <div className="space-y-3">
+          <StatCard label="Aforo actual" value={`${aforo.actual}/${aforo.maximo}`} sub={`${pct}% de ocupación`} />
+          <Button variant="ghost" size="sm" onClick={() => { setLoadingAforo(true); void cargarAforo(); }}>
+            Actualizar
+          </Button>
+        </div>
+      ) : (
+        <p className="text-sm text-[#6B7280]">No se pudo cargar el aforo.</p>
+      )}
 
       {/* Validar ingreso */}
       <Card>
@@ -153,9 +148,16 @@ export function ControlAcceso() {
               style={{ minHeight: 44 }}
             />
           </label>
-          <Button onClick={handleValidar} disabled={validando} fullWidth>
-            {validando ? 'Validando...' : 'Validar ingreso'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Button onClick={handleValidar} disabled={validando} fullWidth>
+                {validando ? 'Validando...' : 'Validar ingreso'}
+              </Button>
+            </div>
+            <Tooltip text="Escaneá o pegá el código QR que te muestra el socio en su celular">
+              <HelpCircle size={14} className="text-[#9CA3AF]" />
+            </Tooltip>
+          </div>
           {resultado && (
             <p className={`rounded-lg border p-3 text-sm ${resultado.type === 'ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>
               {resultado.text}
@@ -181,9 +183,16 @@ export function ControlAcceso() {
             />
             <p className="text-xs text-[#6B7280] mt-1">Por ahora se ingresa el ID. A futuro se podrá buscar por DNI.</p>
           </label>
-          <Button variant="outline" onClick={handleEgreso} disabled={egresoLoading} fullWidth>
-            {egresoLoading ? 'Registrando...' : 'Registrar egreso'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Button variant="outline" onClick={handleEgreso} disabled={egresoLoading} fullWidth>
+                {egresoLoading ? 'Registrando...' : 'Registrar egreso'}
+              </Button>
+            </div>
+            <Tooltip text="Marcá la salida de un socio que ya está adentro">
+              <HelpCircle size={14} className="text-[#9CA3AF]" />
+            </Tooltip>
+          </div>
           {egresoMsg && (
             <p className={`rounded-lg border p-3 text-sm ${egresoMsg.type === 'ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>
               {egresoMsg.text}

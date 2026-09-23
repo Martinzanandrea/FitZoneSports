@@ -2,6 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cancha, Sede, BloqueoCancha } from '../entities';
+import { EstadoCancha, TipoCancha } from '../entities/enums';
+
+export interface CanchaPublica {
+  sede: string;
+  tipo: TipoCancha;
+  costoHoraBase: string;
+}
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import { CreateCanchaDto } from './dto/create-cancha.dto';
@@ -30,6 +37,21 @@ export class CanchasService {
       costoHoraBase: String(dto.costoHoraBase),
     });
     return this.canchasRepo.save(cancha);
+  }
+
+  // Catálogo público para la landing: solo canchas activas, sin
+  // disponibilidad ni reservas (eso sigue siendo solo para logueados).
+  async findAllPublico(): Promise<CanchaPublica[]> {
+    const canchas = await this.canchasRepo.find({
+      where: { estado: EstadoCancha.ACTIVA },
+      relations: { sede: true },
+      order: { sede: { nombre: 'ASC' }, tipo: 'ASC' },
+    });
+    return canchas.map((c) => ({
+      sede: c.sede.nombre,
+      tipo: c.tipo,
+      costoHoraBase: c.costoHoraBase,
+    }));
   }
 
   async findAll(query: PaginationQueryDto): Promise<PaginatedResponse<Cancha>> {

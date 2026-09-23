@@ -20,6 +20,12 @@ import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { RepartoHorasService } from './reparto-horas.service';
 import { GeneracionOcurrenciasService } from './generacion-ocurrencias.service';
+
+export interface ResumenClasePublica {
+  tipoClase: string;
+  sedesQueOfrecen: number;
+  horasSemanalesTotales: number;
+}
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import { paginarQueryBuilder } from '../common/helpers/paginate.helper';
@@ -105,6 +111,30 @@ export class ClasesService {
     // Genera las próximas 4 semanas para que se pueda reservar ya mismo.
     await this.generacion.generarParaClase(claseId);
     return this.findOne(claseId);
+  }
+
+  // Resumen público para la landing: por cada tipo de clase activa,
+  // cuántas sedes lo ofrecen y la carga horaria total. Agregado a
+  // propósito: el detalle (horarios/instructores) sigue siendo logueado.
+  async resumenPublico(): Promise<ResumenClasePublica[]> {
+    const clases = await this.clasesRepo.find({
+      where: { activa: true },
+      relations: { sede: true },
+    });
+    const mapa = new Map<string, { sedes: Set<string>; horas: number }>();
+    for (const c of clases) {
+      const actual = mapa.get(c.tipoClase) ?? { sedes: new Set<string>(), horas: 0 };
+      actual.sedes.add(c.sede.id);
+      actual.horas += Number(c.horasSemanalesTotales);
+      mapa.set(c.tipoClase, actual);
+    }
+    return [...mapa.entries()]
+      .map(([tipoClase, v]) => ({
+        tipoClase,
+        sedesQueOfrecen: v.sedes.size,
+        horasSemanalesTotales: Math.round(v.horas * 10) / 10,
+      }))
+      .sort((a, b) => a.tipoClase.localeCompare(b.tipoClase));
   }
 
   async findAll(sedeId?: string, query?: PaginationQueryDto): Promise<PaginatedResponse<Clase>> {

@@ -1,5 +1,5 @@
 import { ArrowLeft, type LucideIcon } from 'lucide-react';
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 type BadgeVariant = 'green' | 'red' | 'amber' | 'violet' | 'gray';
 const badgeStyles: Record<BadgeVariant, string> = {
@@ -204,5 +204,26 @@ export function Pagination({ page, totalPages, onChange }: {
         Siguiente
       </button>
     </div>
+  );
+}
+
+// Ayuda contextual para personal con poca capacitación: muestra el texto
+// al pasar el mouse (desktop) o al tocar el ícono (mobile/tablet).
+export function Tooltip({ text, children, className = '' }: { text: string; children: ReactNode; className?: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span
+      className={`relative inline-flex items-center ${className}`}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+      onTouchStart={() => setVisible((v) => !v)}
+    >
+      {children}
+      {visible && (
+        <span className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[220px] rounded-lg bg-[#111111] px-3 py-2 text-xs text-white shadow-lg">
+          {text}
+        </span>
+      )}
+    </span>
   );
 }

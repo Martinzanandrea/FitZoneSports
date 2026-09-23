@@ -52,7 +52,7 @@ export function GerenteDashboard() {
     sedesApi.getAll(1, 100).then((res) => setSedesActivas(res.data.filter((x) => x.activa).length)).catch(() => setSedesActivas(null));
     usuariosApi.getAll().then((res) => setTotalUsuarios(res.total)).catch(() => setTotalUsuarios(null));
     adminApi.getReporteFinanciero().then((r) => setIngresosMes(r.ingresosMes)).catch(() => setIngresosMes(null));
-    adminApi.getAuditoria(undefined, 1, 5).then((res) => setActividad(res.data)).catch(() => setActError(true));
+    adminApi.getAuditoria(undefined, 1, 8).then((res) => setActividad(res.data)).catch(() => setActError(true));
   }, []);
 
   useEffect(() => {
@@ -84,8 +84,6 @@ export function GerenteDashboard() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <div>
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
         <StatCard label="Clases de hoy" value={cargando ? '...' : String(resumen?.clasesHoy ?? 0)} icon={CalendarDays} iconColor="#8B2EFF" />
         <StatCard label="Horas de cancha reservadas hoy" value={cargando ? '...' : `${resumen?.horasCanchasAgendadasHoy ?? 0} h`} icon={Clock3} iconColor="#8B2EFF" />
@@ -130,34 +128,6 @@ export function GerenteDashboard() {
             ))}
           </div>
         )}
-      </div>
-        </div>
-
-        <div>
-          <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <Link to="/admin/sedes" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#8B2EFF1A' }}><Building2 size={16} style={{ color: '#8B2EFF' }} /></span>
-              Sedes
-            </Link>
-            <Link to="/admin/personal" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#3B82F61A' }}><Users size={16} style={{ color: '#3B82F6' }} /></span>
-              Personal
-            </Link>
-            <Link to="/admin/clases" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#8B2EFF1A' }}><BookOpen size={16} style={{ color: '#8B2EFF' }} /></span>
-              Clases
-            </Link>
-            <Link to="/admin/canchas" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#D977061A' }}><ScanLine size={16} style={{ color: '#D97706' }} /></span>
-              Canchas
-            </Link>
-            <Link to="/admin/reportes" className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition-colors hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ backgroundColor: '#16A34A1A' }}><TrendingUp size={16} style={{ color: '#16A34A' }} /></span>
-              Reportes
-            </Link>
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

@@ -19,6 +19,15 @@ export class SedesService {
     return this.sedesRepo.save(sede);
   }
 
+  // Catálogo público para la landing: sedes con sus franjas de apertura
+  // (horario de apertura es información pública normal de un gimnasio).
+  async findAllPublico(): Promise<Sede[]> {
+    return this.sedesRepo.find({
+      relations: { franjas: true },
+      order: { nombre: 'ASC' },
+    });
+  }
+
   async findAll(query: PaginationQueryDto): Promise<PaginatedResponse<Sede>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;

@@ -1,8 +1,9 @@
 import { type FormEvent, useState } from 'react';
-import { Eye, EyeOff, AlertCircle, Zap,ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Zap, ArrowRight } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { TipoActor } from '../../../shared/types/enums';
 import { useNavigate, Link } from 'react-router-dom';
+import { AuthInput, AuthLayout } from '../AuthLayout';
 
 interface LoginProps {
   // 'cliente' = Socio/Externo, 'staff' = Recepcionista/Gerente
@@ -47,124 +48,112 @@ export function Login({ audience, redirectTo }: LoginProps) {
       navigate(redirectTo);
     } catch {
       setError('Email o contraseña incorrectos.');
-      
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#0A0A0A] flex flex-col items-center justify-center px-4">
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
-       <Link
-        to="/"
-        className="relative mb-6 flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
-      >
-        <ArrowLeft size={15} />
-        Volver al inicio
-      </Link>
-      <div className="relative w-full max-w-[340px] bg-white rounded-2xl p-8 shadow-2xl shadow-black/40">
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center rounded-xl bg-[#8B2EFF] shrink-0 w-12 h-12">
-            <Zap size={24} className="text-white" fill="white" />
-          </div>
-          <h1 className="mt-4 text-xl font-bold text-[#111111] tracking-tight">FitZone Sports</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            {esStaff ? 'Acceso de personal' : 'Plataforma de gestión'}
+    <AuthLayout
+      photoUrl={esStaff ? '/images/landing/gimnasio-alt.jpg' : '/images/landing/gimnasio-hero.jpg'}
+      headline={esStaff ? 'Acceso al panel\nde operaciones.' : 'Entrená\nsin límites.'}
+      subheadline={esStaff ? 'Gestioná socios, turnos y métricas en tiempo real.' : 'Tu gimnasio favorito, en la palma de tu mano.'}
+      tag={esStaff ? 'Acceso operarios' : undefined}
+    >
+      <div className="flex items-center gap-3 mb-8">
+        <div
+          className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"
+          style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)' }}
+        >
+          <Zap size={20} className="text-white" fill="white" />
+        </div>
+        <div>
+          <p className="text-xl font-black tracking-tight text-gray-900">FitZone</p>
+          <p className="text-xs text-gray-400 font-medium">
+            {esStaff ? 'Panel de gestión' : 'App de socios'}
           </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-sm font-medium text-[#374151]">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
-              className="w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#111111]
-                placeholder:text-[#9CA3AF] outline-none transition-all duration-150
-                focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="block text-sm font-medium text-[#374151]">
-              Contraseña
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-[#E5E7EB] bg-white text-sm text-[#111111]
-                  placeholder:text-[#9CA3AF] outline-none transition-all duration-150
-                  focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20"
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[#FEF2F2] border border-[#FECACA]">
-              <AlertCircle size={15} className="text-[#DC2626] mt-0.5 shrink-0" />
-              <p className="text-xs text-[#DC2626] leading-relaxed">{error}</p>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 mt-2 rounded-lg bg-[#8B2EFF] text-white text-sm font-semibold
-              hover:bg-[#7A25E6] active:bg-[#6B1FCC] disabled:opacity-60 disabled:cursor-not-allowed
-              transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#8B2EFF]/50"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                Ingresando…
-              </span>
-            ) : (
-              'Ingresar'
-            )}
-          </button>
-        </form>
-        {audience === 'cliente' && (
-          <div className="mt-6 pt-5 border-t border-[#E5E7EB] text-center">
-            <Link
-              to="/admin/login"
-              className="text-xs text-[#6B7280] hover:text-[#8B2EFF] transition-colors"
-            >
-              Operarios y administradores →
-            </Link>
-          </div>
-        )}
       </div>
 
-      <p className="mt-6 text-xs text-white/20">© 2026 FitZone Sports. Todos los derechos reservados.</p>
-    </div>
+      <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">
+        {esStaff ? 'Acceso restringido' : 'Bienvenido de nuevo'}
+      </h1>
+      <p className="text-sm text-gray-400 font-medium mb-7">
+        {esStaff ? 'Ingresá con tus credenciales de operario.' : 'Ingresá para ver tus clases, reservas y más.'}
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <AuthInput
+          label="Email"
+          type="email"
+          placeholder="tu@email.com"
+          icon={<Mail size={16} />}
+          value={email}
+          onChange={setEmail}
+          autoComplete="email"
+        />
+        <AuthInput
+          label="Contraseña"
+          type={showPassword ? 'text' : 'password'}
+          placeholder="••••••••"
+          icon={<Lock size={16} />}
+          value={password}
+          onChange={setPassword}
+          autoComplete="current-password"
+          rightEl={
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
+        />
+        {error && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
+            <AlertCircle size={14} className="text-red-400 shrink-0" />
+            <p className="text-xs text-red-500 font-medium">{error}</p>
+          </div>
+        )}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[0.98] disabled:opacity-70"
+          style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)', minHeight: 44 }}
+        >
+          {loading ? (
+            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <>
+              Ingresar <ArrowRight size={18} className="text-white" />
+            </>
+          )}
+        </button>
+      </form>
+
+      {!esStaff ? (
+        <div className="text-center space-y-3 mt-6">
+          <p className="text-sm text-gray-500">
+            ¿No tenés cuenta?{' '}
+            <Link to="/registro" className="text-[#8B2EFF] font-bold hover:underline">
+              Registrate
+            </Link>
+          </p>
+          <Link
+            to="/admin/login"
+            className="inline-block text-xs text-gray-400 hover:text-gray-600 transition-colors font-medium"
+          >
+            Operarios y administradores →
+          </Link>
+        </div>
+      ) : (
+        <div className="text-center mt-6">
+          <Link to="/login" className="text-sm text-[#8B2EFF] font-bold hover:underline">
+            ← Volver al acceso de socios
+          </Link>
+        </div>
+      )}
+    </AuthLayout>
   );
 }

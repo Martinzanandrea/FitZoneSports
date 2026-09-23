@@ -13,6 +13,11 @@ import { PersonalPage } from '../modules/usuarios/pages/PersonalPage';
 import { RegistroPage } from '../modules/usuarios/pages/RegistroPage';
 import { CambiarPassword } from '../modules/usuarios/pages/CambiarPassword';
 import { ClienteLayout } from '../shared/components/ClienteLayout';
+import { PublicLayout } from '../shared/components/PublicLayout';
+import { ClasesPublicas } from '../modules/clases/pages/ClasesPublicas';
+import { CanchasPublicas } from '../modules/canchas/pages/CanchasPublicas';
+import { SedesPublicas } from '../modules/sedes/pages/SedesPublicas';
+import { Nosotros } from '../modules/inicio/pages/Nosotros';
 import { Dashboard } from '../modules/inicio/pages/Dashboard';
 import { MiQr } from '../modules/acceso/pages/MiQr';
 import { MetricasAccesos } from '../modules/acceso/pages/MetricasAccesos';
@@ -42,7 +47,13 @@ import { SinSedeAsignada } from '../modules/admin/pages/SinSedeAsignada';
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Inicio />} />
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<Inicio />} />
+        <Route path="/clases" element={<ClasesPublicas />} />
+        <Route path="/canchas" element={<CanchasPublicas />} />
+        <Route path="/sedes" element={<SedesPublicas />} />
+        <Route path="/nosotros" element={<Nosotros />} />
+      </Route>
       <Route path="/registro" element={<RegistroPage />} />
 
       <Route path="/login" element={<Login audience="cliente" redirectTo="/dashboard" />} />
@@ -65,11 +76,25 @@ export function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/mi-qr" element={<MiQr />} />
         <Route path="/qr" element={<MiQr />} />
-        <Route path="/clases" element={<ReservarClases />} />
-        <Route path="/canchas" element={<ReservarCanchas />} />
         <Route path="/pagos" element={<MisPagos />} />
         <Route path="/membresia" element={<MiMembresia />} />
         <Route path="/mi-cuenta/password" element={<CambiarPassword />} />
+        <Route
+          path="/reservar-clases"
+          element={
+            <ProtectedRoute allowedRoles={[TipoActor.SOCIO, TipoActor.EXTERNO]} loginPath="/login">
+              <ReservarClases />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reservar-canchas"
+          element={
+            <ProtectedRoute allowedRoles={[TipoActor.SOCIO, TipoActor.EXTERNO]} loginPath="/login">
+              <ReservarCanchas />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       <Route

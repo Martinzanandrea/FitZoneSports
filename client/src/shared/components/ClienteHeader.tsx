@@ -22,8 +22,8 @@ export function ClienteHeader() {
       <nav className="hidden md:flex items-center gap-1">
         {[
           { to: '/dashboard', label: 'Inicio' },
-          { to: '/clases', label: 'Clases' },
-          { to: '/canchas', label: 'Canchas' },
+          { to: '/reservar-clases', label: 'Clases' },
+          { to: '/reservar-canchas', label: 'Canchas' },
         ].map((l) => (
           <NavLink
             key={l.to}

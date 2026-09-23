@@ -18,3 +18,9 @@ export interface FranjaHoraria {
   apertura: string; // "HH:MM:SS"
   cierre: string; // "HH:MM:SS"
 }
+
+// Sede pública con sus franjas de apertura incluidas
+// (GET /sedes/publico, extendido en el backend).
+export interface SedePublica extends Sede {
+  franjas: FranjaHoraria[];
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Clock3, DollarSign } from 'lucide-react';
+import { CalendarDays, Clock3, DollarSign, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { canchasApi } from '../canchas.api';
 import type { Cancha, ReservaCancha } from '../canchas.types';
@@ -7,7 +7,7 @@ import { usuariosApi } from '../../usuarios/usuarios.api';
 import type { Usuario } from '../../usuarios/usuarios.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede, FranjaHoraria } from '../../sedes/sedes.types';
-import { Badge, Button, Card, Chip, StatCard, ProgressBar } from '../../../shared/components/ui';
+import { Badge, Button, Card, Chip, StatCard, ProgressBar, Tooltip } from '../../../shared/components/ui';
 import { TipoActor } from '../../../shared/types/enums';
 
 function formatFecha(d: Date) {
@@ -347,10 +347,22 @@ export function GestionReservasCanchas() {
               >
                 <div>
                   <p className="text-sm font-semibold text-[#111111]">{hi} - {hf}</p>
-                  <p className="text-xs text-[#8B2EFF] font-medium">Libre — reservar</p>
+                  <p className="text-xs text-[#8B2EFF] font-medium inline-flex items-center gap-1">
+                    Libre — reservar
+                    <Tooltip text="Tocá un horario libre para reservarlo a nombre de un cliente">
+                      <HelpCircle size={14} className="text-[#9CA3AF]" />
+                    </Tooltip>
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {pico && <Badge variant="amber">Pico 19-21</Badge>}
+                  {pico && (
+                    <>
+                      <Badge variant="amber">Pico 19-21</Badge>
+                      <Tooltip text="Este horario tiene recargo del 15% por ser horario pico">
+                        <HelpCircle size={14} className="text-[#9CA3AF]" />
+                      </Tooltip>
+                    </>
+                  )}
                   <Badge variant="green">Libre</Badge>
                 </div>
               </button>

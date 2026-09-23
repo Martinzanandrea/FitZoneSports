@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarDays, Plus, Users, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, HelpCircle, Plus, Users, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { clasesApi } from '../clases.api';
 import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
 import { usuariosApi } from '../../usuarios/usuarios.api';
 import type { Usuario } from '../../usuarios/usuarios.types';
 import { sedesApi } from '../../sedes/sedes.api';
-import { Badge, Button, Card, Chip, StatCard } from '../../../shared/components/ui';
+import { Badge, Button, Card, Chip, StatCard, Tooltip } from '../../../shared/components/ui';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
 import { TipoActor } from '../../../shared/types/enums';
 
@@ -336,8 +336,13 @@ export function GestionReservasClases() {
                         <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white p-2.5">
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-[#111111] truncate">{r.usuario.nombre} {r.usuario.apellido}</p>
-                            <div className="mt-1">
+                            <div className="mt-1 flex items-center gap-1 flex-wrap">
                               <Badge variant={r.estado === 'RESERVADA' ? 'green' : r.estado === 'LISTA_ESPERA' ? 'amber' : r.estado === 'CANCELADA' ? 'gray' : 'violet'}>{r.estado}</Badge>
+                              {r.estado === 'LISTA_ESPERA' && (
+                                <Tooltip text="En espera: entra solo si alguien cancela su lugar">
+                                  <HelpCircle size={14} className="text-[#9CA3AF]" />
+                                </Tooltip>
+                              )}
                             </div>
                           </div>
                           {r.estado !== 'CANCELADA' && (
@@ -356,14 +361,19 @@ export function GestionReservasClases() {
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={abrirPanel}
-        aria-label="Anotar socio"
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#8B2EFF] text-white shadow-lg hover:bg-[#7A25E6]"
+      <Tooltip
+        text="Anotá a un socio que no tiene la app a mano o no puede reservar solo"
+        className="fixed bottom-6 right-6 z-40"
       >
-        <Plus size={24} />
-      </button>
+        <button
+          type="button"
+          onClick={abrirPanel}
+          aria-label="Anotar socio"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-[#8B2EFF] text-white shadow-lg hover:bg-[#7A25E6]"
+        >
+          <Plus size={24} />
+        </button>
+      </Tooltip>
 
       {panelAbierto && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4">

@@ -21,13 +21,13 @@ import { CreateBloqueoDto } from './dto/create-bloqueo.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Canchas')
 @ApiCookieAuth('token')
 @Controller('canchas')
 export class CanchasController {
   constructor(private readonly canchasService: CanchasService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Post()
   @ApiOperation({ summary: 'Crear una cancha' })
@@ -36,12 +36,23 @@ export class CanchasController {
     return this.canchasService.create(dto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   @ApiOperation({ summary: 'Listar canchas' })
   findAll(@Query() query: PaginationQueryDto) {
     return this.canchasService.findAll(query);
   }
 
+  // Público, sin auth — catálogo para la landing. Va ANTES que ':id'
+  // para que Nest no lo confunda con un parámetro. Sin @UseGuards
+  // (mismo patrón que precios/membresias/publico): queda abierto.
+  @Get('publico')
+  @ApiOperation({ summary: 'Catálogo público de canchas activas por sede' })
+  findAllPublico() {
+    return this.canchasService.findAllPublico();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una cancha por ID' })
   @ApiParam({ name: 'id', description: 'UUID de la cancha' })
@@ -49,6 +60,7 @@ export class CanchasController {
     return this.canchasService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una cancha' })
@@ -58,6 +70,7 @@ export class CanchasController {
     return this.canchasService.update(id, dto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Post(':id/bloqueos')
   @ApiOperation({ summary: 'Crear un bloqueo de cancha' })

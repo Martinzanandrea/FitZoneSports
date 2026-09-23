@@ -27,7 +27,6 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Clases')
 @ApiCookieAuth('token')
 @Controller('clases')
@@ -37,6 +36,7 @@ export class ClasesController {
     private readonly repartoService: RepartoHorasService,
   ) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Post()
   @ApiOperation({ summary: 'Crear una clase con su grilla semanal' })
@@ -45,6 +45,7 @@ export class ClasesController {
     return this.clasesService.create(dto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   @ApiOperation({ summary: 'Listar clases (filtrable por sede)' })
   findAll(@Query('sedeId') sedeId?: string, @Query() query?: PaginationQueryDto) {
@@ -52,6 +53,7 @@ export class ClasesController {
   }
 
   // Va ANTES que ':id' para que Nest no lo confunda con un ID.
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Get('reparto-sugerido')
   @ApiOperation({
@@ -65,6 +67,16 @@ export class ClasesController {
     return this.repartoService.sugerir(sedeId, horasSemanales, numDias);
   }
 
+  // Público, sin auth — resumen agregado para la landing. Va ANTES
+  // que ':id' para que Nest no lo confunda con un parámetro. Sin
+  // @UseGuards (mismo patrón que precios/membresias/publico).
+  @Get('publico')
+  @ApiOperation({ summary: 'Resumen público de tipos de clase (agregado por tipo)' })
+  resumenPublico() {
+    return this.clasesService.resumenPublico();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una clase por ID' })
   @ApiParam({ name: 'id', description: 'UUID de la clase' })
@@ -72,6 +84,7 @@ export class ClasesController {
     return this.clasesService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id/ocurrencias')
   @ApiOperation({ summary: 'Listar ocurrencias de una clase (filtrable por fechas)' })
   @ApiParam({ name: 'id', description: 'UUID de la clase' })
@@ -84,6 +97,7 @@ export class ClasesController {
     return this.clasesService.listarOcurrencias(id, desde, hasta, query);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar tipo, instructor o capacidad de una clase' })
@@ -93,6 +107,7 @@ export class ClasesController {
     return this.clasesService.update(id, dto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.GERENTE)
   @Delete(':id')
   @ApiOperation({ summary: 'Desactivar una clase (no borra ocurrencias ni reservas)' })
@@ -105,6 +120,7 @@ export class ClasesController {
   // Acción acotada: reasignar instructor, distinta de update() completo.
   // Gerente sin restricción; Recepcionista solo en clases de su sede
   // (validado dentro del service con assertSedeScope).
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Patch(':id/instructor')
   @ApiOperation({ summary: 'Asignar instructor a una clase' })

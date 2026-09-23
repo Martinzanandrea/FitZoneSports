@@ -1,11 +1,12 @@
 import { api } from "../../api/axios";
-import type { Sede, CreateSedePayload, FranjaHoraria } from "./sedes.types";
+import type { Sede, CreateSedePayload, FranjaHoraria, SedePublica } from "./sedes.types";
 import type { PaginatedResponse } from "../../shared/types/pagination";
 
 export const sedesApi = {
   // Trae solo los datos públicos de las sedes, sin necesitar estar
   // logueado — se usa en la landing para mostrar dónde están ubicadas.
-  getAllPublico:()=> api.get<Sede[]>("/sedes/publico").then((res) => res.data),
+  // Incluye las franjas de apertura de cada sede.
+  getAllPublico:()=> api.get<SedePublica[]>("/sedes/publico").then((res) => res.data),
   // Le pide al backend la lista completa de sedes que puede administrar
   // el usuario logueado (el propio backend ya filtra según su rol).
   // Viene paginada: page arranca en 1 y limit trae 20 por defecto

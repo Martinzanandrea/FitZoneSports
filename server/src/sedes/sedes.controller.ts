@@ -49,8 +49,7 @@ export class SedesController {
   })
   async findAllPublico() {
     // Público: mantiene contrato de array plano (sin envoltorio paginado).
-    const r = await this.sedesService.findAll({ page: 1, limit: 100 });
-    return r.data;
+    return this.sedesService.findAllPublico();
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

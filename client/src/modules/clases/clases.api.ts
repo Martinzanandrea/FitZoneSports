@@ -49,7 +49,17 @@ export interface SugerenciaReparto {
   }>;
 }
 
+export interface ResumenClasePublica {
+  tipoClase: string;
+  sedesQueOfrecen: number;
+  horasSemanalesTotales: number;
+}
+
 export const clasesApi = {
+  // Catálogo público agregado por tipo (sin login): por cada tipo de
+  // clase activa, cuántas sedes lo ofrecen y la carga horaria total.
+  getAllPublico: () =>
+    api.get<ResumenClasePublica[]>('/clases/publico').then((r) => r.data),
   // Trae las plantillas de clases (no los horarios sueltos); si se pasa una
   // sede, devuelve solo las de esa sede. Viene paginado: page arranca
   // en 1 y limit trae 20 por defecto.
@@ -93,3 +103,44 @@ export const clasesApi = {
   cancelarReserva: (reservaId: string) =>
     api.post<ReservaClase>(`/clases/reservas/${reservaId}/cancelar`).then((r) => r.data),
 };
+
+function aYMD(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
+// Agregación compartida (la misma que usa la pantalla de reservas):
+// plantillas + ocurrencias en ventana de días + reservas por ocurrencia.
+// Cada llamada individual que falla aporta lista vacía, no rompe el resto.
+export async function fetchMapaReservasClase(ventanaDias = 14): Promise<{
+  clases: Clase[];
+  occMap: Record<string, ClaseOcurrencia[]>;
+  resMap: Record<string, ReservaClase[]>;
+}> {
+  const clasesRes = await clasesApi.getAll(undefined, 1, 100);
+  const clases = clasesRes.data;
+  const hoy = aYMD(new Date());
+  const hasta = aYMD(new Date(Date.now() + ventanaDias * 24 * 60 * 60 * 1000));
+  const occMap: Record<string, ClaseOcurrencia[]> = {};
+  await Promise.all(
+    clases.map(async (c) => {
+      try {
+        occMap[c.id] = (await clasesApi.getOcurrencias(c.id, hoy, hasta)).data;
+      } catch {
+        occMap[c.id] = [];
+      }
+    }),
+  );
+  const resMap: Record<string, ReservaClase[]> = {};
+  await Promise.all(
+    Object.values(occMap)
+      .flat()
+      .map(async (o) => {
+        try {
+          resMap[o.id] = (await clasesApi.getReservasPorOcurrencia(o.id)).data;
+        } catch {
+          resMap[o.id] = [];
+        }
+      }),
+  );
+  return { clases, occMap, resMap };
+}
