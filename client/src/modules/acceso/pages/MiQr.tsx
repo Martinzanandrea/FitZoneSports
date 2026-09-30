@@ -69,7 +69,13 @@ export function MiQr() {
   return (
     <div className="max-w-sm lg:max-w-md mx-auto px-4 sm:px-6 py-8 lg:py-12 flex flex-col items-center">
       <h2 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Mi QR de ingreso</h2>
-      <p className="text-sm text-gray-400 text-center mb-10">Mostráselo al recepcionista en la entrada</p>
+      <p className="text-sm text-gray-400 text-center mb-4">Mostráselo al recepcionista en la entrada</p>
+
+      {!error && (
+        <div className={`mb-6 text-white text-xs font-black px-4 py-1.5 rounded-full shadow transition-colors ${urgente ? 'bg-red-500' : 'bg-[#8B2EFF]'}`}>
+          {urgente ? `⚠ Quedan ${seconds}s` : `Expira en ${seconds}s`}
+        </div>
+      )}
 
       {error ? (
         <div className="py-10 text-center">
@@ -96,13 +102,7 @@ export function MiQr() {
               className={`w-44 h-44 bg-white rounded-3xl flex items-center justify-center shadow-xl border-2 transition-colors ${urgente ? 'border-red-200' : 'border-[#8B2EFF]/10'}`}
               style={expired ? { filter: 'grayscale(1) opacity(0.3)' } : undefined}
             >
-              {qrToken && <QRCodeSVG value={qrToken} size={152} />}
-            </div>
-
-            <div className="absolute -bottom-4">
-              <div className={`text-white text-xs font-black px-4 py-1.5 rounded-full shadow transition-colors ${urgente ? 'bg-red-500' : 'bg-[#8B2EFF]'}`}>
-                {urgente ? `⚠ ${seconds}s` : `${seconds}s`}
-              </div>
+              {qrToken && <QRCodeSVG value={qrToken} size={144} />}
             </div>
           </div>
 
