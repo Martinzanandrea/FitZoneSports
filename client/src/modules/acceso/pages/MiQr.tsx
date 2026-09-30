@@ -7,9 +7,6 @@ import { membresiasApi } from '../../membresias/membresias.api';
 import type { Membresia } from '../../membresias/membresias.types';
 import { Button } from '../../../shared/components/ui';
 
-const RADIO = 90;
-const CIRCUNFERENCIA = 2 * Math.PI * RADIO;
-
 export function MiQr() {
   const { user } = useAuth();
   const [qrToken, setQrToken] = useState<string | null>(null);
@@ -54,7 +51,6 @@ export function MiQr() {
     return () => clearTimeout(t);
   }, [seconds, expired, qrToken]);
 
-  const dashOffset = CIRCUNFERENCIA * (1 - seconds / 60);
   const urgente = seconds <= 10;
   const diasRestantes = membresia
     ? Math.max(
@@ -68,14 +64,25 @@ export function MiQr() {
 
   return (
     <div className="max-w-sm lg:max-w-md mx-auto px-4 sm:px-6 py-8 lg:py-12 flex flex-col items-center">
-      <h2 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Mi QR de ingreso</h2>
-      <p className="text-sm text-gray-400 text-center mb-4">Mostráselo al recepcionista en la entrada</p>
-
       {!error && (
-        <div className={`mb-6 text-white text-xs font-black px-4 py-1.5 rounded-full shadow transition-colors ${urgente ? 'bg-red-500' : 'bg-[#8B2EFF]'}`}>
-          {urgente ? `⚠ Quedan ${seconds}s` : `Expira en ${seconds}s`}
+        <div className="w-full max-w-xs mb-8">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-bold text-gray-400">El código se renueva en</span>
+            <span className="text-xs font-black" style={{ color: urgente ? '#EF4444' : '#8B2EFF' }}>
+              {seconds}s
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-1000 ease-linear"
+              style={{ width: `${(seconds / 60) * 100}%`, backgroundColor: urgente ? '#EF4444' : '#8B2EFF' }}
+            />
+          </div>
         </div>
       )}
+
+      <h2 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Mi QR de ingreso</h2>
+      <p className="text-sm text-gray-400 text-center mb-8">Mostráselo al recepcionista en la entrada</p>
 
       {error ? (
         <div className="py-10 text-center">
@@ -86,18 +93,7 @@ export function MiQr() {
         </div>
       ) : (
         <>
-          <div className="relative flex items-center justify-center mb-6">
-            <svg width="220" height="220" className="absolute">
-              <circle cx="110" cy="110" r={RADIO} fill="none" stroke="#F3EAFF" strokeWidth="7" />
-              <circle
-                cx="110" cy="110" r={RADIO} fill="none"
-                stroke={urgente ? '#EF4444' : '#8B2EFF'} strokeWidth="7" strokeLinecap="round"
-                strokeDasharray={CIRCUNFERENCIA} strokeDashoffset={dashOffset}
-                transform="rotate(-90 110 110)"
-                style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
-              />
-            </svg>
-
+          <div className="flex items-center justify-center mb-6">
             <div
               className={`w-44 h-44 bg-white rounded-3xl flex items-center justify-center shadow-xl border-2 transition-colors ${urgente ? 'border-red-200' : 'border-[#8B2EFF]/10'}`}
               style={expired ? { filter: 'grayscale(1) opacity(0.3)' } : undefined}
