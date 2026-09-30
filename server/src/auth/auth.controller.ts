@@ -16,6 +16,23 @@ export class AuthController {
     private readonly config: ConfigService,
   ) {}
  
+  // Atributos de cookie en UN solo lugar: login y logout usan este
+  // mismo objeto, así es imposible que se desincronicen. Producción
+  // (cross-domain Vercel+Render, HTTPS): secure + sameSite 'none'.
+  // Desarrollo (localhost HTTP): lax sin secure, o el navegador la rechaza.
+  private opcionesCookie(): {
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: 'none' | 'lax';
+  } {
+    const esProduccion = this.config.get('NODE_ENV') === 'production';
+    return {
+      httpOnly: true,
+      secure: esProduccion,
+      sameSite: esProduccion ? 'none' : 'lax',
+    };
+  }
+
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 intentos por minuto por IP
   @Post('login')
   @ApiOperation({ summary: 'Iniciar sesión y establecer cookie de autenticación' })
@@ -29,13 +46,8 @@ export class AuthController {
     );
     const token = this.authService.generarToken(usuario);
 
-    // Cross-domain (Vercel + Render): sameSite 'none' exige secure
-    // siempre (navegadores lo requieren sin excepción). Mismos atributos
-    // en login y logout o el navegador no borra la cookie.
     res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      ...this.opcionesCookie(),
       maxAge: 8 * 60 * 60 * 1000,
     });
 
@@ -52,11 +64,7 @@ export class AuthController {
   @ApiCookieAuth('token')
   @ApiOperation({ summary: 'Cerrar sesión' })
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('token', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-    });
+    res.clearCookie('token', this.opcionesCookie());
     return { message: 'Sesión cerrada' };
   }
 
