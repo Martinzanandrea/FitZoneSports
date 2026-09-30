@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
 import { EstadoMembresia, TipoActor } from '../entities/enums';
@@ -19,6 +19,14 @@ interface QrPayload {
   usuarioId: string;
   tipo: 'qr-acceso';
 }
+
+interface CodigoCorto {
+  usuarioId: string;
+  expiraEnMs: number;
+}
+
+// 60 segundos, igual que el QR (ambos se generan y vencen juntos).
+const CODIGO_CORTO_TTL_MS = 60_000;
 
 export interface ResumenAccesoSede {
   sedeId: string;
@@ -70,10 +78,14 @@ export class AccesoService {
     }
   }
 
+  // Códigos cortos de 6 dígitos, alternativa práctica al token largo.
+  // En memoria (no sobrevive reinicios ni se comparte entre instancias).
+  private readonly codigosCortos = new Map<string, CodigoCorto>();
+
   // RF04: QR dinámico que rota cada minuto.
   async generarQr(
     usuarioId: string,
-  ): Promise<{ qrToken: string; expiraEn: number }> {
+  ): Promise<{ qrToken: string; codigoCorto: string; expiraEn: number }> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id: usuarioId },
     });
@@ -82,9 +94,32 @@ export class AccesoService {
 
     await this.exigirSocioConMembresiaActiva(usuario);
 
+    this.purgarCodigosExpirados();
+
     const payload: QrPayload = { usuarioId, tipo: 'qr-acceso' };
     const qrToken = this.jwtService.sign(payload, { expiresIn: '60s' });
-    return { qrToken, expiraEn: 60 };
+    const codigoCorto = this.generarCodigoCortoUnico();
+    this.codigosCortos.set(codigoCorto, {
+      usuarioId,
+      expiraEnMs: Date.now() + CODIGO_CORTO_TTL_MS,
+    });
+    return { qrToken, codigoCorto, expiraEn: 60 };
+  }
+
+  private purgarCodigosExpirados(): void {
+    const ahora = Date.now();
+    for (const [codigo, entrada] of this.codigosCortos) {
+      if (entrada.expiraEnMs <= ahora) this.codigosCortos.delete(codigo);
+    }
+  }
+
+  private generarCodigoCortoUnico(): string {
+    for (let i = 0; i < 10; i++) {
+      const codigo = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0');
+      if (!this.codigosCortos.has(codigo)) return codigo;
+    }
+    // Prácticamente imposible (requeriría 10 colisiones seguidas).
+    throw new ConflictException('No se pudo generar un código, reintentá');
   }
 
   async obtenerAforo(
@@ -102,6 +137,28 @@ export class AccesoService {
     return { actual, maximo: sede.aforoMaximo };
   }
 
+  // Lista quiénes están DENTRO de una sede ahora mismo (sesión abierta,
+  // hora_egreso IS NULL), con el que lleva más tiempo primero. Solo
+  // lectura; el recepcionista queda limitado a su propia sede.
+  // Paginado: en una sede concurrida la lista puede tener cientos de filas.
+  async listarDentro(
+    sedeId: string,
+    currentUser: UsuarioAutenticado,
+    query?: PaginationQueryDto,
+  ): Promise<PaginatedResponse<ControlAcceso>> {
+    assertSedeScope(currentUser, sedeId);
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const [data, total] = await this.accesoRepo.findAndCount({
+      where: { sede: { id: sedeId }, horaEgreso: IsNull() },
+      relations: { usuario: true },
+      order: { horaIngreso: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+  }
+
   // RN01 + RF04/RF05: valida el QR, chequea aforo, y ahora también
   // que el recepcionista que valida pertenezca a ESA sede (o sea Gerente).
   async validarIngreso(
@@ -109,8 +166,6 @@ export class AccesoService {
     sedeId: string,
     currentUser: UsuarioAutenticado,
   ): Promise<ControlAcceso> {
-    assertSedeScope(currentUser, sedeId);
-
     let payload: QrPayload;
     try {
       payload = this.jwtService.verify<QrPayload>(qrToken);
@@ -121,13 +176,56 @@ export class AccesoService {
       throw new BadRequestException('QR inválido');
     }
 
+    return this.registrarIngresoValidado(
+      payload.usuarioId,
+      sedeId,
+      currentUser,
+      'Usuario del QR no encontrado',
+    );
+  }
+
+  // Alternativa práctica al token largo: código de 6 dígitos de un solo
+  // uso, con la misma expiración de 60 segundos que el QR.
+  async validarCodigo(
+    codigo: string,
+    sedeId: string,
+    currentUser: UsuarioAutenticado,
+  ): Promise<ControlAcceso> {
+    const entrada = this.codigosCortos.get(codigo);
+    if (!entrada || entrada.expiraEnMs <= Date.now()) {
+      if (entrada) this.codigosCortos.delete(codigo);
+      throw new BadRequestException('Código inválido o expirado');
+    }
+
+    const registro = await this.registrarIngresoValidado(
+      entrada.usuarioId,
+      sedeId,
+      currentUser,
+      'Usuario del código no encontrado',
+    );
+    // Un solo uso: recién se borra con la validación exitosa.
+    this.codigosCortos.delete(codigo);
+    return registro;
+  }
+
+  // Lógica compartida de validación de ingreso (sede-scope, membresía,
+  // aforo, RN-01 y registro). Recibe el usuarioId ya resuelto — sea
+  // desde el JWT del QR o desde el código corto.
+  private async registrarIngresoValidado(
+    usuarioId: string,
+    sedeId: string,
+    currentUser: UsuarioAutenticado,
+    mensajeUsuarioNoEncontrado: string,
+  ): Promise<ControlAcceso> {
+    assertSedeScope(currentUser, sedeId);
+
     const usuario = await this.usuariosRepo.findOne({
-      where: { id: payload.usuarioId },
+      where: { id: usuarioId },
     });
-    if (!usuario) throw new NotFoundException('Usuario del QR no encontrado');
+    if (!usuario) throw new NotFoundException(mensajeUsuarioNoEncontrado);
     if (!usuario.activo) throw new BadRequestException('Usuario inactivo');
 
-    // Defensa en profundidad: el QR pudo generarse cuando la membresía
+    // Defensa en profundidad: el código pudo generarse cuando la membresía
     // estaba activa y vencer en los 60 segundos intermedios.
     await this.exigirSocioConMembresiaActiva(usuario);
 

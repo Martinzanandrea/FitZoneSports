@@ -19,18 +19,6 @@ export interface OpcionesCobroEfectivo {
     usuario: { id: string; nombre: string; apellido: string; dni?: string | null };
     sedeAlta: { id: string; nombre: string };
   }>;
-  reservasClase: Array<{
-    id: string;
-    estado: string;
-    usuario: { id: string; nombre: string; apellido: string; dni?: string | null };
-    ocurrencia: {
-      id: string;
-      fecha: string;
-      horaInicio: string;
-      horaFin: string;
-      clase: { tipoClase: string; sede: { id: string; nombre: string } };
-    };
-  }>;
   reservasCancha: Array<{
     id: string;
     estado: string;
@@ -46,7 +34,6 @@ export interface OpcionesCobroEfectivo {
 export interface RegistrarEfectivoPayload {
   usuarioId: string;
   membresiaId?: string;
-  reservaClaseId?: string;
   reservaCanchaId?: string;
   monto?: number;
 }
@@ -66,8 +53,8 @@ export const pagosApi = {
   getPorUsuario: (usuarioId: string, page = 1, limit = 20) =>
     api.get<PaginatedResponse<Pago>>(`/pagos/usuario/${usuarioId}`, { params: { page, limit } }).then((res) => res.data),
   // Registra un cobro en efectivo hecho en el mostrador — solo para
-  // recepcionistas y gerentes; se pasa una sola de las tres referencias
-  // (membresía, reserva de clase o de cancha).
+  // recepcionistas y gerentes; se pasa una sola de las dos referencias
+  // (membresía o reserva de cancha).
   registrarEfectivo: (payload: RegistrarEfectivoPayload) =>
     api.post<Pago>("/pagos/efectivo", payload).then((res) => res.data),
 };

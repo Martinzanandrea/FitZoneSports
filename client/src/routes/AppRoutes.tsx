@@ -11,7 +11,8 @@ import { TipoActor } from '../shared/types/enums';
 import { SedesPage } from '../modules/sedes/pages/SedesPage';
 import { PersonalPage } from '../modules/usuarios/pages/PersonalPage';
 import { RegistroPage } from '../modules/usuarios/pages/RegistroPage';
-import { CambiarPassword } from '../modules/usuarios/pages/CambiarPassword';
+import { VerificarEmail } from '../modules/usuarios/pages/VerificarEmail';
+import { Configuracion } from '../modules/usuarios/pages/Configuracion';
 import { ClienteLayout } from '../shared/components/ClienteLayout';
 import { PublicLayout } from '../shared/components/PublicLayout';
 import { ClasesPublicas } from '../modules/clases/pages/ClasesPublicas';
@@ -34,6 +35,7 @@ import { ConfiguracionClases } from '../modules/admin/pages/ConfiguracionClases'
 import { CrearInstructor } from '../modules/instructores/pages/CrearInstructor';
 import { EditarPrecios } from '../modules/precios/pages/EditarPrecios';
 import { ControlAcceso } from '../modules/acceso/pages/ControlAcceso';
+import { DentroSede } from '../modules/acceso/pages/DentroSede';
 import { GestionReservasClases } from '../modules/clases/pages/GestionReservasClases';
 import { GestionReservasCanchas } from '../modules/canchas/pages/GestionReservasCanchas';
 import { CobrarEfectivo } from '../modules/pagos/pages/CobrarEfectivo';
@@ -55,6 +57,7 @@ export function AppRoutes() {
         <Route path="/nosotros" element={<Nosotros />} />
       </Route>
       <Route path="/registro" element={<RegistroPage />} />
+      <Route path="/verificar-email" element={<VerificarEmail />} />
 
       <Route path="/login" element={<Login audience="cliente" redirectTo="/dashboard" />} />
       <Route path="/admin/login" element={<Login audience="staff" redirectTo="/admin" />} />
@@ -78,7 +81,7 @@ export function AppRoutes() {
         <Route path="/qr" element={<MiQr />} />
         <Route path="/pagos" element={<MisPagos />} />
         <Route path="/membresia" element={<MiMembresia />} />
-        <Route path="/mi-cuenta/password" element={<CambiarPassword />} />
+        <Route path="/mi-cuenta" element={<Configuracion />} />
         <Route
           path="/reservar-clases"
           element={
@@ -165,6 +168,7 @@ export function AppRoutes() {
         <Route path="instructores" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE, TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><CrearInstructor /></ProtectedRoute>} />
         <Route path="precios" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><EditarPrecios /></ProtectedRoute>} />
         <Route path="acceso" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><ControlAcceso /></ProtectedRoute>} />
+        <Route path="acceso/dentro" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><DentroSede /></ProtectedRoute>} />
         <Route path="accesos" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><MetricasAccesos /></ProtectedRoute>} />
         <Route path="reservas-clases" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasClases /></ProtectedRoute>} />
         <Route path="reservas-canchas" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE]} loginPath="/admin/login"><GestionReservasCanchas /></ProtectedRoute>} />

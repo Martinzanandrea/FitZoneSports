@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { QrCode, Calendar, CalendarCheck, Banknote, CalendarDays, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { sedesApi } from '../../sedes/sedes.api';
@@ -7,7 +7,7 @@ import type { Sede } from '../../sedes/sedes.types';
 import { accesoApi } from '../../acceso/acceso.api';
 import { canchasApi } from '../../canchas/canchas.api';
 import { adminApi, type DashboardResumen } from '../admin.api';
-import { Button, StatCard, Tooltip } from '../../../shared/components/ui';
+import { StatCard, Tooltip } from '../../../shared/components/ui';
 
 function hoyYMD() {
   return new Date().toISOString().split('T')[0];
@@ -22,7 +22,6 @@ const CARDS = [
 
 export function RecepcionistaDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [sede, setSede] = useState<Sede | null>(null);
   const [aforo, setAforo] = useState<{ actual: number; maximo: number } | null>(null);
   const [resumen, setResumen] = useState<DashboardResumen | null>(null);
@@ -77,7 +76,7 @@ export function RecepcionistaDashboard() {
         <p className="mt-1 text-sm text-[#6B7280]">{sede ? `Operando en ${sede.nombre}` : 'Solo podés gestionar operaciones de tu sede'}</p>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
         <StatCard label="Clases hoy" value={cargandoResumen ? '...' : String(resumen?.clasesHoy ?? 0)} icon={CalendarDays} />
         <StatCard label="Reservas de canchas hoy" value={reservasCanchasHoy === null ? (cargandoResumen ? '...' : '—') : String(reservasCanchasHoy)} icon={CalendarCheck} iconColor="#16A34A" />
         <div className="relative">
@@ -116,23 +115,6 @@ export function RecepcionistaDashboard() {
               </div>
             </Link>
           ))}
-        </div>
-        <div>
-          <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <Button fullWidth onClick={() => navigate('/admin/acceso')}>
-              <QrCode size={16} /> Control de Acceso
-            </Button>
-            <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-clases')}>
-              <Calendar size={16} /> Reservas de Clases
-            </Button>
-            <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-canchas')}>
-              <CalendarCheck size={16} /> Reservas de Canchas
-            </Button>
-            <Button variant="outline" fullWidth onClick={() => navigate('/admin/cobrar')}>
-              <Banknote size={16} /> Cobrar
-            </Button>
-          </div>
         </div>
       </div>
     </div>

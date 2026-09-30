@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -23,6 +25,10 @@ import {
   CLASE_CUPO_LIBERADO,
   type CupoLiberadoPayload,
 } from './events/clase.events';
+import {
+  BOOKING_CLASE_REPOSITORY,
+  type IBookingClaseRepository,
+} from './booking-clase.repository';
 
 const HORAS_LIMITE_RESERVA_PROPIA = 48;
 const MINUTOS_LIMITE_RESERVA_STAFF = 30;
@@ -39,6 +45,8 @@ export class ReservasClaseService {
     private readonly usuariosRepo: Repository<Usuario>,
     @InjectRepository(Membresia)
     private readonly membresiasRepo: Repository<Membresia>,
+    @Inject(BOOKING_CLASE_REPOSITORY)
+    private readonly bookingRepo: IBookingClaseRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -64,6 +72,19 @@ export class ReservasClaseService {
       assertSedeScope(currentUser, ocurrencia.clase.sede.id);
     }
 
+    // Un Externo nunca puede tener membresía por diseño: rechazo explícito
+    // antes del chequeo genérico de RN-03 (vale para el usuario destino).
+    const usuario = await this.usuariosRepo.findOne({
+      where: { id: usuarioId },
+    });
+    if (!usuario)
+      throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
+    if (usuario.tipoActor === TipoActor.EXTERNO) {
+      throw new ForbiddenException(
+        'Las clases grupales son exclusivas para socios. Los clientes externos pueden alquilar canchas.',
+      );
+    }
+
     // RN-03: solo socios con membresía activa reservan clases. Vale para
     // el usuario destino (usuarioId), también cuando el staff anota a otro.
     const membresiaActiva = await this.membresiasRepo.findOne({
@@ -77,12 +98,6 @@ export class ReservasClaseService {
         'Necesitás una membresía activa para reservar clases',
       );
     }
-
-    const usuario = await this.usuariosRepo.findOne({
-      where: { id: usuarioId },
-    });
-    if (!usuario)
-      throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
 
     const yaReservada = await this.reservasRepo.findOne({
       where: { ocurrencia: { id: ocurrenciaId }, usuario: { id: usuarioId } },
@@ -110,20 +125,10 @@ export class ReservasClaseService {
       );
     }
 
-    const cupoOcupado = await this.reservasRepo.count({
-      where: {
-        ocurrencia: { id: ocurrenciaId },
-        estado: EstadoResClase.RESERVADA,
-      },
-    });
-
-    const estado =
-      cupoOcupado < ocurrencia.clase.capacidad
-        ? EstadoResClase.RESERVADA
-        : EstadoResClase.LISTA_ESPERA;
-
-    const reserva = this.reservasRepo.create({ ocurrencia, usuario, estado });
-    return this.reservasRepo.save(reserva);
+    // Tramo final atómico: el conteo de cupo y la inserción corren
+    // dentro de la transacción con lock del repository (cierra la
+    // carrera del último cupo). Las validaciones de arriba no cambian.
+    return this.bookingRepo.reservarSegura({ ocurrenciaId, usuario });
   }
 
   async cancelar(

@@ -94,15 +94,6 @@ export function CrearInstructor() {
           )}
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
-
-        <div>
-          <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <Button fullWidth onClick={abrirModal}>
-              <Plus size={16} /> Nuevo instructor
-            </Button>
-          </div>
-        </div>
       </div>
 
       {modalAbierto && (

@@ -81,6 +81,11 @@ export class Usuario {
   @Column({ default: true })
   activo!: boolean;
 
+  // La cuenta se crea sin verificar: el login se bloquea hasta que el
+  // usuario confirma su email con el link (ver 003-email-verificado.sql).
+  @Column({ name: 'email_verificado', default: false })
+  emailVerificado!: boolean;
+
   @CreateDateColumn({ name: 'creado_en', type: 'timestamptz' })
   creadoEn!: Date;
 

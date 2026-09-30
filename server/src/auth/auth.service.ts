@@ -34,6 +34,12 @@ export class AuthService {
       throw new UnauthorizedException('Usuario inactivo');
     }
 
+    // Mensaje exacto (distinto de 'Credenciales inválidas') para que el
+    // frontend lo detecte y ofrezca reenviar el link de verificación.
+    if (!usuario.emailVerificado) {
+      throw new UnauthorizedException('EMAIL_NO_VERIFICADO');
+    }
+
     return usuario;
   }
 

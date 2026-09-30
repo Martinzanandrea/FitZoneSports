@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CalendarDays, Clock3, DollarSign, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { canchasApi } from '../canchas.api';
@@ -57,6 +58,7 @@ function duracionHoras(r: ReservaCancha) {
 
 export function GestionReservasCanchas() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const sedeId = user?.sedeId ?? null;
 
   const [sede, setSede] = useState<Sede | null>(null);
@@ -265,13 +267,16 @@ export function GestionReservasCanchas() {
   if (loading) return <div className="max-w-lg mx-auto px-4 py-6 text-sm text-[#6B7280]">Cargando canchas...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold text-[#111111]">{sede?.nombre ?? 'Reservas de canchas'}</h1>
         <p className="text-sm text-[#6B7280] mt-1">Reservá en nombre de un socio/externo. Solo canchas de tu sede.</p>
       </div>
 
       {msg && <p className={`rounded-lg border p-3 text-sm ${msg.type === 'ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>{msg.text}</p>}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+      <div className="min-w-0 space-y-6">
 
       {/* Estadísticas reales del día */}
       <div className="grid grid-cols-3 gap-2">
@@ -386,6 +391,16 @@ export function GestionReservasCanchas() {
           ))}
         </div>
       )}
+      </div>
+      <div>
+        <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+          <Button fullWidth onClick={() => navigate('/admin/acceso')}>Control de Acceso</Button>
+          <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-clases')}>Reservas de Clases</Button>
+          <Button variant="outline" fullWidth onClick={() => navigate('/admin/cobrar')}>Cobrar</Button>
+        </div>
+      </div>
+      </div>
 
       {/* Panel superpuesto: reserva en 2 pasos */}
       {slotSel !== null && canchaSel && (

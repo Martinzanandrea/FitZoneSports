@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, MapPin, QrCode, Receipt } from 'lucide-react';
+import { CalendarDays, CreditCard, LogIn, LogOut, MapPin, QrCode, Receipt, Settings } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { membresiasApi } from '../../membresias/membresias.api';
 import type { Membresia } from '../../membresias/membresias.types';
+import { pagosApi } from '../../pagos/pagos.api';
+import { accesoApi } from '../../acceso/acceso.api';
+import type { HistorialAcceso } from '../../acceso/acceso.types';
 import { fetchMapaReservasClase } from '../../clases/clases.api';
 import { fetchMisReservasCancha } from '../../canchas/canchas.api';
-import { Badge, Card } from '../../../shared/components/ui';
+import { Badge, Card, StatCard } from '../../../shared/components/ui';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
 
 const quickActions = [
@@ -128,6 +131,10 @@ export function Dashboard() {
   const [errorMembresia, setErrorMembresia] = useState(false);
   const [proximas, setProximas] = useState<ProximaReserva[]>([]);
   const [cargandoReservas, setCargandoReservas] = useState(true);
+  const [errorReservas, setErrorReservas] = useState(false);
+  const [pagosMes, setPagosMes] = useState<number | null>(null);
+  const [actividad, setActividad] = useState<HistorialAcceso[]>([]);
+  const [errorActividad, setErrorActividad] = useState(false);
 
   const hoyTexto = new Date().toLocaleDateString('es-AR', {
     weekday: 'long',
@@ -186,7 +193,8 @@ export function Dashboard() {
         items.sort((a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`));
         if (viva) setProximas(items.slice(0, 3));
       } catch {
-        // Si falla, se mantiene el mensaje vacío original.
+        // Error visible (ej. timeout): no mostrar el empty state como si no hubiera reservas.
+        if (viva) setErrorReservas(true);
       } finally {
         if (viva) setCargandoReservas(false);
       }
@@ -195,6 +203,35 @@ export function Dashboard() {
       viva = false;
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const ahora = new Date();
+    pagosApi
+      .getPorUsuario(user.id, 1, 100)
+      .then((res) => {
+        const delMes = res.data.filter((p) => {
+          if (p.estado !== 'APROBADO') return false;
+          const f = new Date(p.creadoEn);
+          return f.getFullYear() === ahora.getFullYear() && f.getMonth() === ahora.getMonth();
+        });
+        setPagosMes(delMes.reduce((acc, p) => acc + Number(p.monto), 0));
+      })
+      .catch(() => setPagosMes(null));
+    accesoApi
+      .getHistorial(user.id, 1, 5)
+      .then((res) => setActividad(res.data))
+      .catch(() => setErrorActividad(true));
+  }, [user]);
+
+  // Días desde el inicio de la membresía vigente (fecha real disponible).
+  const diasVigencia = (() => {
+    if (!membresia) return null;
+    const inicio = new Date(`${membresia.fechaInicio}T00:00:00`).getTime();
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.round((hoy.getTime() - inicio) / (24 * 60 * 60 * 1000)));
+  })();
 
   return (
     <div className="max-w-2xl lg:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -205,8 +242,38 @@ export function Dashboard() {
         </h1>
       </div>
 
-      <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[1.6fr_1fr] lg:gap-6 lg:items-start">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard label="Reservas activas" value={cargandoReservas ? '...' : String(proximas.length)} icon={CalendarDays} />
+        <StatCard
+          label="Pagos este mes"
+          value={pagosMes === null ? '—' : `$${pagosMes.toLocaleString('es-AR')}`}
+          icon={CreditCard}
+          iconColor="#16A34A"
+        />
+        <StatCard
+          label="Días de vigencia"
+          value={diasVigencia === null ? '—' : String(diasVigencia)}
+          icon={QrCode}
+          iconColor="#D97706"
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="space-y-6 min-w-0">
+          <div className="relative overflow-hidden rounded-[1.75rem] border border-gray-100 shadow-sm">
+            <img
+              src="/images/landing/gimnasio-alt.jpg"
+              alt="Entrenamiento en FitZone"
+              className="h-36 md:h-44 w-full object-cover"
+              loading="lazy"
+            />
+            <div
+              className="absolute inset-0 flex items-end p-5"
+              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 70%)' }}
+            >
+              <p className="text-white text-lg font-black tracking-tight">Seguí así, {user?.nombre}</p>
+            </div>
+          </div>
           {cargando ? (
             <div className="rounded-[1.75rem] p-5 bg-[#F3F4F6] animate-pulse h-28" />
           ) : errorMembresia ? (
@@ -242,6 +309,42 @@ export function Dashboard() {
               ))}
             </div>
           </div>
+
+          <div>
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Actividad reciente</h2>
+            {errorActividad ? (
+              <Card className="py-6 text-center text-sm text-[#6B7280]">No se pudo cargar tu actividad.</Card>
+            ) : actividad.length === 0 ? (
+              <Card className="py-6 text-center text-sm text-[#6B7280]">Todavía no registraste ingresos.</Card>
+            ) : (
+              <div className="space-y-2">
+                {actividad.map((a) => {
+                  const adentro = !a.horaEgreso;
+                  const Icono = adentro ? LogIn : LogOut;
+                  const color = adentro ? '#16A34A' : '#6B7280';
+                  return (
+                    <Card key={a.id} className="flex items-center gap-3">
+                      <span
+                        className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
+                        style={{ backgroundColor: `${color}1A` }}
+                      >
+                        <Icono size={18} style={{ color }} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#111111] truncate">
+                          {adentro ? 'Adentro' : 'Salida registrada'} · {a.sede.nombre}
+                        </p>
+                        <p className="text-xs text-[#6B7280] truncate">
+                          Ingreso {new Date(a.horaIngreso).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          {a.horaEgreso ? ` · Egreso ${new Date(a.horaEgreso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                        </p>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="min-w-0">
@@ -251,6 +354,10 @@ export function Dashboard() {
           </div>
         {cargandoReservas ? (
           <div className="rounded-[1.75rem] p-5 bg-[#F3F4F6] animate-pulse h-20" />
+        ) : errorReservas ? (
+          <Card className="text-center py-6">
+            <p className="text-sm text-[#DC2626]">No pudimos cargar tus próximas reservas. Recargá la página.</p>
+          </Card>
         ) : proximas.length === 0 ? (
           <div className="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm p-8 text-center">
             <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
@@ -290,6 +397,22 @@ export function Dashboard() {
             })}
           </div>
         )}
+          <Link
+            to="/mi-cuenta"
+            className="mt-3 flex items-center gap-3 rounded-xl border bg-white border-[#E5E7EB] hover:border-[#8B2EFF] transition-colors p-4"
+            style={{ minHeight: 44 }}
+          >
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
+              style={{ backgroundColor: '#8B2EFF1A' }}
+            >
+              <Settings size={20} style={{ color: '#8B2EFF' }} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-[#111111] leading-tight">Mi cuenta</span>
+              <span className="block text-xs text-[#6B7280]">Datos, foto, contraseña y pagos</span>
+            </span>
+          </Link>
         </div>
       </div>
     </div>

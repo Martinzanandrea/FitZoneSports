@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarDays, Clock } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
+import { TipoActor } from '../../../shared/types/enums';
 import { clasesApi, fetchMapaReservasClase } from '../clases.api';
 import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
 import { Badge, Card } from '../../../shared/components/ui';
@@ -99,6 +101,23 @@ export function ReservarClases() {
   }
 
   if (loading) return <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-sm text-[#6B7280]">Cargando clases...</div>;
+
+  // Los Externos no tienen ni pueden tener membresía: no se les muestra
+  // el catálogo (el backend igual lo rechaza si se fuerza la petición).
+  if (user?.tipoActor === TipoActor.EXTERNO) {
+    return (
+      <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <h2 className="text-2xl font-black tracking-tight text-gray-900">Reservar clase</h2>
+        <div className="mt-6 bg-white rounded-[1.75rem] border border-gray-100 shadow-sm p-8 text-center">
+          <p className="text-sm font-semibold text-gray-900 mb-1">Las clases grupales son exclusivas para socios</p>
+          <p className="text-sm text-gray-400 mb-4">Como Cliente Externo, podés alquilar canchas.</p>
+          <Link to="/reservar-canchas" className="text-sm font-bold text-[#8B2EFF] hover:underline">
+            Alquilar una cancha →
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">

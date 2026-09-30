@@ -1,11 +1,15 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { EmailVerificacionService } from './email-verificacion.service';
 import { TipoActor, Usuario } from '../entities';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
@@ -19,11 +23,15 @@ const SALT_ROUNDS = 10; // "costo" del hasheo: más alto = más lento pero más 
 
 @Injectable()
 export class UsuariosService {
+  private readonly logger = new Logger(UsuariosService.name);
+
   constructor(
     @InjectRepository(Usuario)
     private readonly usuariosRepo: Repository<Usuario>,
     private readonly storageService: SupabaseStorageService,
     private readonly config: ConfigService,
+    private readonly jwtService: JwtService,
+    private readonly emailVerificacion: EmailVerificacionService,
   ) {}
 
   async create(
@@ -53,7 +61,88 @@ export class UsuariosService {
       passwordHash: await bcrypt.hash(password, SALT_ROUNDS),
     });
 
-    return this.usuariosRepo.save(usuario);
+    const guardado = await this.usuariosRepo.save(usuario);
+
+    // El registro no falla si Resend falla: solo se loguea, el usuario
+    // puede pedir reenvío después (POST /usuarios/reenviar-verificacion).
+    if (guardado.email) {
+      try {
+        const token = this.generarTokenVerificacion(guardado.id);
+        await this.emailVerificacion.enviarVerificacion(
+          guardado.email,
+          guardado.nombre,
+          token,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `No se pudo enviar verificación a ${guardado.email}: ${err}`,
+        );
+      }
+    }
+
+    return guardado;
+  }
+
+  // Mismo mecanismo JWT que el QR de acceso (mismo JWT_SECRET), con
+  // tipo propio para que no se confunda con otro tipo de token.
+  generarTokenVerificacion(usuarioId: string): string {
+    return this.jwtService.sign(
+      { sub: usuarioId, tipo: 'email-verificacion' },
+      { expiresIn: '24h' },
+    );
+  }
+
+  async verificarEmail(token: string): Promise<{ verificado: boolean }> {
+    let payload: { sub: string; tipo: string };
+    try {
+      payload = this.jwtService.verify<{ sub: string; tipo: string }>(token);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'TokenExpiredError') {
+        throw new BadRequestException(
+          'El link expiró, pedí uno nuevo con reenviar-verificacion',
+        );
+      }
+      throw new BadRequestException('Token inválido');
+    }
+    if (payload.tipo !== 'email-verificacion') {
+      throw new BadRequestException('Token inválido');
+    }
+    const usuario = await this.usuariosRepo.findOne({
+      where: { id: payload.sub },
+    });
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+    if (!usuario.emailVerificado) {
+      usuario.emailVerificado = true;
+      await this.usuariosRepo.save(usuario);
+    }
+    return { verificado: true };
+  }
+
+  async reenviarVerificacion(email: string): Promise<{ message: string }> {
+    const generico = {
+      message: 'Si el email existe, te enviamos un nuevo link',
+    };
+    const usuario = await this.usuariosRepo.findOne({ where: { email } });
+    // Respuesta idéntica exista o no el email / esté o no verificado:
+    // no revelar usuarios registrados (evita enumeración).
+    if (!usuario || usuario.emailVerificado || !usuario.email) {
+      return generico;
+    }
+    try {
+      const token = this.generarTokenVerificacion(usuario.id);
+      await this.emailVerificacion.enviarVerificacion(
+        usuario.email,
+        usuario.nombre,
+        token,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo reenviar verificación a ${email}: ${err}`,
+      );
+    }
+    return generico;
   }
 
   async findAll(
@@ -121,6 +210,25 @@ export class UsuariosService {
     await this.usuariosRepo.save(usuario);
     return this.findOne(usuarioId); // recarga con la relación sede ya poblada
   }
+
+  // Actualiza solo el DNI (endpoint dedicado, solo GERENTE). El PATCH
+  // general lo rechaza con 400 por ser campo sensible.
+  async actualizarDni(usuarioId: string, dni: string): Promise<Usuario> {
+    const usuario = await this.usuariosRepo.findOne({
+      where: { id: usuarioId },
+    });
+    if (!usuario)
+      throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
+
+    const existente = await this.usuariosRepo.findOne({ where: { dni } });
+    if (existente && existente.id !== usuarioId) {
+      throw new ConflictException('Ese DNI ya está registrado por otro usuario');
+    }
+
+    usuario.dni = dni;
+    await this.usuariosRepo.save(usuario);
+    return this.findOne(usuarioId);
+  }
   async findOne(id: string): Promise<Usuario> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id },
@@ -144,6 +252,7 @@ export class UsuariosService {
         nombre: true,
         apellido: true,
         activo: true,
+        emailVerificado: true,
       },
       relations: { sede: true },
     });
@@ -151,11 +260,13 @@ export class UsuariosService {
 
   async update(id: string, dto: UpdateUsuarioDto): Promise<Usuario> {
     const usuario = await this.findOne(id);
-    const { sedeId, ...resto } = dto;
-    Object.assign(usuario, resto);
-    if (sedeId !== undefined) {
-      usuario.sede = sedeId ? ({ id: sedeId } as any) : undefined;
-    }
+    // Asignación explícita campo por campo (nunca spread del DTO): si en el
+    // futuro alguien agrega un campo sensible al DTO, no se aplica solo.
+    if (dto.nombre !== undefined) usuario.nombre = dto.nombre;
+    if (dto.apellido !== undefined) usuario.apellido = dto.apellido;
+    if (dto.email !== undefined) usuario.email = dto.email;
+    if (dto.telefono !== undefined) usuario.telefono = dto.telefono;
+    if (dto.fotoUrl !== undefined) usuario.fotoUrl = dto.fotoUrl;
     return this.usuariosRepo.save(usuario);
   }
 
@@ -163,6 +274,24 @@ export class UsuariosService {
     const usuario = await this.findOne(id);
     usuario.tipoActor = dto.tipoActor;
     usuario.passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    return this.usuariosRepo.save(usuario);
+  }
+
+  async actualizarFoto(
+    id: string,
+    foto: {
+      buffer: Buffer;
+      originalname: string;
+      mimetype: string;
+    },
+  ): Promise<Usuario> {
+    const usuario = await this.findOne(id);
+    usuario.fotoUrl = await this.storageService.subirArchivo(
+      this.config.getOrThrow<string>('SUPABASE_BUCKET_FOTOS'),
+      foto.buffer,
+      foto.originalname.split('.').pop() ?? 'jpg',
+      foto.mimetype,
+    );
     return this.usuariosRepo.save(usuario);
   }
 

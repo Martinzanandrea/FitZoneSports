@@ -1,7 +1,9 @@
 import { type FormEvent, useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, Zap, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../AuthContext';
+import { usuariosApi } from '../../usuarios/usuarios.api';
 import { TipoActor } from '../../../shared/types/enums';
+import { membresiasApi } from '../../membresias/membresias.api';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthInput, AuthLayout } from '../AuthLayout';
 
@@ -21,6 +23,9 @@ export function Login({ audience, redirectTo }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [emailSinVerificar, setEmailSinVerificar] = useState(false);
+  const [reenvando, setReenvando] = useState(false);
+  const [reMensaje, setReMensaje] = useState('');
   const [loading, setLoading] = useState(false);
 
   const rolesPermitidos = audience === 'staff' ? ROLES_STAFF : ROLES_CLIENTE;
@@ -29,6 +34,8 @@ export function Login({ audience, redirectTo }: LoginProps) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setEmailSinVerificar(false);
+    setReMensaje('');
     setLoading(true);
     try {
       const usuario = await login(email, password);
@@ -45,11 +52,47 @@ export function Login({ audience, redirectTo }: LoginProps) {
         return;
       }
 
+      // ADR 0011: un Socio sin membresía ACTIVA (nuevo, vencido o
+      // suspendido por pago rechazado) debe completar plan+pago antes
+      // de usar la app. Solo SOCIO pasa por este chequeo.
+      if (usuario.tipoActor === TipoActor.SOCIO) {
+        const vigente = await membresiasApi
+          .getVigente(usuario.id)
+          .catch(() => null);
+        if (!vigente || vigente.estado !== 'ACTIVO') {
+          navigate('/completar-membresia');
+          return;
+        }
+      }
+
       navigate(redirectTo);
-    } catch {
-      setError('Email o contraseña incorrectos.');
+    } catch (err: unknown) {
+      // Error distinguible del backend cuando las credenciales están bien
+      // pero el email todavía no fue verificado (ver auth.service.ts).
+      const ax = err as { response?: { data?: { message?: string | string[] } } };
+      const raw = ax.response?.data?.message;
+      const msg = Array.isArray(raw) ? raw[0] : raw;
+      if (msg === 'EMAIL_NO_VERIFICADO') {
+        setEmailSinVerificar(true);
+        setError('Todavía no verificaste tu email');
+      } else {
+        setError('Email o contraseña incorrectos.');
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleReenviar() {
+    if (!email) return;
+    setReenvando(true);
+    try {
+      await usuariosApi.reenviarVerificacion(email);
+      setReMensaje('Si el email existe, te enviamos un nuevo link.');
+    } catch {
+      setReMensaje('No se pudo reenviar. Intentá de nuevo.');
+    } finally {
+      setReenvando(false);
     }
   }
 
@@ -60,6 +103,14 @@ export function Login({ audience, redirectTo }: LoginProps) {
       subheadline={esStaff ? 'Gestioná socios, turnos y métricas en tiempo real.' : 'Tu gimnasio favorito, en la palma de tu mano.'}
       tag={esStaff ? 'Acceso operarios' : undefined}
     >
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-6"
+        style={{ minHeight: 44 }}
+      >
+        <ArrowLeft size={15} />
+        Volver al inicio
+      </Link>
       <div className="flex items-center gap-3 mb-8">
         <div
           className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"
@@ -113,9 +164,22 @@ export function Login({ audience, redirectTo }: LoginProps) {
         {error && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
             <AlertCircle size={14} className="text-red-400 shrink-0" />
-            <p className="text-xs text-red-500 font-medium">{error}</p>
+            <div>
+              <p className="text-xs text-red-500 font-medium">{error}</p>
+              {emailSinVerificar && (
+                <button
+                  type="button"
+                  onClick={handleReenviar}
+                  disabled={reenvando}
+                  className="text-xs text-[#8B2EFF] font-bold hover:underline mt-1 disabled:opacity-60"
+                >
+                  {reenvando ? 'Enviando...' : 'Reenviar email de verificación'}
+                </button>
+              )}
+            </div>
           </div>
         )}
+        {reMensaje && <p className="text-xs text-gray-500 font-medium">{reMensaje}</p>}
         <button
           type="submit"
           disabled={loading}

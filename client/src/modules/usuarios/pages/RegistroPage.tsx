@@ -1,14 +1,12 @@
-import { type FormEvent, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowRight, Camera, Eye, EyeOff, Fingerprint, Lock, Mail, Phone, Star, User, Users } from 'lucide-react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, ArrowRight, Camera, Eye, EyeOff, Fingerprint, Lock, Mail, Phone, Star, User, Users } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
-import { useAuth } from '../../auth/AuthContext';
 import { TipoActor } from '../../../shared/types/enums';
 import { AuthInput, AuthLayout } from '../../auth/AuthLayout';
 
 export function RegistroPage() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const [registradoEmail, setRegistradoEmail] = useState<string | null>(null);
 
   const [tipoActor, setTipoActor] = useState<string>(TipoActor.SOCIO);
   const [dni, setDni] = useState('');
@@ -23,7 +21,15 @@ export function RegistroPage() {
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [reenvando, setReenvando] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -58,14 +64,9 @@ export function RegistroPage() {
 
       await usuariosApi.registrarPublico(formData);
 
-      // Cuenta creada: logueamos automáticamente para no pedirle que
-      // vuelva a escribir sus credenciales una segunda vez.
-      await login(email, password);
-      if (tipoActor === TipoActor.SOCIO) {
-        navigate('/completar-membresia');
-      } else {
-        navigate('/dashboard');
-      }
+      // La cuenta queda sin verificar: no se puede loguear todavía.
+      // Se muestra la pantalla de "revisá tu email" en vez de redirigir.
+      setRegistradoEmail(email);
     } catch (err: unknown) {
       const mensaje =
         err && typeof err === 'object' && 'response' in err
@@ -87,12 +88,81 @@ export function RegistroPage() {
   const strengthColors = ['', '#EF4444', '#F59E0B', '#10B981'];
   const strengthLabels = ['', 'Débil', 'Regular', 'Segura'];
 
+  async function handleReenviar() {
+    if (!registradoEmail || cooldown > 0) return;
+    setReenvando(true);
+    try {
+      await usuariosApi.reenviarVerificacion(registradoEmail);
+      setCooldown(30);
+    } catch {
+      setError('No se pudo reenviar el email. Intentá de nuevo.');
+    } finally {
+      setReenvando(false);
+    }
+  }
+
+  if (registradoEmail) {
+    return (
+      <AuthLayout
+        photoUrl="/images/landing/yoga-alt.jpg"
+        headline={'Ya casi estás.\nRevisá tu email.'}
+        subheadline="Te mandamos un link para confirmar tu cuenta."
+      >
+        <div className="text-center">
+          <div
+            className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4"
+            style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)' }}
+          >
+            <Mail size={20} className="text-white" />
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-2">Revisá tu email</h1>
+          <p className="text-sm text-gray-400 font-medium mb-1">
+            Te enviamos un link de verificación a
+          </p>
+          <p className="text-sm font-bold text-gray-900 mb-4">{registradoEmail}</p>
+          <p className="text-xs text-gray-400 mb-6">
+            Hacé clic en el link para activar tu cuenta y después iniciá sesión.
+            Si no lo ves, revisá el spam.
+          </p>
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-2xl px-4 py-3 mb-4">
+              <AlertCircle size={14} className="text-red-400 shrink-0" />
+              <p className="text-xs text-red-500 font-medium">{error}</p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleReenviar}
+            disabled={reenvando || cooldown > 0}
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[0.98] disabled:opacity-70"
+            style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)', minHeight: 44 }}
+          >
+            {reenvando ? 'Enviando...' : cooldown > 0 ? `Reenviar en ${cooldown}s` : 'Reenviar email'}
+          </button>
+          <p className="text-sm text-gray-500 text-center mt-5">
+            <Link to="/login" className="text-[#8B2EFF] font-bold hover:underline">
+              Ir a iniciar sesión
+            </Link>
+          </p>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout
       photoUrl="/images/landing/yoga-alt.jpg"
       headline={'Empezá hoy.\nTu primera clase\nes gratis.'}
       subheadline="Unite a la comunidad FitZone y accedé a clases, canchas y seguimiento personalizado."
     >
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-6"
+        style={{ minHeight: 44 }}
+      >
+        <ArrowLeft size={15} />
+        Volver al inicio
+      </Link>
       <div className="flex items-center gap-3 mb-7">
         <div
           className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"

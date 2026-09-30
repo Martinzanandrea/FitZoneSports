@@ -346,9 +346,6 @@ export function CalendarioSede() {
               <div>
                 <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
                 <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-                  <Button fullWidth onClick={() => abrirPanel()}>
-                    <Plus size={16} /> Programar Clase
-                  </Button>
                   <Button variant="outline" fullWidth onClick={() => setVista('calendario')}>
                     <CalendarDays size={16} /> Ver Calendario
                   </Button>

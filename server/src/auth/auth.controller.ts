@@ -29,10 +29,13 @@ export class AuthController {
     );
     const token = this.authService.generarToken(usuario);
 
+    // Cross-domain (Vercel + Render): sameSite 'none' exige secure
+    // siempre (navegadores lo requieren sin excepción). Mismos atributos
+    // en login y logout o el navegador no borra la cookie.
     res.cookie('token', token, {
       httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 8 * 60 * 60 * 1000,
     });
 
@@ -49,7 +52,11 @@ export class AuthController {
   @ApiCookieAuth('token')
   @ApiOperation({ summary: 'Cerrar sesión' })
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('token');
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+    });
     return { message: 'Sesión cerrada' };
   }
 

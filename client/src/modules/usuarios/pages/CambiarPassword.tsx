@@ -1,16 +1,16 @@
 import { type FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { useAuth } from '../../auth/AuthContext';
-import { Button, Card, PageHeader } from '../../../shared/components/ui';
+import { Button } from '../../../shared/components/ui';
 
 const inputClass =
   'w-full px-3.5 py-2.5 pr-10 rounded-lg border border-[#E5E7EB] text-sm outline-none focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20';
 
-export function CambiarPassword() {
+// Sección reutilizable (misma lógica que la pantalla standalone original,
+// ahora montada dentro de Configuración). Sin chrome de página propio.
+export function CambiarPasswordForm() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [passwordActual, setPasswordActual] = useState('');
   const [password, setPassword] = useState('');
@@ -66,11 +66,7 @@ export function CambiarPassword() {
   }
 
   return (
-    <div className="w-full max-w-[560px] mx-auto px-4 py-6">
-      <PageHeader title="Cambiar contraseña" onBack={() => navigate(-1)} />
-
-      <Card>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-[#374151]">
               Contraseña actual
@@ -143,8 +139,6 @@ export function CambiarPassword() {
           <Button type="submit" variant="primary" fullWidth disabled={loading}>
             {loading ? 'Guardando…' : 'Guardar nueva contraseña'}
           </Button>
-        </form>
-      </Card>
-    </div>
+    </form>
   );
 }

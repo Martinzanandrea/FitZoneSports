@@ -48,3 +48,12 @@ lo cual implicaría revisar este ADR. La generación automática de
 ocurrencias hacia adelante requiere un mecanismo recurrente (cron) que
 mantenga la ventana de semanas futuras, sumando una pieza de
 infraestructura que el modelo anterior no necesitaba.
+
+Nota de refuerzo: se detectó y corrigió una condición de carrera real
+en la reserva de clases — el chequeo de cupo y la creación de la
+reserva ocurrían en dos pasos sin transacción, permitiendo en teoría
+que dos solicitudes simultáneas al último cupo disponible resultaran
+ambas en RESERVADA, superando la capacidad declarada. Se cerró con el
+mismo patrón Repository ya aplicado a canchas (transacción con lock
+pesimista sobre la ocurrencia, más una implementación in-memory
+disponible para testing).

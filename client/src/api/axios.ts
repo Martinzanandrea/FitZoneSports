@@ -10,6 +10,9 @@ para que envíe las cookies de sesión (si las hubiera) en cada petición.*/
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
+  // 10s: si una request cuelga (backend lento, red caída a medias),
+  // se rechaza en vez de dejar loadings infinitos en los componentes.
+  timeout: 10000,
 });
 
 /*

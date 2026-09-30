@@ -70,10 +70,15 @@ export function PersonalPage() {
     setErrorEdicion('');
     try {
       await usuariosApi.actualizar(editando.id, {
-        ...formulario,
+        nombre: formulario.nombre,
+        apellido: formulario.apellido,
+        email: formulario.email,
         telefono: formulario.telefono || undefined,
-        dni: formulario.dni || undefined,
       });
+      // El DNI va por su endpoint dedicado (el PATCH general lo rechaza).
+      if (formulario.dni && formulario.dni !== (editando.dni ?? '')) {
+        await usuariosApi.actualizarDni(editando.id, formulario.dni);
+      }
       setEditando(null);
       cargar(page);
     } catch {
@@ -159,9 +164,6 @@ export function PersonalPage() {
         <div>
           <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <Button fullWidth onClick={() => navigate('/admin/personal/nuevo')}>
-              <UserPlus size={16} /> Nuevo integrante
-            </Button>
             <Button variant="outline" fullWidth onClick={() => setMostrarSinRecep((v) => !v)}>
               <Building2 size={16} /> {mostrarSinRecep ? 'Ocultar sedes sin recepcionista' : 'Ver sedes sin recepcionista'}
             </Button>

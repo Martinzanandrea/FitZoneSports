@@ -169,9 +169,6 @@ export function SedesConHorarios() {
         <div>
           <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <Button fullWidth onClick={() => navigate('/admin/sedes')}>
-              <Plus size={16} /> Nueva sede
-            </Button>
             <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-clases')}>
               <ClipboardList size={16} /> Ver reservas de clases
             </Button>

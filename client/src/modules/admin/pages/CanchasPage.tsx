@@ -112,9 +112,6 @@ export function CanchasPage() {
       <div>
         <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-          <Button fullWidth onClick={() => (showForm ? cerrar() : setShowForm(true))}>
-            <Plus size={16} /> {showForm ? 'Cerrar formulario' : 'Nueva cancha'}
-          </Button>
           <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas')}>
             <ClipboardList size={16} /> Ver reservas de hoy
           </Button>

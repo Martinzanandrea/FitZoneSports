@@ -10,14 +10,12 @@ import {
   Pago,
   Usuario,
   Membresia,
-  ReservaClase,
   ReservaCancha,
 } from '../entities';
 import {
   EstadoPago,
   MetodoPago,
   TipoActor,
-  EstadoResClase,
   EstadoResCancha,
 } from '../entities/enums';
 import { PasarelaMockService } from './gateway/pasarela-mock.service';
@@ -40,8 +38,6 @@ export class PagosService {
     private readonly usuariosRepo: Repository<Usuario>,
     @InjectRepository(Membresia)
     private readonly membresiasRepo: Repository<Membresia>,
-    @InjectRepository(ReservaClase)
-    private readonly reservasClaseRepo: Repository<ReservaClase>,
     @InjectRepository(ReservaCancha)
     private readonly reservasCanchaRepo: Repository<ReservaCancha>,
     private readonly pasarela: PasarelaMockService,
@@ -55,34 +51,25 @@ export class PagosService {
       throw new ForbiddenException('Tu usuario no tiene una sede asignada');
     }
     const sedeId = currentUser.sedeId;
-    const [usuarios, membresias, reservasClase, reservasCancha] =
-      await Promise.all([
-        this.usuariosRepo.find({ relations: { sede: true } }),
-        this.membresiasRepo.find({
-          relations: { usuario: true, sedeAlta: true },
-        }),
-        this.reservasClaseRepo.find({
-          where: { estado: EstadoResClase.RESERVADA },
-          relations: { usuario: true, ocurrencia: { clase: { sede: true } } },
-        }),
-        this.reservasCanchaRepo.find({
-          where: { estado: EstadoResCancha.CONFIRMADA },
-          relations: { usuario: true, cancha: { sede: true } },
-        }),
-      ]);
+    const [usuarios, membresias, reservasCancha] = await Promise.all([
+      this.usuariosRepo.find({ relations: { sede: true } }),
+      this.membresiasRepo.find({
+        relations: { usuario: true, sedeAlta: true },
+      }),
+      this.reservasCanchaRepo.find({
+        where: { estado: EstadoResCancha.CONFIRMADA },
+        relations: { usuario: true, cancha: { sede: true } },
+      }),
+    ]);
 
     const esDeSede = (sede?: { id: string } | null) =>
       !sedeId || sede?.id === sedeId;
     const membresiasDeSede = membresias.filter((m) => esDeSede(m.sedeAlta));
-    const reservasClaseDeSede = reservasClase.filter((r) =>
-      esDeSede(r.ocurrencia.clase.sede),
-    );
     const reservasCanchaDeSede = reservasCancha.filter((r) =>
       esDeSede(r.cancha.sede),
     );
     const idsUsuarios = new Set([
       ...membresiasDeSede.map((m) => m.usuario.id),
-      ...reservasClaseDeSede.map((r) => r.usuario.id),
       ...reservasCanchaDeSede.map((r) => r.usuario.id),
       ...usuarios.filter((u) => esDeSede(u.sede)).map((u) => u.id),
     ]);
@@ -95,7 +82,6 @@ export class PagosService {
             u.tipoActor === TipoActor.EXTERNO),
       ),
       membresias: membresiasDeSede,
-      reservasClase: reservasClaseDeSede,
       reservasCancha: reservasCanchaDeSede,
     };
   }
@@ -106,17 +92,22 @@ export class PagosService {
     reservaCanchaId?: string;
   }): Promise<{
     membresia?: Membresia;
-    reservaClase?: ReservaClase;
     reservaCancha?: ReservaCancha;
   }> {
-    const referencias = [
-      dto.membresiaId,
-      dto.reservaClaseId,
-      dto.reservaCanchaId,
-    ].filter(Boolean);
+    // Las clases no son cobrables de forma independiente (RN-03): el
+    // acceso viene incluido en la membresía. Se rechaza explícito en
+    // vez de ignorarse, para que el error sea visible vía API directa.
+    if (dto.reservaClaseId) {
+      throw new BadRequestException(
+        'Las reservas de clase no son cobrables de forma independiente: el acceso está incluido en la membresía',
+      );
+    }
+    const referencias = [dto.membresiaId, dto.reservaCanchaId].filter(
+      Boolean,
+    );
     if (referencias.length !== 1) {
       throw new BadRequestException(
-        'Debe indicarse exactamente una referencia: membresiaId, reservaClaseId o reservaCanchaId',
+        'Debe indicarse exactamente una referencia: membresiaId o reservaCanchaId',
       );
     }
 
@@ -129,16 +120,6 @@ export class PagosService {
           `Membresía ${dto.membresiaId} no encontrada`,
         );
       return { membresia };
-    }
-    if (dto.reservaClaseId) {
-      const reservaClase = await this.reservasClaseRepo.findOne({
-        where: { id: dto.reservaClaseId },
-      });
-      if (!reservaClase)
-        throw new NotFoundException(
-          `Reserva de clase ${dto.reservaClaseId} no encontrada`,
-        );
-      return { reservaClase };
     }
     const reservaCancha = await this.reservasCanchaRepo.findOne({
       where: { id: dto.reservaCanchaId },
@@ -154,7 +135,6 @@ export class PagosService {
     montoRecibido: number | undefined,
     referencia: {
       membresia?: Membresia;
-      reservaClase?: ReservaClase;
       reservaCancha?: ReservaCancha;
     },
   ): Promise<number> {
@@ -174,7 +154,6 @@ export class PagosService {
 
   private async obtenerSedeDeReferencia(referencia: {
     membresia?: Membresia;
-    reservaClase?: ReservaClase;
     reservaCancha?: ReservaCancha;
   }): Promise<string | null> {
     if (referencia.membresia) {
@@ -183,13 +162,6 @@ export class PagosService {
         relations: { sedeAlta: true },
       });
       return m?.sedeAlta.id ?? null;
-    }
-    if (referencia.reservaClase) {
-      const r = await this.reservasClaseRepo.findOne({
-        where: { id: referencia.reservaClase.id },
-        relations: { ocurrencia: { clase: { sede: true } } },
-      });
-      return r?.ocurrencia.clase.sede.id ?? null;
     }
     if (referencia.reservaCancha) {
       const r = await this.reservasCanchaRepo.findOne({

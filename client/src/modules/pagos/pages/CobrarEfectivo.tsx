@@ -1,27 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { HelpCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { pagosApi, type OpcionesCobroEfectivo } from '../pagos.api';
 import type { Pago } from '../pagos.types';
-import { Button, Card, Chip, SectionTitle, Tooltip } from '../../../shared/components/ui';
+import { Button, Card, Chip, SectionTitle } from '../../../shared/components/ui';
 
 const TipoReferencia = {
   MEMBRESIA: 'MEMBRESIA',
-  RESERVA_CLASE: 'RESERVA_CLASE',
   RESERVA_CANCHA: 'RESERVA_CANCHA',
 } as const;
 type TipoReferencia = (typeof TipoReferencia)[keyof typeof TipoReferencia];
 
-// Mismo criterio que GestionReservasClases: fecha DD/MM + hora HH:MM.
-function formatearFecha(fechaYMD: string) {
-  const [y, m, d] = fechaYMD.split('-');
-  return `${d}/${m}/${y}`;
-}
-
 export function CobrarEfectivo() {
+  const navigate = useNavigate();
   const [tipo, setTipo] = useState<TipoReferencia>(TipoReferencia.MEMBRESIA);
   const [usuarioId, setUsuarioId] = useState('');
   const [referenciaId, setReferenciaId] = useState('');
-  const [monto, setMonto] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [pago, setPago] = useState<Pago | null>(null);
@@ -46,14 +39,11 @@ export function CobrarEfectivo() {
   }, [opciones, busquedaUsuario]);
 
   const membresiasUsuario = opciones?.membresias.filter((m) => m.usuario.id === usuarioId) ?? [];
-  const reservasClaseUsuario = opciones?.reservasClase.filter((r) => r.usuario.id === usuarioId) ?? [];
   const reservasCanchaUsuario = opciones?.reservasCancha.filter((r) => r.usuario.id === usuarioId) ?? [];
 
   const cantidadReferencias = tipo === TipoReferencia.MEMBRESIA
     ? membresiasUsuario.length
-    : tipo === TipoReferencia.RESERVA_CLASE
-      ? reservasClaseUsuario.length
-      : reservasCanchaUsuario.length;
+    : reservasCanchaUsuario.length;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,17 +53,11 @@ export function CobrarEfectivo() {
     setMsg(null);
     setPago(null);
     try {
-      const payload: { usuarioId: string; membresiaId?: string; reservaClaseId?: string; reservaCanchaId?: string; monto?: number } = {
+      const payload: { usuarioId: string; membresiaId?: string; reservaCanchaId?: string } = {
         usuarioId,
       };
       if (tipo === TipoReferencia.MEMBRESIA) payload.membresiaId = referenciaId;
-      if (tipo === TipoReferencia.RESERVA_CLASE) payload.reservaClaseId = referenciaId;
       if (tipo === TipoReferencia.RESERVA_CANCHA) payload.reservaCanchaId = referenciaId;
-      if (monto.trim()) {
-        const n = Number(monto);
-        if (Number.isNaN(n) || n <= 0) { setMsg({ type: 'err', text: 'Monto inválido.' }); setLoading(false); return; }
-        payload.monto = n;
-      }
       const res = await pagosApi.registrarEfectivo(payload);
       setPago(res);
       setMsg({ type: 'ok', text: `Pago registrado: $${res.monto} — ${res.estado}` });
@@ -88,20 +72,21 @@ export function CobrarEfectivo() {
   }
 
   return (
-    <div className="max-w-lg mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold text-[#111111]">Cobrar</h1>
         <p className="text-sm text-[#6B7280] mt-1">Registrá un pago manual en efectivo.</p>
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+      <div className="min-w-0">
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <SectionTitle>Tipo de referencia</SectionTitle>
             <div className="flex gap-2 flex-wrap">
-              <Chip label="Membresía" active={tipo === TipoReferencia.MEMBRESIA} onClick={() => { setTipo(TipoReferencia.MEMBRESIA); setReferenciaId(''); setMonto(''); }} />
-              <Chip label="Reserva de clase" active={tipo === TipoReferencia.RESERVA_CLASE} onClick={() => { setTipo(TipoReferencia.RESERVA_CLASE); setReferenciaId(''); setMonto(''); }} />
-              <Chip label="Reserva de cancha" active={tipo === TipoReferencia.RESERVA_CANCHA} onClick={() => { setTipo(TipoReferencia.RESERVA_CANCHA); setReferenciaId(''); setMonto(''); }} />
+              <Chip label="Membresía" active={tipo === TipoReferencia.MEMBRESIA} onClick={() => { setTipo(TipoReferencia.MEMBRESIA); setReferenciaId(''); }} />
+              <Chip label="Reserva de cancha" active={tipo === TipoReferencia.RESERVA_CANCHA} onClick={() => { setTipo(TipoReferencia.RESERVA_CANCHA); setReferenciaId(''); }} />
             </div>
           </div>
 
@@ -135,44 +120,19 @@ export function CobrarEfectivo() {
 
           <div>
             <span className="text-sm font-medium text-[#374151]">
-              {tipo === TipoReferencia.MEMBRESIA ? 'Membresía' : tipo === TipoReferencia.RESERVA_CLASE ? 'Reserva de clase' : 'Reserva de cancha'}
+              {tipo === TipoReferencia.MEMBRESIA ? 'Membresía' : 'Reserva de cancha'}
             </span>
             <div className="mt-2 max-h-52 overflow-y-auto space-y-1">
               {!usuarioId && <p className="text-xs text-[#6B7280]">Seleccioná primero un usuario.</p>}
               {tipo === TipoReferencia.MEMBRESIA && membresiasUsuario.map((m) => (
                 <button key={m.id} type="button" onClick={() => setReferenciaId(m.id)} className={`w-full text-left rounded-lg border px-3 py-2 text-sm ${referenciaId === m.id ? 'border-[#8B2EFF] bg-[#F3E8FF]' : 'border-[#E5E7EB] bg-white'}`}>Plan {m.plan} · {m.estado} · hasta {m.fechaFin}</button>
               ))}
-              {tipo === TipoReferencia.RESERVA_CLASE && reservasClaseUsuario.map((r) => (
-                <button key={r.id} type="button" onClick={() => setReferenciaId(r.id)} className={`w-full text-left rounded-lg border px-3 py-2 text-sm ${referenciaId === r.id ? 'border-[#8B2EFF] bg-[#F3E8FF]' : 'border-[#E5E7EB] bg-white'}`}>{r.ocurrencia.clase.tipoClase} · {formatearFecha(r.ocurrencia.fecha)} {r.ocurrencia.horaInicio.slice(0, 5)} · {r.estado}</button>
-              ))}
               {tipo === TipoReferencia.RESERVA_CANCHA && reservasCanchaUsuario.map((r) => (
                 <button key={r.id} type="button" onClick={() => setReferenciaId(r.id)} className={`w-full text-left rounded-lg border px-3 py-2 text-sm ${referenciaId === r.id ? 'border-[#8B2EFF] bg-[#F3E8FF]' : 'border-[#E5E7EB] bg-white'}`}>{r.cancha.nombre} · {r.fecha} {r.horaInicio.slice(0, 5)} · Precio final: ${r.precioFinal}</button>
               ))}
-              {usuarioId && cantidadReferencias === 0 && <p className="text-xs text-[#B91C1C]">Este usuario no tiene {tipo === TipoReferencia.MEMBRESIA ? 'membresías' : tipo === TipoReferencia.RESERVA_CLASE ? 'reservas de clase' : 'reservas de cancha'} disponibles.</p>}
+              {usuarioId && cantidadReferencias === 0 && <p className="text-xs text-[#B91C1C]">Este usuario no tiene {tipo === TipoReferencia.MEMBRESIA ? 'membresías' : 'reservas de cancha'} disponibles.</p>}
             </div>
           </div>
-
-          {tipo === TipoReferencia.RESERVA_CLASE && (
-            <label className="block">
-              <span className="text-sm font-medium text-[#374151] inline-flex items-center gap-1">
-                Monto de la clase
-                <Tooltip text="Las clases no tienen precio fijo: ingresá el monto a cobrar">
-                  <HelpCircle size={14} className="text-[#9CA3AF]" />
-                </Tooltip>
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={monto}
-                onChange={(e) => setMonto(e.target.value)}
-                required
-                placeholder="Ej: 3500"
-                className="mt-1.5 w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none"
-                style={{ minHeight: 44 }}
-              />
-            </label>
-          )}
 
           <Button type="submit" disabled={loading} fullWidth>
             {loading ? 'Registrando...' : 'Registrar pago en efectivo'}
@@ -196,6 +156,16 @@ export function CobrarEfectivo() {
           </div>
         )}
       </Card>
+      </div>
+      <div>
+        <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+          <Button fullWidth onClick={() => navigate('/admin/acceso')}>Control de Acceso</Button>
+          <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-clases')}>Reservas de Clases</Button>
+          <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-canchas')}>Reservas de Canchas</Button>
+        </div>
+      </div>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { AccesoService } from './acceso.service';
 import { ValidarQrDto } from './dto/validar-qr.dto';
+import { ValidarCodigoDto } from './dto/validar-codigo.dto';
 import { RegistrarEgresoDto } from './dto/registrar-egreso.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -50,6 +51,16 @@ export class AccesoController {
   }
 
   @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Post('validar-codigo')
+  @ApiOperation({ summary: 'Validar ingreso mediante código corto de 6 dígitos' })
+  validarCodigo(
+    @Body() dto: ValidarCodigoDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.accesoService.validarCodigo(dto.codigo, dto.sedeId, user);
+  }
+
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
   @Post('egreso')
   @ApiOperation({ summary: 'Registrar egreso de un usuario' })
   registrarEgreso(
@@ -71,6 +82,17 @@ export class AccesoController {
   @ApiParam({ name: 'sedeId', description: 'UUID de la sede' })
   obtenerAforo(@Param('sedeId', ParseUUIDPipe) sedeId: string) {
     return this.accesoService.obtenerAforo(sedeId);
+  }
+
+  @Get('dentro/:sedeId')
+  @ApiOperation({ summary: 'Listar usuarios actualmente dentro de una sede' })
+  @ApiParam({ name: 'sedeId', description: 'UUID de la sede' })
+  listarDentro(
+    @Param('sedeId', ParseUUIDPipe) sedeId: string,
+    @CurrentUser() user: UsuarioAutenticado,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.accesoService.listarDentro(sedeId, user, query);
   }
 
   @Get('historial/:usuarioId')

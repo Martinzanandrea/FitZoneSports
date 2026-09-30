@@ -13,6 +13,7 @@ const CIRCUNFERENCIA = 2 * Math.PI * RADIO;
 export function MiQr() {
   const { user } = useAuth();
   const [qrToken, setQrToken] = useState<string | null>(null);
+  const [codigoCorto, setCodigoCorto] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(60);
   const [expired, setExpired] = useState(false);
   const [error, setError] = useState(false);
@@ -21,8 +22,9 @@ export function MiQr() {
   const generar = useCallback(async () => {
     if (!user) return;
     try {
-      const { qrToken, expiraEn } = await accesoApi.generarQr(user.id);
+      const { qrToken, codigoCorto, expiraEn } = await accesoApi.generarQr(user.id);
       setQrToken(qrToken);
+      setCodigoCorto(codigoCorto ?? null);
       setSeconds(expiraEn);
       setExpired(false);
       setError(false);
@@ -103,6 +105,18 @@ export function MiQr() {
               </div>
             </div>
           </div>
+
+          {codigoCorto && (
+            <div
+              className="text-center mb-8 -mt-2 transition-opacity"
+              style={expired ? { filter: 'grayscale(1) opacity(0.3)' } : undefined}
+            >
+              <p className="text-4xl font-black tracking-[0.2em] text-gray-900">
+                {codigoCorto.slice(0, 3)} {codigoCorto.slice(3)}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">O dictale este código al recepcionista</p>
+            </div>
+          )}
 
           <p className="text-xs text-gray-400 mb-8">El código se renueva automáticamente</p>
 

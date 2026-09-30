@@ -9,12 +9,14 @@ import {
   Post,
   Query,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { ActualizarDniDto } from './dto/actualizar-dni.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -30,7 +32,10 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { RechazarCamposSensibleInterceptor } from './interceptors/rechazar-campos-sensible.interceptor';
 import { AsignarSedeDto } from './dto/asignar-sede.dto';
+import { ReenviarVerificacionDto } from './dto/reenviar-verificacion.dto';
+import { Throttle } from '@nestjs/throttler';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
 import {
   ApiCookieAuth,
@@ -61,6 +66,21 @@ export class UsuariosController {
   @ApiOperation({ summary: 'Listar usuarios de staff' })
   findStaff(@Query() query: PaginationQueryDto) {
     return this.usuariosService.findStaff(query);
+  }
+
+  // Públicos, sin guard — van ANTES de ':id' para que Nest no los
+  // capture como parámetro.
+  @Get('verificar-email')
+  @ApiOperation({ summary: 'Confirmar email con el token del link' })
+  verificarEmail(@Query('token') token: string) {
+    return this.usuariosService.verificarEmail(token);
+  }
+
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 reenvíos por minuto por IP
+  @Post('reenviar-verificacion')
+  @ApiOperation({ summary: 'Reenviar link de verificación de email' })
+  reenviarVerificacion(@Body() dto: ReenviarVerificacionDto) {
+    return this.usuariosService.reenviarVerificacion(dto.email);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -119,15 +139,52 @@ export class UsuariosController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @UseInterceptors(RechazarCamposSensibleInterceptor)
   @ApiOperation({ summary: 'Actualizar un usuario' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateUsuarioDto,
+    // forbidNonWhitelisted: tipoActor/sedeId/dni (no declarados en el DTO)
+    // se rechazan con 400 en vez de ignorarse en silencio.
+    @Body(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    )
+    dto: UpdateUsuarioDto,
     @CurrentUser() user: any,
   ) {
     assertOwnerOrStaff(user, id);
     return this.usuariosService.update(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard) // sin RolesGuard: el propio usuario o staff (ownership abajo)
+  @Patch(':id/foto')
+  @ApiOperation({ summary: 'Actualizar foto de perfil de un usuario' })
+  @ApiParam({ name: 'id', description: 'UUID del usuario' })
+  @UseInterceptors(
+    FileInterceptor('foto', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  actualizarFoto(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({
+            fileType: /^(image\/jpeg|image\/png|image\/webp)$/,
+          }),
+        ],
+      }),
+    )
+    foto: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    assertOwnerOrStaff(user, id);
+    return this.usuariosService.actualizarFoto(id, foto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -140,6 +197,18 @@ export class UsuariosController {
     @Body() dto: AssignRoleDto,
   ) {
     return this.usuariosService.assignRole(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoActor.GERENTE)
+  @Patch(':id/dni')
+  @ApiOperation({ summary: 'Actualizar el DNI de un usuario' })
+  @ApiParam({ name: 'id', description: 'UUID del usuario' })
+  actualizarDni(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ActualizarDniDto,
+  ) {
+    return this.usuariosService.actualizarDni(id, dto.dni);
   }
 
   @UseGuards(JwtAuthGuard)

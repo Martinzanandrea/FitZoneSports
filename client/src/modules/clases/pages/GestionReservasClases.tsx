@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CalendarDays, HelpCircle, Plus, Users, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { clasesApi } from '../clases.api';
@@ -49,6 +49,7 @@ function etiquetaOcurrencia(o: ClaseOcurrencia): string {
 
 export function GestionReservasClases() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const sedeId = searchParams.get('sedeId') ?? user?.sedeId ?? null;
 
@@ -289,7 +290,7 @@ export function GestionReservasClases() {
   if (loading) return <div className="max-w-lg mx-auto px-4 py-6 text-sm text-[#6B7280]">Cargando clases...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-24">
+    <div className="max-w-5xl mx-auto space-y-6 pb-24">
       <div>
         <h1 className="text-xl font-bold text-[#111111]">Reservas de clases</h1>
         <p className="text-sm text-[#6B7280] mt-1">{sedeNombre || 'Tu sede'}</p>
@@ -322,15 +323,14 @@ export function GestionReservasClases() {
           <p className="text-sm text-[#6B7280]">Seleccioná una sede para gestionar sus reservas.</p>
         </Card>
       ) : (
-      <>
       <div className="grid grid-cols-3 gap-2">
         <StatCard label="Clases hoy" value={String(statsHoy.clasesHoy)} icon={CalendarDays} iconColor="#8B2EFF" />
         <StatCard label="Cupo ocupado hoy" value={`${statsHoy.ocupadas}/${statsHoy.capacidad}`} icon={Users} iconColor="#3B82F6" />
         <StatCard label="Casi llenas (>80%)" value={String(statsHoy.casiLlenas)} icon={AlertTriangle} iconColor="#D97706" />
       </div>
-      </>
       )}
-
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+      <div className="min-w-0 space-y-6">
       <div className="flex gap-2 overflow-x-auto pb-1">
         {DIAS_SEMANA.map((d) => (
           <Chip
@@ -411,6 +411,16 @@ export function GestionReservasClases() {
             );
           })
         )}
+      </div>
+      </div>
+      <div>
+        <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+          <Button fullWidth onClick={() => navigate('/admin/acceso')}>Control de Acceso</Button>
+          <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-canchas')}>Reservas de Canchas</Button>
+          <Button variant="outline" fullWidth onClick={() => navigate('/admin/cobrar')}>Cobrar</Button>
+        </div>
+      </div>
       </div>
 
       <Tooltip
