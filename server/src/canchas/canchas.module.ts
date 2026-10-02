@@ -2,14 +2,19 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   Cancha,
+  TipoCancha,
   BloqueoCancha,
   ReservaCancha,
+  Pago,
   Sede,
   Usuario,
 } from '../entities';
 import { MembresiasModule } from '../membresias/membresias.module';
+import { StorageModule } from '../storage/storage.module';
 import { CanchasService } from './canchas.service';
 import { CanchasController } from './canchas.controller';
+import { TiposCanchaService } from './tipos-cancha.service';
+import { TiposCanchaController } from './tipos-cancha.controller';
 import { ReservasCanchaService } from './reserva-cancha.service';
 import { ReservasCanchaController } from './reservas-cancha.controller';
 import {
@@ -25,16 +30,20 @@ import { PeakHourPricing } from './pricing/peak-hour-pricing.strategy';
   imports: [
     TypeOrmModule.forFeature([
       Cancha,
+      TipoCancha,
       BloqueoCancha,
       ReservaCancha,
+      Pago,
       Sede,
       Usuario,
     ]),
     MembresiasModule, // para leer la membresía vigente del socio (RN03)
+    StorageModule, // para subir fotos de tipos de cancha
   ],
-  controllers: [CanchasController, ReservasCanchaController],
+  controllers: [CanchasController, TiposCanchaController, ReservasCanchaController],
   providers: [
     CanchasService,
+    TiposCanchaService,
     ReservasCanchaService,
     TypeOrmBookingCanchaRepository,
     {

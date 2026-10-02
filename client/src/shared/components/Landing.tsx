@@ -163,6 +163,9 @@ export function Footer() {
             <Link className="hover:text-[#B980FF]" to="/nosotros">
               Nosotros
             </Link>
+            <Link className="hover:text-[#B980FF]" to="/terminos">
+              Términos y Condiciones
+            </Link>
           </div>
         </div>
         <div>

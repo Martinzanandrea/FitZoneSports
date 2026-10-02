@@ -4,8 +4,10 @@ import { AlertCircle, ArrowLeft, ArrowRight, Camera, Eye, EyeOff, Fingerprint, L
 import { usuariosApi } from '../usuarios.api';
 import { TipoActor } from '../../../shared/types/enums';
 import { AuthInput, AuthLayout } from '../../auth/AuthLayout';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function RegistroPage() {
+  useTitulo('Creá tu cuenta');
   const [registradoEmail, setRegistradoEmail] = useState<string | null>(null);
 
   const [tipoActor, setTipoActor] = useState<string>(TipoActor.SOCIO);

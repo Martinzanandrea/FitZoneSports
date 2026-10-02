@@ -7,16 +7,13 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 
-// Corre ANTES que los pipes (los interceptores se ejecutan primero), así ve
-// el body crudo: el whitelist global ya habría borrado estos campos en silencio.
 @Injectable()
 export class RechazarCamposSensibleInterceptor implements NestInterceptor {
   private readonly prohibidos = ['tipoActor', 'sedeId', 'dni'];
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const body = context.switchToHttp().getRequest().body as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const presentes = this.prohibidos.filter(
       (campo) => body?.[campo] !== undefined,
     );

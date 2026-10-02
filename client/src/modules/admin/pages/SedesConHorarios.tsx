@@ -5,6 +5,7 @@ import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { clasesApi } from '../../clases/clases.api';
 import { Badge, Button, Card, PageHeader, Pagination, ProgressBar, StatCard } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function aMinutos(hora: string) {
   const [h = '0', m = '0'] = hora.slice(0, 5).split(':');
@@ -18,6 +19,7 @@ interface UsoSede {
 }
 
 export function SedesConHorarios() {
+  useTitulo('Clases');
   const navigate = useNavigate();
   const [usos, setUsos] = useState<UsoSede[]>([]);
   const [loading, setLoading] = useState(true);

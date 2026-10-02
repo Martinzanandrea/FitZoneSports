@@ -1,12 +1,10 @@
 import {
-  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsString,
   IsUUID,
   Min,
 } from 'class-validator';
-import { TipoCancha } from '../../entities/enums';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCanchaDto {
@@ -19,9 +17,9 @@ export class CreateCanchaDto {
   @IsNotEmpty()
   nombre!: string;
 
-  @ApiProperty({ enum: TipoCancha, example: TipoCancha.FUTBOL5 })
-  @IsEnum(TipoCancha)
-  tipo!: TipoCancha;
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001', description: 'UUID del tipo de cancha' })
+  @IsUUID()
+  tipoId!: string;
 
   @ApiProperty({ example: 2500, minimum: 0.01, description: 'Costo base por hora' })
   @IsNumber()

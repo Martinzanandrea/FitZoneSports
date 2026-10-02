@@ -8,9 +8,12 @@ import type { Usuario } from '../../usuarios/usuarios.types';
 import { canchasApi } from '../../canchas/canchas.api';
 import { clasesApi } from '../../clases/clases.api';
 import { PageHeader, Card, Button, StatCard } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
 import { TipoActor } from '../../../shared/types/enums';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function SedeDetalle() {
+  useTitulo('Detalle de sede');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [sede, setSede] = useState<Sede | null>(null);
@@ -141,10 +144,7 @@ export function SedeDetalle() {
         <Card>
           <h3 className="text-sm font-semibold text-[#111111] mb-3">Recepcionista asignado</h3>
           <div className="space-y-3">
-            <select value={selectedRecep} onChange={(e) => setSelectedRecep(e.target.value)} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] bg-white" style={{ minHeight: 44 }}>
-              <option value="">Seleccionar recepcionista...</option>
-              {recepcionistas.map((r) => <option key={r.id} value={r.id}>{r.nombre} {r.apellido} — {r.email}{r.sede ? ` (${r.sede.nombre})` : ''}</option>)}
-            </select>
+            <Select value={selectedRecep} onChange={(v) => setSelectedRecep(v)} placeholder="Seleccionar recepcionista..." opciones={recepcionistas.map((r) => ({ value: r.id, label: `${r.nombre} ${r.apellido} — ${r.email}${r.sede ? ` (${r.sede.nombre})` : ''}` }))} />
             <Button variant="outline" onClick={handleAssign} disabled={assigning} fullWidth>{assigning ? 'Asignando...' : 'Asignar a esta sede'}</Button>
             <p className="text-xs text-[#6B7280]">Solo recepcionistas. Reasigna si ya tiene otra sede.</p>
           </div>

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -18,7 +19,10 @@ import {
   TipoActor,
   EstadoResCancha,
 } from '../entities/enums';
-import { PasarelaMockService } from './gateway/pasarela-mock.service';
+import {
+  PASARELA_PAGO,
+  type PasarelaPago,
+} from './pasarela-pago.interface';
 import { ComprobantesService } from './comprobantes.service';
 import { PreciosService } from '../precios/precios.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
@@ -40,7 +44,8 @@ export class PagosService {
     private readonly membresiasRepo: Repository<Membresia>,
     @InjectRepository(ReservaCancha)
     private readonly reservasCanchaRepo: Repository<ReservaCancha>,
-    private readonly pasarela: PasarelaMockService,
+    @Inject(PASARELA_PAGO)
+    private readonly pasarela: PasarelaPago,
     private readonly comprobantes: ComprobantesService,
     private readonly preciosService: PreciosService,
   ) {}

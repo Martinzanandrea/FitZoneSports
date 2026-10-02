@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { sedesApi } from '../sedes.api';
 import type { CreateSedePayload, Sede } from '../sedes.types';
 import { Pagination } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const EMPTY_FORM: CreateSedePayload = {
   nombre: '',
@@ -12,6 +13,7 @@ const EMPTY_FORM: CreateSedePayload = {
 };
 
 export function SedesPage() {
+  useTitulo('Sedes');
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [form, setForm] = useState<CreateSedePayload>(EMPTY_FORM);
   const [showForm, setShowForm] = useState(false);

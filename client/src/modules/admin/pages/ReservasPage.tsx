@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, Clock3, Search, AlertTriangle, Users } from 'lucide-react';
 import { Badge, Button, Card, Chip, Pagination, StatCard } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
 import { adminApi, type ReservaCanchaAdminItem, type ReservaClaseAdminItem, type ReservasAdminPaginadas } from '../admin.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function ReservasPage() {
+  useTitulo('Reservas');
   const navigate = useNavigate();
   const [reservas, setReservas] = useState<ReservasAdminPaginadas | null>(null);
   const [sedes, setSedes] = useState<Sede[]>([]);
@@ -99,13 +102,18 @@ export function ReservasPage() {
           </label>
           <label>
             <span className="sr-only">Estado</span>
-            <select value={estado} onChange={(e) => setEstado(e.target.value)} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}>
-              <option value="TODOS">Todos los estados</option>
-              <option value="CONFIRMADA">Confirmada</option>
-              <option value="RESERVADA">Reservada</option>
-              <option value="LISTA_ESPERA">Lista de espera</option>
-              <option value="CANCELADA">Cancelada</option>
-            </select>
+            <Select
+              value={estado}
+              onChange={(v) => setEstado(v)}
+              opciones={[
+                { value: 'TODOS', label: 'Todos los estados' },
+                { value: 'CONFIRMADA', label: 'Confirmada' },
+                { value: 'RESERVADA', label: 'Reservada' },
+                { value: 'LISTA_ESPERA', label: 'Lista de espera' },
+                { value: 'CANCELADA', label: 'Cancelada' },
+              ]}
+              ariaLabel="Estado"
+            />
           </label>
         </div>
         <div className="mt-3 flex gap-2">

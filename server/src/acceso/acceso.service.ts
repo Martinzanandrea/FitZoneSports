@@ -10,6 +10,7 @@ import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
 import { EstadoMembresia, TipoActor } from '../entities/enums';
+import { estadoDesde } from '../membresias/estado-membresia';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -65,13 +66,13 @@ export class AccesoService {
     if (usuario.tipoActor !== TipoActor.SOCIO) {
       throw new ForbiddenException('El acceso por QR es exclusivo de socios');
     }
-    const membresiaActiva = await this.membresiasRepo.findOne({
+    const membresia = await this.membresiasRepo.findOne({
       where: {
         usuario: { id: usuario.id },
         estado: EstadoMembresia.ACTIVO,
       },
     });
-    if (!membresiaActiva) {
+    if (!membresia || !estadoDesde(membresia).puedeGenerarQr()) {
       throw new ForbiddenException(
         'Necesitás una membresía activa para generar tu código de acceso',
       );
@@ -118,7 +119,6 @@ export class AccesoService {
       const codigo = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0');
       if (!this.codigosCortos.has(codigo)) return codigo;
     }
-    // Prácticamente imposible (requeriría 10 colisiones seguidas).
     throw new ConflictException('No se pudo generar un código, reintentá');
   }
 

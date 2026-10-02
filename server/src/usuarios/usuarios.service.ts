@@ -63,7 +63,7 @@ export class UsuariosService {
 
     const guardado = await this.usuariosRepo.save(usuario);
 
-    // El registro no falla si Resend falla: solo se loguea, el usuario
+    // El registro no falla si el envío del email falla: solo se loguea, el usuario
     // puede pedir reenvío después (POST /usuarios/reenviar-verificacion).
     if (guardado.email) {
       try {

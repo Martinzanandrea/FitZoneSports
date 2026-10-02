@@ -13,6 +13,8 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { TipoActor } from '../entities/enums';
 import { CanchasService } from './canchas.service';
 import { CreateCanchaDto } from './dto/create-cancha.dto';
@@ -43,13 +45,20 @@ export class CanchasController {
     return this.canchasService.findAll(query);
   }
 
-  // Público, sin auth — catálogo para la landing. Va ANTES que ':id'
-  // para que Nest no lo confunda con un parámetro. Sin @UseGuards
-  // (mismo patrón que precios/membresias/publico): queda abierto.
+  // Va ANTES que ':id' para que Nest no lo confunda con un parámetro.
   @Get('publico')
   @ApiOperation({ summary: 'Catálogo público de canchas activas por sede' })
   findAllPublico() {
     return this.canchasService.findAllPublico();
+  }
+
+  // Va ANTES que ':id' para que Nest no lo confunda con un parámetro.
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoActor.GERENTE, TipoActor.RECEPCIONISTA)
+  @Get('ingresos-mes')
+  @ApiOperation({ summary: 'Suma de pagos aprobados de canchas del mes actual' })
+  obtenerIngresosMes(@CurrentUser() user: UsuarioAutenticado) {
+    return this.canchasService.obtenerIngresosMes(user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

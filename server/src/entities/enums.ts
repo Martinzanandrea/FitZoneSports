@@ -21,11 +21,6 @@ export enum EstadoMembresia {
   SUSPENDIDO = 'SUSPENDIDO',
 }
 
-export enum TipoCancha {
-  PADDLE = 'PADDLE',
-  FUTBOL5 = 'FUTBOL5',
-}
-
 export enum EstadoCancha {
   ACTIVA = 'ACTIVA',
   MANTENIMIENTO = 'MANTENIMIENTO',

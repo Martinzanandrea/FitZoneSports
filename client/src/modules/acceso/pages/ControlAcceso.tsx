@@ -8,8 +8,9 @@ import { sedesApi } from '../../sedes/sedes.api';
 import { LectorQr } from '../components/LectorQr';
 import { Button, Card, SectionTitle, StatCard, Tooltip } from '../../../shared/components/ui';
 import { TipoActor } from '../../../shared/types/enums';
-// The ControlAcceso component handles the access control functionality, including validating QR codes and registering user exits.
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 export function ControlAcceso() {
+  useTitulo('Control de Acceso');
   const { user } = useAuth();
   const navigate = useNavigate();
   const sedeId = user?.sedeId ?? null;

@@ -4,10 +4,12 @@ import { clasesApi } from '../../clases/clases.api';
 import type { Clase } from '../../clases/clases.types';
 import { Badge, Button, Card, Chip, PageHeader } from '../../../shared/components/ui';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 type Tab = 'ACTIVIDADES' | 'INSTRUCTORES' | 'RECURRENCIA';
 
 export function ConfiguracionClases() {
+  useTitulo('Configurar clases');
   const [tab, setTab] = useState<Tab>('ACTIVIDADES');
   const [clases, setClases] = useState<Clase[]>([]);
   const [loading, setLoading] = useState(true);

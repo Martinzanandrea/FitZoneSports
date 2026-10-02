@@ -11,6 +11,7 @@ import { fetchMapaReservasClase } from '../../clases/clases.api';
 import { fetchMisReservasCancha } from '../../canchas/canchas.api';
 import { Badge, Card, StatCard } from '../../../shared/components/ui';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const quickActions = [
   { label: 'Mi QR', desc: 'Entrá al gym', to: '/qr', icon: QrCode, color: '#8B2EFF', bg: '#F3EAFF' },
@@ -125,6 +126,7 @@ function MembresiaDestacada({ membresia }: { membresia: Membresia }) {
   );
 }
 export function Dashboard() {
+  useTitulo('Mi panel');
   const { user } = useAuth();
   const [membresia, setMembresia] = useState<Membresia | null>(null);
   const [cargando, setCargando] = useState(true);

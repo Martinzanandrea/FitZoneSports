@@ -7,7 +7,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cancha, Usuario, ReservaCancha } from '../entities';
-import { TipoActor, EstadoMembresia, EstadoResCancha } from '../entities/enums';
+import { TipoActor, EstadoResCancha } from '../entities/enums';
+import { estadoDesde } from '../membresias/estado-membresia';
 import { MembresiasService } from '../membresias/membresias.service';
 import {
   BOOKING_CANCHA_REPOSITORY,
@@ -36,6 +37,12 @@ export class ReservasCanchaService {
     private readonly membresiasService: MembresiasService,
   ) {}
 
+  /**
+   * Facade: orquesta en un único punto de entrada la existencia de
+   * cancha y usuario, sede-scope, ventana de horario no comenzado,
+   * cálculo de precio (Strategy) y la creación transaccional con
+   * lock (Repository).
+   */
   async reservar(
     dto: CreateReservaCanchaDto,
     currentUser: UsuarioAutenticado,
@@ -106,7 +113,7 @@ export class ReservasCanchaService {
     let esSocioActivo = false;
     if (usuario.tipoActor === TipoActor.SOCIO) {
       const membresia = await this.membresiasService.obtenerMembresiaVigente(usuario.id);
-      esSocioActivo = !!membresia && membresia.estado === EstadoMembresia.ACTIVO;
+      esSocioActivo = !!membresia && estadoDesde(membresia).tarifaAplicable() === 'SOCIO';
     }
 
     return this.pricingCalculator.calcular(Number(cancha.costoHoraBase), {

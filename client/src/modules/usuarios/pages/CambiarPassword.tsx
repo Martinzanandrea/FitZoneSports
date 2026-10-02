@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const inputClass =
   'w-full px-3.5 py-2.5 pr-10 rounded-lg border border-[#E5E7EB] text-sm outline-none focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20';
@@ -10,6 +11,7 @@ const inputClass =
 // Sección reutilizable (misma lógica que la pantalla standalone original,
 // ahora montada dentro de Configuración). Sin chrome de página propio.
 export function CambiarPasswordForm() {
+  useTitulo('Cambiar contraseña');
   const { user } = useAuth();
 
   const [passwordActual, setPasswordActual] = useState('');

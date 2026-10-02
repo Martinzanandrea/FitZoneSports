@@ -7,8 +7,11 @@ import type { Usuario } from '../usuarios.types';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
 import { Avatar, Button, Card, PageHeader, Pagination, StatCard } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function PersonalPage() {
+  useTitulo('Personal');
   const navigate = useNavigate();
   const [staff, setStaff] = useState<Usuario[]>([]);
   const [sedes, setSedes] = useState<Sede[]>([]);
@@ -141,10 +144,7 @@ export function PersonalPage() {
                 </td>
                 <td className="px-5 py-3.5">
                   {u.tipoActor === TipoActor.GERENTE ? <span className="text-xs text-[#6B7280]">Todas las sedes</span> : (
-                    <select value={u.sede?.id ?? ''} disabled={cambiando === u.id} onChange={(e) => handleCambiarSede(u.id, e.target.value)} className="px-2.5 py-1.5 rounded-md border border-[#E5E7EB] text-xs focus:border-[#8B2EFF] focus:ring-1 focus:ring-[#8B2EFF]/30 outline-none" style={{ minHeight: 44 }}>
-                      <option value="">Sin asignar</option>
-                      {sedes.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                    </select>
+                    <Select value={u.sede?.id ?? ''} disabled={cambiando === u.id} onChange={(v) => handleCambiarSede(u.id, v)} placeholder="Sin asignar" opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))} />
                   )}
                 </td>
                 <td className="px-5 py-3.5">

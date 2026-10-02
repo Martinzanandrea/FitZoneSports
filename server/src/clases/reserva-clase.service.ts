@@ -16,6 +16,7 @@ import {
   EstadoResClase,
   TipoActor,
 } from '../entities/enums';
+import { estadoDesde } from '../membresias/estado-membresia';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
@@ -50,6 +51,13 @@ export class ReservasClaseService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  /**
+   * Facade: orquesta en un único punto de entrada la validación de
+   * ocurrencia PROGRAMADA, ownership, sede-scope, rechazo explícito de
+   * EXTERNO, membresía ACTIVA (State), duplicado y ventana de
+   * anticipación, y delega el tramo final a la creación transaccional
+   * con lock (Repository).
+   */
   async reservar(
     ocurrenciaId: string,
     usuarioId: string,
@@ -87,13 +95,13 @@ export class ReservasClaseService {
 
     // RN-03: solo socios con membresía activa reservan clases. Vale para
     // el usuario destino (usuarioId), también cuando el staff anota a otro.
-    const membresiaActiva = await this.membresiasRepo.findOne({
+    const membresia = await this.membresiasRepo.findOne({
       where: {
         usuario: { id: usuarioId },
         estado: EstadoMembresia.ACTIVO,
       },
     });
-    if (!membresiaActiva) {
+    if (!membresia || !estadoDesde(membresia).puedeReservarClases()) {
       throw new BadRequestException(
         'Necesitás una membresía activa para reservar clases',
       );

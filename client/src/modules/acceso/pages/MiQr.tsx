@@ -6,8 +6,10 @@ import { accesoApi } from '../acceso.api';
 import { membresiasApi } from '../../membresias/membresias.api';
 import type { Membresia } from '../../membresias/membresias.types';
 import { Button } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function MiQr() {
+  useTitulo('Mi QR de ingreso');
   const { user } = useAuth();
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [codigoCorto, setCodigoCorto] = useState<string | null>(null);

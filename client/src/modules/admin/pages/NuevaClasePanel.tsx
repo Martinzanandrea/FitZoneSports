@@ -7,6 +7,7 @@ import { sedesApi } from '../../sedes/sedes.api';
 import type { FranjaHoraria } from '../../sedes/sedes.types';
 import { instructoresApi, type Instructor } from '../../instructores/instructores.api';
 import { Button, Chip } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
 
 export const DIAS = [
   { value: 1, label: 'Lun' },
@@ -267,21 +268,16 @@ export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaCla
             </label>
             <label className="block text-sm font-medium text-[#374151]">
               Instructor
-              <select
-                value={instructorId}
-                onChange={(e) => setInstructorId(e.target.value)}
-                className={inputCls}
-                style={{ minHeight: 44 }}
-              >
-                <option value="">Seleccionar instructor...</option>
-                {instructores
-                  .filter((i) => i.activo)
-                  .map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.nombre}
-                    </option>
-                  ))}
-              </select>
+              <div className="mt-1.5">
+                <Select
+                  value={instructorId}
+                  onChange={(v) => setInstructorId(v)}
+                  placeholder="Seleccionar instructor..."
+                  opciones={instructores
+                    .filter((i) => i.activo)
+                    .map((i) => ({ value: i.id, label: i.nombre }))}
+                />
+              </div>
             </label>
             <label className="block text-sm font-medium text-[#374151]">
               Horas semanales totales
@@ -331,8 +327,6 @@ export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaCla
                   const huecos = huecosDelDia(h.diaSemana, i);
                   const inicios = iniciosEnHuecos(huecos);
                   const fines = h.horaInicio ? finesDesde(huecos, h.horaInicio) : [];
-                  const selectCls =
-                    'mt-1 w-full rounded-lg border border-[#D1D5DB] bg-white px-2 py-2 text-sm outline-none focus:border-[#8B2EFF] disabled:bg-[#F3F4F6] disabled:text-[#9CA3AF]';
                   return (
                   <div
                     key={i}
@@ -340,60 +334,37 @@ export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaCla
                   >
                     <label className="text-xs font-medium text-[#374151]">
                       Día
-                      <select
-                        value={h.diaSemana}
-                        onChange={(e) => actualizarHorario(i, 'diaSemana', Number(e.target.value))}
-                        className="mt-1 w-full rounded-lg border border-[#D1D5DB] bg-white px-2 py-2 text-sm outline-none focus:border-[#8B2EFF]"
-                        style={{ minHeight: 44 }}
-                      >
-                        {DIAS.map((d) => (
-                          <option key={d.value} value={d.value}>
-                            {d.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="mt-1">
+                        <Select
+                          value={String(h.diaSemana)}
+                          onChange={(v) => actualizarHorario(i, 'diaSemana', Number(v))}
+                          opciones={DIAS.map((d) => ({ value: String(d.value), label: d.label }))}
+                        />
+                      </div>
                     </label>
                     <label className="text-xs font-medium text-[#374151]">
                       Inicio
-                      <select
-                        value={inicios.includes(h.horaInicio) ? h.horaInicio : ''}
-                        onChange={(e) => actualizarHorario(i, 'horaInicio', e.target.value)}
-                        disabled={inicios.length === 0}
-                        className={selectCls}
-                        style={{ minHeight: 44 }}
-                      >
-                        {inicios.length === 0 ? (
-                          <option value="">Sin horarios libres este día</option>
-                        ) : (
-                          <>
-                            <option value="">Elegir hora…</option>
-                            {inicios.map((t) => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </>
-                        )}
-                      </select>
+                      <div className="mt-1">
+                        <Select
+                          value={inicios.includes(h.horaInicio) ? h.horaInicio : ''}
+                          onChange={(v) => actualizarHorario(i, 'horaInicio', v)}
+                          disabled={inicios.length === 0}
+                          placeholder={inicios.length === 0 ? 'Sin horarios libres este día' : 'Elegir hora…'}
+                          opciones={inicios.map((t) => ({ value: t, label: t }))}
+                        />
+                      </div>
                     </label>
                     <label className="text-xs font-medium text-[#374151]">
                       Fin
-                      <select
-                        value={fines.includes(h.horaFin) ? h.horaFin : ''}
-                        onChange={(e) => actualizarHorario(i, 'horaFin', e.target.value)}
-                        disabled={!h.horaInicio || fines.length === 0}
-                        className={selectCls}
-                        style={{ minHeight: 44 }}
-                      >
-                        {!h.horaInicio ? (
-                          <option value="">Elegí inicio primero</option>
-                        ) : (
-                          <>
-                            <option value="">Elegir hora…</option>
-                            {fines.map((t) => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </>
-                        )}
-                      </select>
+                      <div className="mt-1">
+                        <Select
+                          value={fines.includes(h.horaFin) ? h.horaFin : ''}
+                          onChange={(v) => actualizarHorario(i, 'horaFin', v)}
+                          disabled={!h.horaInicio || fines.length === 0}
+                          placeholder={!h.horaInicio ? 'Elegí inicio primero' : 'Elegir hora…'}
+                          opciones={fines.map((t) => ({ value: t, label: t }))}
+                        />
+                      </div>
                     </label>
                   </div>
                   );

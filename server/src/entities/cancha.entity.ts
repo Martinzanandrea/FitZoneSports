@@ -8,9 +8,10 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { Sede } from './sede.entity';
+import { TipoCancha } from './tipo-cancha.entity';
 import { BloqueoCancha } from './bloqueo-cancha.entity';
 import { ReservaCancha } from './reserva-cancha.entity';
-import { TipoCancha, EstadoCancha } from './enums';
+import { EstadoCancha } from './enums';
 
 @Entity('canchas')
 export class Cancha {
@@ -24,7 +25,11 @@ export class Cancha {
   @Column({ length: 80 })
   nombre!: string;
 
-  @Column({ type: 'enum', enum: TipoCancha, enumName: 'tipo_cancha' })
+  @Column({ name: 'tipo_id', type: 'uuid' })
+  tipoId!: string;
+
+  @ManyToOne(() => TipoCancha, (tipo) => tipo.canchas, { nullable: false })
+  @JoinColumn({ name: 'tipo_id' })
   tipo!: TipoCancha;
 
   @Column('numeric', { name: 'costo_hora_base', precision: 10, scale: 2 })

@@ -3,27 +3,12 @@ import { canchasApi, type CanchaPublica } from '../canchas.api';
 import { useAuth } from '../../auth/AuthContext';
 import { PageHeading, RegisterCta } from '../../../shared/components/Landing';
 import { formatMoney } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
-const BANNERS: Record<string, { eyebrow: string; image: string; alt: string }> = {
-  PADDLE: {
-    eyebrow: 'Paleta, paredes y mucha adrenalina',
-    image: '/images/landing/paddle-cancha.jpg',
-    alt: 'Cancha de paddle rodeada por paredes de vidrio',
-  },
-  FUTBOL5: {
-    eyebrow: 'Armá el equipo, la cancha está lista',
-    image: '/images/landing/futbol5-cancha.jpg',
-    alt: 'Cancha de fútbol iluminada por reflectores',
-  },
-};
-
-const BANNER_GENERICO = {
-  eyebrow: 'Reservá tu turno',
-  image: '/images/landing/gimnasio-alt.jpg',
-  alt: 'Cancha deportiva',
-};
+const IMAGEN_GENERICA = '/images/landing/gimnasio-alt.jpg';
 
 export function CanchasPublicas() {
+  useTitulo('Canchas deportivas');
   const { user } = useAuth();
   const [canchas, setCanchas] = useState<CanchaPublica[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -37,13 +22,16 @@ export function CanchasPublicas() {
   }, []);
 
   const porTipo = useMemo(() => {
-    const mapa = new Map<string, CanchaPublica[]>();
+    const mapa = new Map<string, { nombre: string; imagenUrl: string | null; lista: CanchaPublica[] }>();
     for (const c of canchas) {
-      const lista = mapa.get(c.tipo) ?? [];
-      lista.push(c);
-      mapa.set(c.tipo, lista);
+      const grupo = mapa.get(c.tipo.nombre) ?? { nombre: c.tipo.nombre, imagenUrl: c.tipo.imagenUrl, lista: [] };
+      grupo.lista.push(c);
+      // La primera imagen del grupo alcanza: todas las canchas del mismo
+      // tipo comparten imagenUrl (viene del catálogo).
+      if (!grupo.imagenUrl) grupo.imagenUrl = c.tipo.imagenUrl;
+      mapa.set(c.tipo.nombre, grupo);
     }
-    return Array.from(mapa.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [canchas]);
 
   return (
@@ -59,24 +47,24 @@ export function CanchasPublicas() {
         ) : porTipo.length === 0 ? (
           <p className="text-sm text-black/50">Todavía no hay canchas publicadas.</p>
         ) : (
-          porTipo.map(([tipo, lista], index) => {
-            const banner = BANNERS[tipo] ?? BANNER_GENERICO;
+          porTipo.map((grupo, index) => {
+            const imagen = grupo.imagenUrl ?? IMAGEN_GENERICA;
             return (
-              <article key={tipo}>
+              <article key={grupo.nombre}>
                 <div className="group relative h-60 overflow-hidden rounded-[1.75rem] bg-black sm:h-72 lg:h-80">
                   <img
-                    alt={banner.alt}
+                    alt={`Cancha de ${grupo.nombre}`}
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]"
-                    src={banner.image}
+                    src={imagen}
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-6 text-white sm:p-9">
                     <div>
                       <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/65">
-                        {banner.eyebrow}
+                        Reservá tu turno
                       </p>
                       <h2 className="text-5xl font-black leading-none tracking-[-0.06em] sm:text-7xl">
-                        {tipo === 'FUTBOL5' ? 'Fútbol 5' : tipo.charAt(0) + tipo.slice(1).toLowerCase()}
+                        {grupo.nombre}
                       </h2>
                     </div>
                     <span className="hidden text-sm font-bold text-white/60 sm:block">
@@ -85,10 +73,10 @@ export function CanchasPublicas() {
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
-                  {lista.map((location, i) => (
+                  {grupo.lista.map((location, i) => (
                     <div
                       className="flex items-center justify-between gap-4 rounded-2xl border border-black/8 bg-white p-5 transition-all hover:border-[#8B2EFF]/25 hover:shadow-[0_16px_35px_-22px_rgba(139,46,255,0.55)] sm:p-6"
-                      key={`${tipo}-${location.sede}-${i}`}
+                      key={`${grupo.nombre}-${location.sede}-${i}`}
                     >
                       <div>
                         <h3 className="text-lg font-extrabold tracking-[-0.025em] sm:text-xl">

@@ -34,7 +34,6 @@ export const BOOKING_CANCHA_REPOSITORY = 'BOOKING_CANCHA_REPOSITORY';
 export class TypeOrmBookingCanchaRepository implements IBookingCanchaRepository {
   constructor(private readonly dataSource: DataSource) {}
 
-  //Patron Repository: encapsula la lógica de acceso a datos y concurrencia para reservas de canchas.
   async crearReservaSegura(datos: DatosNuevaReserva): Promise<ReservaCancha> {
     //transacction abre un bloque de código que se ejecuta de manera atómica, si algo falla se hace rollback
     return this.dataSource.transaction(async (manager) => {

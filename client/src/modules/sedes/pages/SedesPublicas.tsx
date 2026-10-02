@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { sedesApi } from '../sedes.api';
 import type { SedePublica } from '../sedes.types';
 import { PageHeading, PinIcon, RegisterCta } from '../../../shared/components/Landing';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function SedesPublicas() {
+  useTitulo('Nuestras sedes');
   const [sedes, setSedes] = useState<SedePublica[]>([]);
   const [cargando, setCargando] = useState(true);
 

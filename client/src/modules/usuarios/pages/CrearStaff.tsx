@@ -3,8 +3,11 @@ import { usuariosApi } from '../usuarios.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
+import { Select } from '../../../shared/components/Select';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function CrearStaff() {
+  useTitulo('Nuevo personal');
   const [form, setForm] = useState({
     tipoActor: TipoActor.RECEPCIONISTA as string,
     nombre: '',
@@ -50,32 +53,30 @@ export function CrearStaff() {
       <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
         <label className="block">
           <span className="text-sm font-medium text-[#374151]">Rol</span>
-          <select
-            value={form.tipoActor}
-            onChange={(e) => setForm({ ...form, tipoActor: e.target.value })}
-            className="mt-1.5 w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm
-              focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none"
-          >
-            <option value={TipoActor.RECEPCIONISTA}>Recepcionista</option>
-            <option value={TipoActor.GERENTE}>Gerente</option>
-          </select>
+          <div className="mt-1.5">
+            <Select
+              value={form.tipoActor}
+              onChange={(v) => setForm({ ...form, tipoActor: v })}
+              opciones={[
+                { value: TipoActor.RECEPCIONISTA, label: 'Recepcionista' },
+                { value: TipoActor.GERENTE, label: 'Gerente' },
+              ]}
+            />
+          </div>
         </label>
 
         {esRecepcionista && (
           <label className="block">
             <span className="text-sm font-medium text-[#374151]">Sede asignada</span>
-            <select
-              value={form.sedeId}
-              onChange={(e) => setForm({ ...form, sedeId: e.target.value })}
-              required
-              className="mt-1.5 w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm
-                focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none"
-            >
-              <option value="">Seleccionar sede…</option>
-              {sedes.map((s) => (
-                <option key={s.id} value={s.id}>{s.nombre}</option>
-              ))}
-            </select>
+            <div className="mt-1.5">
+              <Select
+                value={form.sedeId}
+                onChange={(v) => setForm({ ...form, sedeId: v })}
+                required
+                placeholder="Seleccionar sede…"
+                opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+              />
+            </div>
           </label>
         )}
 

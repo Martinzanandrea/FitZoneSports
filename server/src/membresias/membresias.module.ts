@@ -10,6 +10,6 @@ import { MembresiasController } from './membresias.controller';
   imports: [TypeOrmModule.forFeature([Membresia, Usuario, Sede])],
   controllers: [MembresiasController],
   providers: [MembresiasService],
-  exports: [MembresiasService], // pagos y canchas (RN03) van a necesitar leer el estado de una membresía
+  exports: [MembresiasService],
 })
 export class MembresiasModule {}

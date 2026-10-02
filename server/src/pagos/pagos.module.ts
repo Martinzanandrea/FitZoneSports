@@ -12,6 +12,7 @@ import { StorageModule } from '../storage/storage.module';
 import { PagosService } from './pagos.service';
 import { PagosController } from './pagos.controller';
 import { PasarelaMockService } from './gateway/pasarela-mock.service';
+import { PASARELA_PAGO } from './pasarela-pago.interface';
 import { ComprobantesService } from './comprobantes.service';
 import { PdfGeneratorService } from './comprobantes/pdf-generator.service';
 import { PreciosModule } from 'src/precios/precios.module';
@@ -32,7 +33,9 @@ import { PreciosModule } from 'src/precios/precios.module';
   controllers: [PagosController],
   providers: [
     PagosService,
-    PasarelaMockService,
+    // Mismo patrón que BOOKING_CANCHA/CLASE_REPOSITORY: el dominio
+    // consume el token, y acá se decide la implementación.
+    { provide: PASARELA_PAGO, useClass: PasarelaMockService },
     ComprobantesService,
     PdfGeneratorService,
   ],

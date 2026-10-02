@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { clasesApi, type ResumenClasePublica } from '../clases.api';
 import { useAuth } from '../../auth/AuthContext';
 import { PageHeading, RegisterCta } from '../../../shared/components/Landing';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 interface FichaClase {
   name: string;
@@ -60,6 +61,7 @@ function normalizarTipo(tipoClase: string): string {
 }
 
 export function ClasesPublicas() {
+  useTitulo('Clases grupales');
   const { user } = useAuth();
   const [resumen, setResumen] = useState<ResumenClasePublica[]>([]);
   const [cargando, setCargando] = useState(true);

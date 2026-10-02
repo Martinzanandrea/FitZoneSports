@@ -8,6 +8,7 @@ import { pagosApi } from '../../pagos/pagos.api';
 import type { Pago } from '../../pagos/pagos.types';
 import { Badge, Button, Card, PageHeader } from '../../../shared/components/ui';
 import { CambiarPasswordForm } from './CambiarPassword';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function concepto(p: Pago) {
   if (p.membresia) return 'Membresía';
@@ -20,6 +21,7 @@ const inputCls =
   'mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]';
 
 export function Configuracion() {
+  useTitulo('Mi cuenta');
   const { user } = useAuth();
   const [perfil, setPerfil] = useState<Usuario | null>(null);
   const [form, setForm] = useState({ nombre: '', apellido: '', email: '', telefono: '' });

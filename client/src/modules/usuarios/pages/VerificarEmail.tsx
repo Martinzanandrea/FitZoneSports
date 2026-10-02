@@ -3,8 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Mail } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { AuthLayout } from '../../auth/AuthLayout';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function VerificarEmail() {
+  useTitulo('Verificá tu email');
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
   const [estado, setEstado] = useState<'cargando' | 'ok' | 'error'>('cargando');

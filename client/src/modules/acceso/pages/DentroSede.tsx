@@ -6,6 +6,8 @@ import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
 import { Button, Card, PageHeader, Pagination } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function haceCuanto(horaIngreso: string): string {
   const mins = Math.max(0, Math.round((Date.now() - new Date(horaIngreso).getTime()) / 60000));
@@ -16,6 +18,7 @@ function haceCuanto(horaIngreso: string): string {
 }
 
 export function DentroSede() {
+  useTitulo('Personas en sede');
   const { user } = useAuth();
   const esGerente = user?.tipoActor === TipoActor.GERENTE;
   const [sedeId, setSedeId] = useState<string | null>(user?.sedeId ?? null);
@@ -75,7 +78,6 @@ export function DentroSede() {
       setMsg({ type: 'ok', text: `Egreso registrado: ${nombre}` });
       if (!sedeId) return;
       const res = await accesoApi.listarDentro(sedeId, page);
-      // Si la página quedó vacía por el egreso, volver a la anterior.
       if (res.data.length === 0 && page > 1) {
         setPage(page - 1);
       } else {
@@ -98,22 +100,17 @@ export function DentroSede() {
         <div className="mb-4">
           <label className="block text-sm font-medium text-[#374151]">
             Sede
-            <select
-              value={sedeId ?? ''}
-              onChange={(e) => {
-                setSedeId(e.target.value || null);
-                setPage(1);
-              }}
-              className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] bg-white"
-              style={{ minHeight: 44 }}
-            >
-              <option value="">Seleccionar sede...</option>
-              {sedes.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nombre}
-                </option>
-              ))}
-            </select>
+            <div className="mt-1.5">
+              <Select
+                value={sedeId ?? ''}
+                onChange={(v) => {
+                  setSedeId(v || null);
+                  setPage(1);
+                }}
+                placeholder="Seleccionar sede..."
+                opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+              />
+            </div>
           </label>
         </div>
       )}

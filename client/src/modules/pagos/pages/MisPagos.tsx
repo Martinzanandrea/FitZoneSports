@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { pagosApi } from '../pagos.api';
 import type { Pago } from '../pagos.types';
 import { Badge, Card, Pagination } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function concepto(p: Pago) {
   if (p.membresia) return 'Membresía';
@@ -27,6 +28,7 @@ function etiquetaEstado(estado: string) {
 }
 
 export function MisPagos() {
+  useTitulo('Mis pagos');
   const { user } = useAuth();
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [loading, setLoading] = useState(true);

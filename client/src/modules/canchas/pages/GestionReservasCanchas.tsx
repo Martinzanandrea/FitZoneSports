@@ -10,6 +10,7 @@ import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede, FranjaHoraria } from '../../sedes/sedes.types';
 import { Badge, Button, Card, Chip, StatCard, ProgressBar, Tooltip } from '../../../shared/components/ui';
 import { TipoActor } from '../../../shared/types/enums';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function formatFecha(d: Date) {
   return d.toISOString().split('T')[0];
@@ -57,6 +58,7 @@ function duracionHoras(r: ReservaCancha) {
 }
 
 export function GestionReservasCanchas() {
+  useTitulo('Reservas de canchas');
   const { user } = useAuth();
   const navigate = useNavigate();
   const sedeId = user?.sedeId ?? null;
@@ -74,7 +76,6 @@ export function GestionReservasCanchas() {
   const [accionId, setAccionId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Panel de reserva (slot libre tocado).
   const [slotSel, setSlotSel] = useState<number | null>(null);
   const [paso, setPaso] = useState<1 | 2>(1);
   const [busqueda, setBusqueda] = useState('');
@@ -133,13 +134,12 @@ export function GestionReservasCanchas() {
     void init();
   }, [sedeId]);
 
-  // Reservas de la cancha+fecha seleccionada (grilla).
   useEffect(() => {
     if (!canchaId) return;
     canchasApi.getReservasPorCancha(canchaId, fecha).then((res) => setReservas(res.data)).catch(() => setReservas([]));
   }, [canchaId, fecha, refreshKey]);
 
-  // Estadísticas del día: reservas CONFIRMADA de hoy en todas las canchas activas de la sede.
+  // Stats del día (todas las canchas activas de la sede)
   useEffect(() => {
     if (!sedeId || canchasDeSede.length === 0) { setReservasHoy([]); return; }
     Promise.all(
@@ -306,7 +306,7 @@ export function GestionReservasCanchas() {
           <div className="flex gap-2 overflow-x-auto pb-1">
             {canchasDeSede.map((c) => (
               <button key={c.id} onClick={() => setCanchaId(c.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold border whitespace-nowrap ${canchaId === c.id ? 'bg-[#8B2EFF] text-white border-[#8B2EFF]' : 'bg-white text-[#111111] border-[#E5E7EB]'}`} style={{ minHeight: 44 }}>
-                {c.nombre} · {c.tipo}
+                {c.nombre} · {c.tipo.nombre}
               </button>
             ))}
           </div>
@@ -459,7 +459,7 @@ export function GestionReservasCanchas() {
                 <p className="text-sm font-semibold text-[#111111]">2 · Confirmar con cotización</p>
                 <Card className="bg-[#FAFAFA]">
                   <p className="text-sm text-[#6B7280]">Cancha</p>
-                  <p className="text-sm font-semibold text-[#111111]">{canchaSel.nombre} · {canchaSel.tipo}</p>
+                  <p className="text-sm font-semibold text-[#111111]">{canchaSel.nombre} · {canchaSel.tipo.nombre}</p>
                   <p className="text-sm text-[#6B7280] mt-2">Turno</p>
                   <p className="text-sm font-semibold text-[#111111]">{fecha} · {String(slotSel).padStart(2, '0')}:00 - {String(slotSel + 1).padStart(2, '0')}:00</p>
                   <p className="text-sm text-[#6B7280] mt-2">Cliente</p>

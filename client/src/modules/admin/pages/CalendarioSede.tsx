@@ -16,6 +16,7 @@ import type { Clase, ClaseOcurrencia, ReservaClase } from '../../clases/clases.t
 import { Badge, Button, Card, Chip, PageHeader, StatCard } from '../../../shared/components/ui';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
 import { NuevaClasePanel, nombreDia } from './NuevaClasePanel';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 // Columnas Lun-Dom (diaSemana JS: 0 = domingo).
 const DIAS_COLUMNAS = [1, 2, 3, 4, 5, 6, 0];
@@ -42,6 +43,7 @@ function aHora(minutos: number) {
 }
 
 export function CalendarioSede() {
+  useTitulo('Calendario de sede');
   const { sedeId } = useParams<{ sedeId: string }>();
   const navigate = useNavigate();
   const [sede, setSede] = useState<Sede | null>(null);

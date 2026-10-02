@@ -8,6 +8,8 @@ import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
 import { useAuth } from '../../auth/AuthContext';
 import { Avatar, Badge, Button, Chip, PageHeader, Pagination, StatCard } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 type FiltroEstado = 'TODOS' | 'ACTIVO' | 'VENCIDO' | 'SUSPENDIDO';
 
@@ -73,6 +75,7 @@ const CATEGORIAS_SEMAFORO: Array<{
 ];
 
 export function ListadoMembresias() {
+  useTitulo('Membresías');
   const { user } = useAuth();
   const navigate = useNavigate();
   const esGerente = user?.tipoActor === TipoActor.GERENTE;
@@ -199,18 +202,15 @@ export function ListadoMembresias() {
           style={{ minHeight: 44 }}
         />
         {esGerente && (
-          <select
-            value={filtroSede}
-            onChange={(e) => setFiltroSede(e.target.value)}
-            className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] md:max-w-xs"
-            style={{ minHeight: 44 }}
-            aria-label="Filtrar por sede"
-          >
-            <option value="">Todas las sedes</option>
-            {sedes.map((s) => (
-              <option key={s.id} value={s.id}>{s.nombre}</option>
-            ))}
-          </select>
+          <div className="w-full md:max-w-xs">
+            <Select
+              value={filtroSede}
+              onChange={(v) => setFiltroSede(v)}
+              opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+              placeholder="Todas las sedes"
+              ariaLabel="Filtrar por sede"
+            />
+          </div>
         )}
       </div>
 

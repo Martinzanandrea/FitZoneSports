@@ -9,8 +9,10 @@ import type { Usuario } from '../../usuarios/usuarios.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { Badge, Button, Card, Chip, StatCard, Tooltip } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
 import { TipoActor } from '../../../shared/types/enums';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const DIAS_A_FUTURO = 14;
 
@@ -48,6 +50,7 @@ function etiquetaOcurrencia(o: ClaseOcurrencia): string {
 }
 
 export function GestionReservasClases() {
+  useTitulo('Reservas de clases');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -85,7 +88,7 @@ export function GestionReservasClases() {
 
   const clasePorId = useMemo(() => new Map(clases.map((c) => [c.id, c])), [clases]);
 
-  // Todas las ocurrencias programadas de la sede (para tabs, stats y panel).
+  // Ocurrencias de la sede para tabs/stats/panel.
   const ocurrenciasDeSede = useMemo(() => {
     const todas = Object.entries(ocurrenciasPorClase)
       .filter(([claseId]) => clasesDeSede.some((c) => c.id === claseId))
@@ -239,7 +242,6 @@ export function GestionReservasClases() {
     setMsg(null);
     try {
       const reserva = await clasesApi.reservar(occSelId, usuarioSelId);
-      // Actualización local: la lista del día y las estadísticas se refrescan solas.
       setReservasPorOcurrencia((prev) => ({ ...prev, [occSelId]: [...(prev[occSelId] ?? []), reserva] }));
       cerrarPanel();
       setMsg({ type: 'ok', text: `Reserva creada: ${reserva.usuario.nombre} ${reserva.usuario.apellido} — ${reserva.estado}` });
@@ -299,19 +301,14 @@ export function GestionReservasClases() {
       {user?.tipoActor === TipoActor.GERENTE && (
         <label className="block text-sm font-medium text-[#374151]">
           Sede
-          <select
-            value={sedeId ?? ''}
-            onChange={(e) => setSearchParams(e.target.value ? { sedeId: e.target.value } : {})}
-            className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] bg-white px-3 py-2.5 outline-none focus:border-[#8B2EFF]"
-            style={{ minHeight: 44 }}
-          >
-            <option value="">Seleccionar sede...</option>
-            {sedes.map((sede) => (
-              <option key={sede.id} value={sede.id}>
-                {sede.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="mt-1.5">
+            <Select
+              value={sedeId ?? ''}
+              onChange={(v) => setSearchParams(v ? { sedeId: v } : {})}
+              opciones={sedes.map((sede) => ({ value: sede.id, label: sede.nombre }))}
+              placeholder="Seleccionar sede..."
+            />
+          </div>
         </label>
       )}
 

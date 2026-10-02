@@ -22,12 +22,6 @@ export const TipoPlan = {
 } as const;
 export type TipoPlan = (typeof TipoPlan)[keyof typeof TipoPlan];
 
-export const TipoCancha = {
-  PADDLE: 'PADDLE',
-  FUTBOL5: 'FUTBOL5',
-} as const;
-export type TipoCancha = (typeof TipoCancha)[keyof typeof TipoCancha];
-
 export const EstadoResClase = {
   RESERVADA: 'RESERVADA',
   LISTA_ESPERA: 'LISTA_ESPERA',

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PageHeading, RegisterCta } from '../../../shared/components/Landing';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const TESTIMONIOS = [
   { texto: 'Las canchas siempre están impecables y el sistema de reserva en la app es ultra rápido. Es sin duda el mejor club deportivo de la región.', nombre: 'Carlos Mendoza', desde: 'Socio desde 2021' },
@@ -16,6 +17,7 @@ const FAQS = [
 ];
 
 export function Nosotros() {
+  useTitulo('Quiénes somos');
   const [abierta, setAbierta] = useState<number | null>(0);
 
   return (

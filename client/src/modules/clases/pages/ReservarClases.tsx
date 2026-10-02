@@ -7,6 +7,7 @@ import { clasesApi, fetchMapaReservasClase } from '../clases.api';
 import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
 import { Badge, Card } from '../../../shared/components/ui';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const DIAS_A_FUTURO = 14;
 
@@ -20,6 +21,7 @@ function inicioOcurrencia(o: ClaseOcurrencia): number {
 }
 
 export function ReservarClases() {
+  useTitulo('Reservar clases');
   const { user } = useAuth();
   const [clases, setClases] = useState<Clase[]>([]);
   const [ocurrenciasPorClase, setOcurrenciasPorClase] = useState<Record<string, ClaseOcurrencia[]>>({});

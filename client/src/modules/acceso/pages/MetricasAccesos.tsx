@@ -3,8 +3,10 @@ import { Activity, LogIn, LogOut } from 'lucide-react';
 import { accesoApi } from '../acceso.api';
 import type { ResumenAccesos } from '../acceso.types';
 import { Card, PageHeader, ProgressBar, StatCard } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function MetricasAccesos() {
+  useTitulo('Accesos');
   const [resumen, setResumen] = useState<ResumenAccesos | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');

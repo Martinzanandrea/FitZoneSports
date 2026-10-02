@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, Plus, Users, X } from 'lucide-react';
 import { instructoresApi, type Instructor } from '../instructores.api';
 import { Avatar, Button, Card, PageHeader, Pagination, StatCard } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function CrearInstructor() {
+  useTitulo('Instructores');
   const [form, setForm] = useState({ nombre: '', especialidad: '', telefono: '' });
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

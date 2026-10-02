@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { MetodoPago } from '../../entities/enums';
+import { PasarelaPago } from '../pasarela-pago.interface';
 
 @Injectable()
-export class PasarelaMockService {
+export class PasarelaMockService implements PasarelaPago {
   async procesarPago(
     monto: number,
     metodo: MetodoPago,

@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { sedesApi } from '../../sedes/sedes.api';
 import { ArrowIcon, RegisterCta } from '../../../shared/components/Landing';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function Inicio() {
+  useTitulo('Inicio');
   const [sedesActivas, setSedesActivas] = useState(0);
 
   useEffect(() => {

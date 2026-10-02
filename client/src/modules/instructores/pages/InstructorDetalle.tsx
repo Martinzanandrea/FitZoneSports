@@ -4,11 +4,13 @@ import { instructoresApi, type Instructor } from '../instructores.api';
 import { clasesApi } from '../../clases/clases.api';
 import type { Clase } from '../../clases/clases.types';
 import { PageHeader, Card, Button, Avatar } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 // Convención JS getDay() del backend: 0 = Domingo ... 6 = Sábado.
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 export function InstructorDetalle() {
+  useTitulo('Detalle de instructor');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [inst, setInst] = useState<Instructor | null>(null);

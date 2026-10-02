@@ -10,6 +10,7 @@ export * from './clase-ocurrencia.entity';
 export * from './franja-horaria.entity';
 export * from './reserva-clase.entity';
 export * from './cancha.entity';
+export * from './tipo-cancha.entity';
 export * from './bloqueo-cancha.entity';
 export * from './reserva-cancha.entity';
 export * from './pago.entity';
@@ -28,6 +29,7 @@ import { ClaseOcurrencia } from './clase-ocurrencia.entity';
 import { FranjaHoraria } from './franja-horaria.entity';
 import { ReservaClase } from './reserva-clase.entity';
 import { Cancha } from './cancha.entity';
+import { TipoCancha } from './tipo-cancha.entity';
 import { BloqueoCancha } from './bloqueo-cancha.entity';
 import { ReservaCancha } from './reserva-cancha.entity';
 import { Pago } from './pago.entity';
@@ -46,6 +48,7 @@ export const ALL_ENTITIES = [
   FranjaHoraria,
   ReservaClase,
   Cancha,
+  TipoCancha,
   BloqueoCancha,
   ReservaCancha,
   Pago,

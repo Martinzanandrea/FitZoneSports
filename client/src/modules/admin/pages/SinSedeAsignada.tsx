@@ -1,8 +1,10 @@
 import { Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function SinSedeAsignada() {
+  useTitulo('Sin sede asignada');
   const { logout } = useAuth();
   const navigate = useNavigate();
 

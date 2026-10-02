@@ -1,8 +1,10 @@
-export const TipoCancha = {
-  PADDLE: 'PADDLE',
-  FUTBOL5: 'FUTBOL5',
-} as const;
-export type TipoCancha = (typeof TipoCancha)[keyof typeof TipoCancha];
+export interface TipoCanchaCatalogo {
+  id: string;
+  nombre: string;
+  imagenUrl: string | null;
+  activo: boolean;
+  creadoEn?: string;
+}
 
 export const EstadoCancha = {
   ACTIVA: 'ACTIVA',
@@ -28,7 +30,8 @@ export interface Cancha {
   id: string;
   sede: { id: string; nombre: string };
   nombre: string;
-  tipo: TipoCancha;
+  tipoId: string;
+  tipo: TipoCanchaCatalogo;
   costoHoraBase: string;
   estado: EstadoCancha;
   creadaEn?: string;
@@ -37,7 +40,7 @@ export interface Cancha {
 export interface CanchaPayload {
   sedeId: string;
   nombre: string;
-  tipo: TipoCancha;
+  tipoId: string;
   costoHoraBase: number;
 }
 

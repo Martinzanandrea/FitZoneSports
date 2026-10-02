@@ -7,6 +7,8 @@ import type { Sede } from '../../sedes/sedes.types';
 import { canchasApi } from '../../canchas/canchas.api';
 import { clasesApi } from '../../clases/clases.api';
 import { Badge, Card, Chip, PageHeader, Pagination, SectionTitle, StatCard, formatMoney } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const TAB = { AUDITORIA: 'AUDITORIA', POR_SEDE: 'POR_SEDE' } as const;
 type Tab = (typeof TAB)[keyof typeof TAB];
@@ -20,9 +22,9 @@ function accionVariant(accion: string) {
 }
 
 export function Reportes() {
+  useTitulo('Reportes');
   const [tab, setTab] = useState<Tab>(TAB.AUDITORIA);
 
-  // auditoria tab
   const [regs, setRegs] = useState<AuditoriaRegistro[]>([]);
   const [entidad, setEntidad] = useState('');
   const [desde, setDesde] = useState('');
@@ -32,7 +34,6 @@ export function Reportes() {
   const [pageA, setPageA] = useState(1);
   const [totalPagesA, setTotalPagesA] = useState(1);
 
-  // por sede tab
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [sedeId, setSedeId] = useState<string>('');
   const [financiero, setFinanciero] = useState<{ total: number; sede: string } | null>(null);
@@ -129,17 +130,23 @@ export function Reportes() {
           <Card>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
               <label className="text-sm font-medium text-[#374151]">Entidad
-                <select value={entidad} onChange={(e) => setEntidad(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }}>
-                  <option value="">Todas</option>
-                  <option value="Sede">Sede</option>
-                  <option value="Usuario">Usuario</option>
-                  <option value="Cancha">Cancha</option>
-                  <option value="Clase">Clase</option>
-                  <option value="Pago">Pago</option>
-                  <option value="Membresia">Membresia</option>
-                  <option value="PrecioPlan">PrecioPlan</option>
-                  <option value="Instructor">Instructor</option>
-                </select>
+                <div className="mt-1.5">
+                  <Select
+                    value={entidad}
+                    onChange={(v) => setEntidad(v)}
+                    opciones={[
+                      { value: 'Sede', label: 'Sede' },
+                      { value: 'Usuario', label: 'Usuario' },
+                      { value: 'Cancha', label: 'Cancha' },
+                      { value: 'Clase', label: 'Clase' },
+                      { value: 'Pago', label: 'Pago' },
+                      { value: 'Membresia', label: 'Membresia' },
+                      { value: 'PrecioPlan', label: 'PrecioPlan' },
+                      { value: 'Instructor', label: 'Instructor' },
+                    ]}
+                    placeholder="Todas"
+                  />
+                </div>
               </label>
               <label className="text-sm font-medium text-[#374151]">Desde
                 <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} />
@@ -184,9 +191,13 @@ export function Reportes() {
           <div className="space-y-4">
           <Card>
             <label className="text-sm font-medium text-[#374151]">Sede
-              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] bg-white" style={{ minHeight: 44 }}>
-                {sedes.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-              </select>
+              <div className="mt-1.5">
+                <Select
+                  value={sedeId}
+                  onChange={(v) => setSedeId(v)}
+                  opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+                />
+              </div>
             </label>
           </Card>
 

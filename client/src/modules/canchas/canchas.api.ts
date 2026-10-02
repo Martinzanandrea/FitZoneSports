@@ -1,10 +1,10 @@
 import { api } from '../../api/axios';
-import type { Cancha, ReservaCancha, CanchaPayload } from './canchas.types';
+import type { Cancha, ReservaCancha, CanchaPayload, TipoCanchaCatalogo } from './canchas.types';
 import type { PaginatedResponse } from '../../shared/types/pagination';
 
 export interface CanchaPublica {
   sede: string;
-  tipo: string;
+  tipo: { nombre: string; imagenUrl: string | null };
   costoHoraBase: string;
 }
 
@@ -38,6 +38,42 @@ export const canchasApi = {
   // Cancela una reserva existente; el reservaId dice cuál.
   cancelar: (reservaId: string) =>
     api.post<ReservaCancha>(`/reservas-cancha/${reservaId}/cancelar`).then((r) => r.data),
+  // Suma de pagos aprobados de canchas del mes actual (recepcionista ve
+  // solo su sede, gerente todas). Calculado en el backend, no estimado acá.
+  getIngresosMes: () =>
+    api.get<{ total: number }>('/canchas/ingresos-mes').then((r) => r.data),
+};
+
+// Catálogo de tipos de cancha (tabla tipos_cancha en el backend).
+// Se manda FormData porque crear/editar puede incluir la foto.
+export const tiposCanchaApi = {
+  // Tipos activos (sin login): para la landing y selectores públicos.
+  listar: () =>
+    api.get<TipoCanchaCatalogo[]>('/tipos-cancha').then((r) => r.data),
+  // Todos incluidos inactivos — solo Gerente (gestión del catálogo).
+  listarTodos: () =>
+    api.get<TipoCanchaCatalogo[]>('/tipos-cancha/todos').then((r) => r.data),
+  // Alta con foto opcional — solo Gerente.
+  crear: (nombre: string, foto?: File | null) => {
+    const data = new FormData();
+    data.append('nombre', nombre);
+    if (foto) data.append('foto', foto);
+    return api.post<TipoCanchaCatalogo>('/tipos-cancha', data).then((r) => r.data);
+  },
+  // Cambia nombre y/o reemplaza la foto — solo Gerente.
+  editar: (id: string, nombre?: string, foto?: File | null) => {
+    const data = new FormData();
+    if (nombre !== undefined) data.append('nombre', nombre);
+    if (foto) data.append('foto', foto);
+    return api.patch<TipoCanchaCatalogo>(`/tipos-cancha/${id}`, data).then((r) => r.data);
+  },
+  // Activa o desactiva (nunca se borra de verdad por la FK de canchas) — solo Gerente.
+  cambiarEstado: (id: string, activo: boolean) =>
+    api.patch<TipoCanchaCatalogo>(`/tipos-cancha/${id}/estado`, { activo }).then((r) => r.data),
+  // Borrado real, solo si ninguna cancha usa el tipo — solo Gerente.
+  // Si hay canchas asociadas el backend responde 400 con el conteo.
+  eliminar: (id: string) =>
+    api.delete<void>(`/tipos-cancha/${id}`).then((r) => r.data),
 };
 
 // Agregación compartida: recorre todas las canchas y junta las reservas

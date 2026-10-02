@@ -5,6 +5,7 @@ import { adminApi, type DashboardResumen, type AuditoriaRegistro } from '../admi
 import { sedesApi } from '../../sedes/sedes.api';
 import { usuariosApi } from '../../usuarios/usuarios.api';
 import { StatCard, formatMoney, Badge, Card } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const CARDS = [
   { to: '/admin/personal', icon: Users, title: 'Personal', description: 'Dar de alta recepcionistas y gerentes' },
@@ -28,6 +29,7 @@ function accionVariant(accion: string) {
 }
 
 export function GerenteDashboard() {
+  useTitulo('Panel del Gerente');
   const [resumen, setResumen] = useState<DashboardResumen | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);

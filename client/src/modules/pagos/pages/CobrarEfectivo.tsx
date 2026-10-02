@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { pagosApi, type OpcionesCobroEfectivo } from '../pagos.api';
 import type { Pago } from '../pagos.types';
 import { Button, Card, Chip, SectionTitle } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const TipoReferencia = {
   MEMBRESIA: 'MEMBRESIA',
@@ -11,6 +13,7 @@ const TipoReferencia = {
 type TipoReferencia = (typeof TipoReferencia)[keyof typeof TipoReferencia];
 
 export function CobrarEfectivo() {
+  useTitulo('Cobrar en efectivo');
   const navigate = useNavigate();
   const [tipo, setTipo] = useState<TipoReferencia>(TipoReferencia.MEMBRESIA);
   const [usuarioId, setUsuarioId] = useState('');
@@ -101,20 +104,13 @@ export function CobrarEfectivo() {
                 className="w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none"
                 style={{ minHeight: 44 }}
               />
-              <select
+              <Select
                 value={usuarioId}
-                onChange={(e) => { setUsuarioId(e.target.value); setReferenciaId(''); }}
+                onChange={(v) => { setUsuarioId(v); setReferenciaId(''); }}
                 disabled={loadingOpciones}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none bg-white"
-                style={{ minHeight: 44 }}
-              >
-                <option value="">{loadingOpciones ? 'Cargando usuarios...' : 'Seleccionar usuario...'}</option>
-                {usuariosFiltrados.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.nombre} {u.apellido} - DNI: {u.dni ?? 'sin DNI'}
-                  </option>
-                ))}
-              </select>
+                placeholder={loadingOpciones ? 'Cargando usuarios...' : 'Seleccionar usuario...'}
+                opciones={usuariosFiltrados.map((u) => ({ value: u.id, label: `${u.nombre} ${u.apellido} - DNI: ${u.dni ?? 'sin DNI'}` }))}
+              />
             </div>
           </label>
 

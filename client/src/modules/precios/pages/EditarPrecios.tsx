@@ -3,8 +3,10 @@ import { preciosApi } from '../precios.api';
 import type { PrecioPlan } from '../precios.types';
 import { adminApi, type PlanPopularidad, type ReporteFinanciero } from '../../admin/admin.api';
 import { Button, Card, PageHeader } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function EditarPrecios() {
+  useTitulo('Precios');
   const [precios, setPrecios] = useState<PrecioPlan[]>([]);
   const [valores, setValores] = useState<Record<string, string>>({});
   const [guardando, setGuardando] = useState<string | null>(null);

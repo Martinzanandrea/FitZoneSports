@@ -10,6 +10,8 @@ import type { Sede } from '../../sedes/sedes.types';
 import type { TipoPlan } from '../membresias.types';
 import type { PrecioPlan } from '../../precios/precios.types';
 import { Button } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const DESCRIPCIONES: Record<string, string> = {
   MENSUAL: 'Ideal para empezar',
@@ -18,6 +20,7 @@ const DESCRIPCIONES: Record<string, string> = {
 };
 
 export function CompletarMembresia() {
+  useTitulo('Completá tu membresía');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -112,16 +115,12 @@ export function CompletarMembresia() {
 
         <div className="mt-5 space-y-1.5">
           <label className="text-sm font-medium text-[#374151]">Sede donde te vas a registrar</label>
-          <select
+          <Select
             value={sedeId}
-            onChange={(e) => setSedeId(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm outline-none focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20"
-          >
-            <option value="">Seleccionar sede…</option>
-            {sedes.map((s) => (
-              <option key={s.id} value={s.id}>{s.nombre}</option>
-            ))}
-          </select>
+            onChange={(v) => setSedeId(v)}
+            opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+            placeholder="Seleccionar sede…"
+          />
           <p className="text-xs text-[#6B7280]">Recordá que tu abono te da acceso a todas las sedes por igual.</p>
         </div>
 

@@ -29,6 +29,7 @@ import { MisPagos } from '../modules/pagos/pages/MisPagos';
 import { MiMembresia } from '../modules/membresias/pages/MiMembresia';
 import { ReservasPage } from '../modules/admin/pages/ReservasPage';
 import { CanchasPage } from '../modules/admin/pages/CanchasPage';
+import { ConfiguracionTiposCancha } from '../modules/admin/pages/ConfiguracionTiposCancha';
 import { SedesConHorarios } from '../modules/admin/pages/SedesConHorarios';
 import { CalendarioSede } from '../modules/admin/pages/CalendarioSede';
 import { ConfiguracionClases } from '../modules/admin/pages/ConfiguracionClases';
@@ -44,6 +45,8 @@ import { SedeDetalle } from '../modules/sedes/pages/SedeDetalle';
 import { InstructorDetalle } from '../modules/instructores/pages/InstructorDetalle';
 import { ListadoMembresias } from '../modules/membresias/pages/ListadoMembresias';
 import { SinSedeAsignada } from '../modules/admin/pages/SinSedeAsignada';
+import { TerminosCondiciones } from '../modules/legal/pages/TerminosCondiciones';
+import { NoEncontrado } from '../modules/inicio/pages/NoEncontrado';
 
 
 export function AppRoutes() {
@@ -55,6 +58,7 @@ export function AppRoutes() {
         <Route path="/canchas" element={<CanchasPublicas />} />
         <Route path="/sedes" element={<SedesPublicas />} />
         <Route path="/nosotros" element={<Nosotros />} />
+        <Route path="/terminos" element={<TerminosCondiciones />} />
       </Route>
       <Route path="/registro" element={<RegistroPage />} />
       <Route path="/verificar-email" element={<VerificarEmail />} />
@@ -162,6 +166,7 @@ export function AppRoutes() {
           }
         />
         <Route path="canchas" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><CanchasPage /></ProtectedRoute>} />
+        <Route path="canchas/tipos" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><ConfiguracionTiposCancha /></ProtectedRoute>} />
         <Route path="clases" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><SedesConHorarios /></ProtectedRoute>} />
         <Route path="clases/configuracion" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><ConfiguracionClases /></ProtectedRoute>} />
         <Route path="clases/:sedeId" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE]} loginPath="/admin/login"><CalendarioSede /></ProtectedRoute>} />
@@ -188,6 +193,8 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* Catch-all SIEMPRE última: 404 personalizada */}
+      <Route path="*" element={<NoEncontrado />} />
     </Routes>
   );
 }

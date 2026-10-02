@@ -6,6 +6,7 @@ import { TipoActor } from '../../../shared/types/enums';
 import { membresiasApi } from '../../membresias/membresias.api';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthInput, AuthLayout } from '../AuthLayout';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 interface LoginProps {
   // 'cliente' = Socio/Externo, 'staff' = Recepcionista/Gerente
@@ -17,6 +18,7 @@ const ROLES_STAFF: TipoActor[] = [TipoActor.RECEPCIONISTA, TipoActor.GERENTE];
 const ROLES_CLIENTE: TipoActor[] = [TipoActor.SOCIO, TipoActor.EXTERNO];
 
 export function Login({ audience, redirectTo }: LoginProps) {
+  useTitulo('Iniciar sesión');
   const { login, logout } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');

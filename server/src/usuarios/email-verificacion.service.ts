@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
 
-// Remitente de prueba de Resend (solo para desarrollo). En producción
-// reemplazar por una dirección de un dominio propio verificado.
-const REMITENTE_PRUEBA = 'FitZone Sports <onboarding@resend.dev>';
+const REMITENTE = 'FitZone Sports <fitzonesports@gmail.com>';
 
 @Injectable()
 export class EmailVerificacionService {
@@ -17,33 +15,40 @@ export class EmailVerificacionService {
     nombre: string,
     token: string,
   ): Promise<void> {
-    const apiKey = this.config.get<string>('KEY_RESEND');
-    if (!apiKey) {
+    const user = this.config.get<string>('GMAIL_USER');
+    const pass = this.config.get<string>('GMAIL_APP_PASSWORD');
+    if (!user || !pass) {
       throw new Error(
-        'KEY_RESEND no configurada: no se puede enviar el email de verificación',
+        'GMAIL_APP_PASSWORD no configurada: no se puede enviar el email de verificación',
       );
     }
     const frontendUrl =
       this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
     const link = `${frontendUrl}/verificar-email?token=${token}`;
-    // En desarrollo se loguea SIEMPRE (antes de llamar a Resend), para
-    // poder probar el flujo aunque el email no llegue (Resend en modo
-    // prueba solo entrega a la casilla del dueño de la cuenta).
+    // En desarrollo se loguea SIEMPRE (antes de enviar por SMTP), para
+    // poder probar el flujo aunque el email no llegue.
     // eslint-disable-next-line no-console
     if (process.env.NODE_ENV !== 'production') {
       // eslint-disable-next-line no-console
       console.log(`\n[DEV] Link de verificación para ${email}:\n${link}\n`);
     }
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: REMITENTE_PRUEBA,
-      to: email,
-      subject: 'Confirmá tu email en FitZone Sports',
-      html: `<p>Hola ${nombre},</p><p>Confirmá tu email haciendo clic en este link (válido por 24 horas):</p><p><a href="${link}">Verificar mi email</a></p>`,
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user, pass },
     });
-    if (error) {
-      this.logger.warn(`Resend rechazó el envío a ${email}: ${error.message}`);
-      throw new Error(`Resend rechazó el envío: ${error.message}`);
+    try {
+      await transporter.sendMail({
+        from: REMITENTE,
+        to: email,
+        subject: 'Confirmá tu email en FitZone Sports',
+        html: `<p>Hola ${nombre},</p><p>Confirmá tu email haciendo clic en este link (válido por 24 horas):</p><p><a href="${link}">Verificar mi email</a></p>`,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Gmail SMTP rechazó el envío a ${email}: ${message}`);
+      throw new Error(`Gmail SMTP rechazó el envío: ${message}`);
     }
   }
 }

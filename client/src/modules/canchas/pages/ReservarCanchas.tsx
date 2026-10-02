@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { canchasApi } from '../canchas.api';
 import type { Cancha, ReservaCancha } from '../canchas.types';
-import { TipoCancha } from '../canchas.types';
 import { Badge, Button, Card } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const HORAS = Array.from({ length: 15 }, (_, i) => 8 + i); // 8..22
 
@@ -17,6 +17,7 @@ function addDays(base: Date, n: number) {
 }
 
 export function ReservarCanchas() {
+  useTitulo('Reservar canchas');
   const { user } = useAuth();
   const [canchas, setCanchas] = useState<Cancha[]>([]);
   const [canchaId, setCanchaId] = useState<string>('');
@@ -30,16 +31,22 @@ export function ReservarCanchas() {
 
   const fechas = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
 
-  const tipos = useMemo(() => Array.from(new Set(canchas.map((c) => c.tipo))), [canchas]);
-  const [tipoSel, setTipoSel] = useState<TipoCancha | ''>('');
+  const tipos = useMemo(() => {
+    const vistos = new Map<string, string>();
+    for (const c of canchas) {
+      if (!vistos.has(c.tipoId)) vistos.set(c.tipoId, c.tipo.nombre);
+    }
+    return Array.from(vistos.entries()).map(([id, nombre]) => ({ id, nombre }));
+  }, [canchas]);
+  const [tipoSel, setTipoSel] = useState<string>('');
 
   const canchasFiltradas = useMemo(
-    () => (tipoSel ? canchas.filter((c) => c.tipo === tipoSel) : canchas),
+    () => (tipoSel ? canchas.filter((c) => c.tipoId === tipoSel) : canchas),
     [canchas, tipoSel],
   );
 
   useEffect(() => {
-    if (tipos.length > 0 && (tipoSel === '' || !tipos.includes(tipoSel))) setTipoSel(tipos[0]);
+    if (tipos.length > 0 && (tipoSel === '' || !tipos.some((t) => t.id === tipoSel))) setTipoSel(tipos[0].id);
   }, [tipos, tipoSel]);
 
   useEffect(() => {
@@ -148,11 +155,11 @@ export function ReservarCanchas() {
       <div className="flex bg-gray-100 rounded-2xl p-1 mb-5">
         {tipos.map((t) => (
           <button
-            key={t}
-            onClick={() => setTipoSel(t)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${tipoSel === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+            key={t.id}
+            onClick={() => setTipoSel(t.id)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${tipoSel === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
           >
-            {t}
+            {t.nombre}
           </button>
         ))}
       </div>

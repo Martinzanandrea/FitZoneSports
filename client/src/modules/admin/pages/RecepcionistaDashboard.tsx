@@ -8,6 +8,7 @@ import { accesoApi } from '../../acceso/acceso.api';
 import { canchasApi } from '../../canchas/canchas.api';
 import { adminApi, type DashboardResumen } from '../admin.api';
 import { StatCard, Tooltip } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function hoyYMD() {
   return new Date().toISOString().split('T')[0];
@@ -21,6 +22,7 @@ const CARDS = [
 ];
 
 export function RecepcionistaDashboard() {
+  useTitulo('Panel de Recepción');
   const { user } = useAuth();
   const [sede, setSede] = useState<Sede | null>(null);
   const [aforo, setAforo] = useState<{ actual: number; maximo: number } | null>(null);

@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { membresiasApi } from '../membresias.api';
 import type { Membresia } from '../membresias.types';
 import { Button, Card } from '../../../shared/components/ui';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const BENEFICIOS = [
   { icon: Dumbbell, titulo: 'Acceso libre todo el día', detalle: 'De 6:00 a 23:00, sin límites' },
@@ -14,6 +15,7 @@ const BENEFICIOS = [
 ];
 
 export function MiMembresia() {
+  useTitulo('Mi membresía');
   const { user } = useAuth();
   const [membresia, setMembresia] = useState<Membresia | null>(null);
   const [loading, setLoading] = useState(true);
