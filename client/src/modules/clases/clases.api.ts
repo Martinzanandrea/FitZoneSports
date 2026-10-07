@@ -78,7 +78,12 @@ export const clasesApi = {
   // Crea una clase con su grilla semanal ya confirmada (pasó por la sugerencia
   // + edición antes de llegar acá) — solo para gerentes.
   crear: (payload: CrearClasePayload) =>
-    api.post<ClaseCruda>('/clases', payload).then((r) => normalizarClase(r.data)),
+    api
+      .post<ClaseCruda & { ocurrenciasGeneradas: boolean }>('/clases', payload)
+      .then((r) => ({ ...normalizarClase(r.data), ocurrenciasGeneradas: r.data.ocurrenciasGeneradas })),
+  // Reintenta generar las fechas de una clase (idempotente); GG o GS con scope.
+  generarOcurrencias: (id: string) =>
+    api.post<{ claseId: string; ocurrenciasGeneradas: number }>(`/clases/${id}/generar-ocurrencias`).then((r) => r.data),
   // Desactiva una clase (el id dice cuál); lo ya generado y reservado queda intacto.
   desactivar: (id: string) => api.delete(`/clases/${id}`).then((r) => r.data),
   // Le cambia el instructor a una clase; el claseId dice cuál clase y el instructorId quién la va a dar.

@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Building2, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, BookOpen, Building2, Clock3, Plus, Tag, Trash2, Users } from 'lucide-react';
 import { sedesApi } from '../sedes.api';
 import type { FranjaHoraria, Sede } from '../sedes.types';
 import { usuariosApi } from '../../usuarios/usuarios.api';
 import type { Usuario } from '../../usuarios/usuarios.types';
 import { canchasApi } from '../../canchas/canchas.api';
 import { clasesApi } from '../../clases/clases.api';
-import { PageHeader, Card, Button, StatCard } from '../../../shared/components/ui';
+import { Badge } from '../../../shared/components/ui';
 import { Select } from '../../../shared/components/Select';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
@@ -27,165 +31,244 @@ export function SedeDetalle() {
   const [guardandoFranja, setGuardandoFranja] = useState(false);
   const [eliminandoFranja, setEliminandoFranja] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [recarga, setRecarga] = useState(0);
   const [saving, setSaving] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   useEffect(() => {
     if (!id) return;
+    let viva = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
+    setError(false);
     Promise.all([
       sedesApi.getOne(id),
       usuariosApi.getStaff(1, 100),
-      canchasApi.getAll(1, 100).catch(() => ({ data: [] as any[] })),
-      clasesApi.getAll(undefined, 1, 100).catch(() => ({ data: [] as any[] })),
-      // TODO: estos conteos por sede se calculan sobre la página visible, no sobre el
-      // total — contar server-side en el futuro (sobre todo usuarios, que son miles).
+      canchasApi.getAll(1, 100).catch(() => ({ data: [] as unknown[] })),
+      clasesApi.getAll(id, 1, 100).catch(() => ({ data: [] as unknown[] })),
+      // Los conteos se calculan sobre la primera página (hasta 100), no sobre el total.
       usuariosApi.getAll(1, 100).catch(() => ({ data: [] as Usuario[] })),
       sedesApi.getFranjas(id).catch(() => [] as FranjaHoraria[]),
-    ]).then(([s, staff, canchas, clases, usuarios, franjasData]) => {
-      setSede(s);
-      setForm({ nombre: s.nombre, direccion: s.direccion, aforoMaximo: s.aforoMaximo });
-      const receps = (staff.data as Usuario[]).filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
-      setRecepcionistas(receps);
-      const asignado = receps.find((r) => r.sede?.id === s.id);
-      setSelectedRecep(asignado ? asignado.id : '');
-      const canchasCount = (canchas.data as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length;
-      const clasesCount = (clases.data as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length;
-      const usuariosCount = (usuarios.data as Usuario[]).filter((u) => (u as any).sede?.id === s.id).length;
-      setCounts({ canchas: canchasCount, clases: clasesCount, usuarios: usuariosCount });
-      setFranjas(franjasData);
-    }).catch(() => setMsg({ type: 'err', text: 'No se pudo cargar la sede.' }))
-      .finally(() => setLoading(false));
-  }, [id]);
+    ])
+      .then(([s, staff, canchas, clases, usuarios, franjasData]) => {
+        if (!viva) return;
+        setSede(s);
+        setForm({ nombre: s.nombre, direccion: s.direccion, aforoMaximo: s.aforoMaximo });
+        const receps = staff.data.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
+        setRecepcionistas(receps);
+        const asignado = receps.find((r) => r.sede?.id === s.id);
+        setSelectedRecep(asignado ? asignado.id : '');
+        setCounts({
+          canchas: (canchas.data as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length,
+          clases: clases.data.length,
+          usuarios: (usuarios.data as Usuario[]).filter((u) => u.sede?.id === s.id).length,
+        });
+        setFranjas(franjasData);
+      })
+      .catch(() => viva && setError(true))
+      .finally(() => viva && setLoading(false));
+    return () => {
+      viva = false;
+    };
+  }, [id, recarga]);
 
   async function handleSave() {
     if (!id || !sede) return;
-    setSaving(true); setMsg(null);
+    setSaving(true);
+    setMsg(null);
     try {
       const upd = await sedesApi.update(id, { nombre: form.nombre, direccion: form.direccion, aforoMaximo: Number(form.aforoMaximo) });
       setSede(upd);
       setMsg({ type: 'ok', text: 'Sede actualizada.' });
-    } catch { setMsg({ type: 'err', text: 'No se pudo actualizar.' }); }
-    finally { setSaving(false); }
+    } catch {
+      setMsg({ type: 'err', text: 'No se pudo actualizar.' });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleAssign() {
-    if (!selectedRecep) { setMsg({ type: 'err', text: 'Seleccioná un recepcionista.' }); return; }
+    if (!selectedRecep) {
+      setMsg({ type: 'err', text: 'Seleccioná un recepcionista.' });
+      return;
+    }
     if (!id) return;
-    setAssigning(true); setMsg(null);
+    setAssigning(true);
+    setMsg(null);
     try {
       await usuariosApi.asignarSede(selectedRecep, id);
       setMsg({ type: 'ok', text: 'Recepcionista asignado.' });
       const staff = await usuariosApi.getStaff(1, 100);
-      const receps = staff.data.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
-      setRecepcionistas(receps);
-    } catch { setMsg({ type: 'err', text: 'No se pudo asignar.' }); }
-    finally { setAssigning(false); }
+      setRecepcionistas(staff.data.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA));
+    } catch {
+      setMsg({ type: 'err', text: 'No se pudo asignar.' });
+    } finally {
+      setAssigning(false);
+    }
   }
 
   async function handleAgregarFranja() {
     if (!id) return;
-    if (!apertura || !cierre) { setMsg({ type: 'err', text: 'Completá apertura y cierre.' }); return; }
-    if (cierre <= apertura) { setMsg({ type: 'err', text: 'El cierre debe ser mayor que la apertura.' }); return; }
-    setGuardandoFranja(true); setMsg(null);
+    if (!apertura || !cierre) {
+      setMsg({ type: 'err', text: 'Completá apertura y cierre.' });
+      return;
+    }
+    if (cierre <= apertura) {
+      setMsg({ type: 'err', text: 'El cierre debe ser mayor que la apertura.' });
+      return;
+    }
+    setGuardandoFranja(true);
+    setMsg(null);
     try {
       const nueva = await sedesApi.crearFranja(id, { apertura, cierre });
       setFranjas((prev) => [...prev, nueva].sort((a, b) => a.apertura.localeCompare(b.apertura)));
-      setApertura(''); setCierre('');
+      setApertura('');
+      setCierre('');
       setMsg({ type: 'ok', text: 'Franja agregada.' });
-    } catch { setMsg({ type: 'err', text: 'No se pudo agregar la franja.' }); }
-    finally { setGuardandoFranja(false); }
+    } catch {
+      setMsg({ type: 'err', text: 'No se pudo agregar la franja.' });
+    } finally {
+      setGuardandoFranja(false);
+    }
   }
 
   async function handleEliminarFranja(franjaId: string) {
     if (!id) return;
-    setEliminandoFranja(franjaId); setMsg(null);
+    setEliminandoFranja(franjaId);
+    setMsg(null);
     try {
       await sedesApi.eliminarFranja(id, franjaId);
       setFranjas((prev) => prev.filter((f) => f.id !== franjaId));
       setMsg({ type: 'ok', text: 'Franja eliminada.' });
-    } catch { setMsg({ type: 'err', text: 'No se pudo eliminar la franja.' }); }
-    finally { setEliminandoFranja(null); }
+    } catch {
+      setMsg({ type: 'err', text: 'No se pudo eliminar la franja.' });
+    } finally {
+      setEliminandoFranja(null);
+    }
   }
 
-  if (loading) return <p className="text-sm text-[#6B7280]">Cargando sede...</p>;
-  if (!sede) return <p className="text-sm text-[#B91C1C]">Sede no encontrada.</p>;
+  if (loading) return <LoadingState rows={3} label="Cargando sede" />;
+  if (error || !sede) {
+    return <ErrorState title="No pudimos cargar la sede" description="Puede que no exista o que no tengas acceso." onRetry={() => setRecarga((n) => n + 1)} />;
+  }
 
   return (
-    <div className="max-w-5xl">
-      <PageHeader title={sede.nombre} onBack={() => navigate('/admin/sedes')} />
-      {msg && <p className={`mb-4 rounded-lg border p-3 text-sm ${msg.type==='ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>{msg.text}</p>}
-
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard label="Canchas" value={String(counts?.canchas ?? 0)} icon={Building2} iconColor="#8B2EFF" />
-        <StatCard label="Clases" value={String(counts?.clases ?? 0)} icon={BookOpen} iconColor="#3B82F6" />
-        <StatCard label="Usuarios asignados" value={String(counts?.usuarios ?? 0)} icon={Users} iconColor="#16A34A" />
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>{sede.nombre}</h2>
+          <p style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {sede.direccion} <Badge variant={sede.activa ? 'success' : 'neutral'}>{sede.activa ? 'Activa' : 'Inactiva'}</Badge>
+          </p>
+        </div>
+        <div className="inline-actions">
+          <button className="btn btn-secondary" onClick={() => navigate('/admin/sedes')}>
+            <ArrowLeft size={15} aria-hidden /> Volver
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/admin/precios')}>
+            <Tag size={15} aria-hidden /> Configurar precios
+          </button>
+          <button className="btn btn-primary" onClick={() => navigate('/admin/sedes', { state: { nueva: true } })}>
+            <Plus size={16} aria-hidden /> Nueva sede
+          </button>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <h3 className="text-sm font-semibold text-[#111111] mb-3">Datos de la sede</h3>
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-[#374151]">Nombre
-              <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} />
-            </label>
-            <label className="block text-sm font-medium text-[#374151]">Dirección
-              <input value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} />
-            </label>
-            <label className="block text-sm font-medium text-[#374151]">Aforo máximo
-              <input type="number" min={1} value={form.aforoMaximo} onChange={(e) => setForm({ ...form, aforoMaximo: Number(e.target.value) })} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} />
-            </label>
-            <Button onClick={handleSave} disabled={saving} fullWidth>{saving ? 'Guardando...' : 'Guardar cambios'}</Button>
-          </div>
-        </Card>
+      {msg && (
+        <p role="status" className={`notice ${msg.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginBottom: 14 }}>
+          {msg.text}
+        </p>
+      )}
 
-        <Card>
-          <h3 className="text-sm font-semibold text-[#111111] mb-3">Recepcionista asignado</h3>
-          <div className="space-y-3">
-            <Select value={selectedRecep} onChange={(v) => setSelectedRecep(v)} placeholder="Seleccionar recepcionista..." opciones={recepcionistas.map((r) => ({ value: r.id, label: `${r.nombre} ${r.apellido} — ${r.email}${r.sede ? ` (${r.sede.nombre})` : ''}` }))} />
-            <Button variant="outline" onClick={handleAssign} disabled={assigning} fullWidth>{assigning ? 'Asignando...' : 'Asignar a esta sede'}</Button>
-            <p className="text-xs text-[#6B7280]">Solo recepcionistas. Reasigna si ya tiene otra sede.</p>
-          </div>
-        </Card>
+      <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
+        <MetricCard label="Canchas" value={String(counts?.canchas ?? 0)} change="en la sede" icon={Building2} />
+        <MetricCard label="Clases" value={String(counts?.clases ?? 0)} change="programadas" icon={BookOpen} />
+        <MetricCard label="Usuarios asignados" value={String(counts?.usuarios ?? 0)} change="con esta sede" icon={Users} />
+        <MetricCard label="Franjas de atención" value={String(franjas.length)} change="horarios cargados" icon={Clock3} />
       </div>
 
-      <Card className="mt-6">
-        <h3 className="text-sm font-semibold text-[#111111] mb-3">Horario de atención</h3>
+      <div className="stack-gap" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', alignItems: 'start' }}>
+        <section className="glass panel">
+          <SectionHeader title="Datos de la sede" />
+          <div className="stack-gap">
+            <label>
+              <span className="field-label">NOMBRE</span>
+              <input className="field-input" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+            </label>
+            <label>
+              <span className="field-label">DIRECCIÓN</span>
+              <input className="field-input" value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} />
+            </label>
+            <label>
+              <span className="field-label">AFORO MÁXIMO</span>
+              <input className="field-input" type="number" min={1} value={form.aforoMaximo} onChange={(e) => setForm({ ...form, aforoMaximo: Number(e.target.value) })} />
+            </label>
+            <button className="btn btn-primary" onClick={() => void handleSave()} disabled={saving}>
+              {saving ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+        </section>
+
+        <section className="glass panel">
+          <SectionHeader title="Recepcionista asignado" description="Reasigna si ya tiene otra sede." />
+          <div className="stack-gap">
+            <Select
+              value={selectedRecep}
+              onChange={setSelectedRecep}
+              placeholder="Seleccionar recepcionista..."
+              ariaLabel="Recepcionista"
+              opciones={recepcionistas.map((r) => ({ value: r.id, label: `${r.nombre} ${r.apellido} — ${r.email}${r.sede ? ` (${r.sede.nombre})` : ''}` }))}
+            />
+            <button className="btn btn-secondary" onClick={() => void handleAssign()} disabled={assigning}>
+              {assigning ? 'Asignando...' : 'Asignar a esta sede'}
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <section className="glass panel" style={{ marginTop: 14 }}>
+        <SectionHeader title="Horario de atención" />
         {franjas.length === 0 ? (
-          <p className="text-sm text-[#6B7280]">Todavía no cargaste el horario de atención de esta sede. Agregá al menos una franja para poder programar clases.</p>
+          <p style={{ fontSize: 12, marginBottom: 14 }}>
+            Todavía no cargaste el horario de atención de esta sede. Agregá al menos una franja para poder programar clases.
+          </p>
         ) : (
-          <div className="space-y-2 mb-4">
+          <div className="stack-gap" style={{ gap: 8, marginBottom: 14 }}>
             {franjas.map((f) => (
-              <div key={f.id} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] p-2.5">
-                <p className="text-sm font-medium text-[#111111]">{f.apertura.slice(0, 5)} – {f.cierre.slice(0, 5)}</p>
+              <div key={f.id} className="pick-item" style={{ cursor: 'default' }}>
+                <span className="ops-strong">
+                  {f.apertura.slice(0, 5)} – {f.cierre.slice(0, 5)}
+                </span>
                 <button
                   type="button"
-                  onClick={() => handleEliminarFranja(f.id)}
+                  className="btn btn-secondary"
+                  style={{ color: 'var(--coral)' }}
+                  onClick={() => void handleEliminarFranja(f.id)}
                   disabled={eliminandoFranja === f.id}
                   aria-label="Eliminar franja"
-                  className="rounded-lg p-2 text-[#6B7280] hover:bg-[#FEF2F2] hover:text-[#DC2626] disabled:opacity-60"
-                  style={{ minHeight: 44, minWidth: 44 }}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} aria-hidden />
                 </button>
               </div>
             ))}
           </div>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm font-medium text-[#374151]">Apertura
-            <input type="time" value={apertura} onChange={(e) => setApertura(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] bg-white" style={{ minHeight: 44 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, alignItems: 'end' }}>
+          <label>
+            <span className="field-label">APERTURA</span>
+            <input className="field-input" type="time" value={apertura} onChange={(e) => setApertura(e.target.value)} />
           </label>
-          <label className="block text-sm font-medium text-[#374151]">Cierre
-            <input type="time" value={cierre} onChange={(e) => setCierre(e.target.value)} className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF] bg-white" style={{ minHeight: 44 }} />
+          <label>
+            <span className="field-label">CIERRE</span>
+            <input className="field-input" type="time" value={cierre} onChange={(e) => setCierre(e.target.value)} />
           </label>
+          <button className="btn btn-primary" onClick={() => void handleAgregarFranja()} disabled={guardandoFranja}>
+            <Plus size={15} aria-hidden /> {guardandoFranja ? 'Agregando...' : 'Agregar franja'}
+          </button>
         </div>
-        <div className="mt-3">
-          <Button onClick={handleAgregarFranja} disabled={guardandoFranja} fullWidth>{guardandoFranja ? 'Agregando...' : '+ Agregar franja'}</Button>
-        </div>
-      </Card>
-    </div>
+      </section>
+    </>
   );
 }

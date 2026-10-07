@@ -35,6 +35,8 @@ export interface RegistrarEfectivoPayload {
   usuarioId: string;
   membresiaId?: string;
   reservaCanchaId?: string;
+  /** Plan a cobrar: el precio lo calcula el backend, nunca el cliente. */
+  plan?: "MENSUAL" | "TRIMESTRAL" | "ANUAL";
   monto?: number;
 }
 

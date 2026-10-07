@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -108,8 +108,10 @@ export class AdminService {
   async obtenerDashboardResumen(
     currentUser: UsuarioAutenticado,
   ): Promise<DashboardResumen> {
+    // Fail-closed: cualquiera que no sea GG ve solo su sede (nunca
+    // el consolidado). Sin sede asignada el WHERE no matchea nada.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    const filtrarPorSede = currentUser.tipoActor === TipoActor.RECEPCIONISTA;
+    const filtrarPorSede = currentUser.tipoActor !== TipoActor.GERENTE_GENERAL;
 
     // Las "clases de hoy" son ocurrencias (instancias en una fecha), no la
     // plantilla Clase: se cuenta ClaseOcurrencia con fecha = hoy y PROGRAMADA.
@@ -159,7 +161,8 @@ export class AdminService {
   ): Promise<ReservasAdmin> {
     const page = query?.page ?? 1;
     const limit = query?.limit ?? 20;
-    const filtrarPorSede = currentUser.tipoActor === TipoActor.RECEPCIONISTA;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const filtrarPorSede = currentUser.tipoActor !== TipoActor.GERENTE_GENERAL;
 
     const reservasClaseQuery = this.reservasClaseRepo
       .createQueryBuilder('reserva')
@@ -246,7 +249,46 @@ export class AdminService {
     };
   }
 
-  async obtenerReporteFinanciero(): Promise<ReporteFinanciero> {
+  // Base de pagos APROBADOS con la sede resuelta (misma resolución que
+  // el desglose por sede: membresía → sedeAlta, clase → sede de la
+  // clase, cancha → sede de la cancha). Con sedeId, filtra en el WHERE.
+  private basePagos(sedeId?: string) {
+    const qb = this.pagosRepo
+      .createQueryBuilder('pago')
+      .where('pago.estado = :estado', { estado: EstadoPago.APROBADO })
+      .leftJoin('pago.membresia', 'membresia')
+      .leftJoin('pago.reservaClase', 'reservaClase')
+      .leftJoin('reservaClase.ocurrencia', 'ocurrenciaDeReserva')
+      .leftJoin('ocurrenciaDeReserva.clase', 'claseDeReserva')
+      .leftJoin('pago.reservaCancha', 'reservaCancha')
+      .leftJoin('reservaCancha.cancha', 'canchaDeReserva');
+    if (sedeId) {
+      qb.leftJoin('membresia.sedeAlta', 'sedeMembresia')
+        .leftJoin('claseDeReserva.sede', 'sedeClase')
+        .leftJoin('canchaDeReserva.sede', 'sedeCancha')
+        .andWhere(
+          'COALESCE(sedeMembresia.id, sedeClase.id, sedeCancha.id) = :sedeId',
+          { sedeId },
+        );
+    }
+    return qb;
+  }
+
+  // Sede efectiva para reportes: GG ve todo (sin filtro); GS solo su
+  // sede (403 sin sede asignada, nunca el consolidado).
+  private sedeParaReporte(currentUser: UsuarioAutenticado): string | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser.tipoActor === TipoActor.GERENTE_GENERAL) return undefined;
+    if (!currentUser.sedeId) {
+      throw new ForbiddenException('Tu usuario no tiene una sede asignada');
+    }
+    return currentUser.sedeId;
+  }
+
+  async obtenerReporteFinanciero(
+    currentUser: UsuarioAutenticado,
+  ): Promise<ReporteFinanciero> {
+    const sedeId = this.sedeParaReporte(currentUser);
     const inicioHoy = new Date();
     inicioHoy.setHours(0, 0, 0, 0);
 
@@ -258,10 +300,7 @@ export class AdminService {
     inicioMesAnterior.setMonth(inicioMesAnterior.getMonth() - 1);
     const finMesAnterior = new Date(inicioMes);
 
-    const base = () =>
-      this.pagosRepo
-        .createQueryBuilder('pago')
-        .where('pago.estado = :estado', { estado: EstadoPago.APROBADO });
+    const base = () => this.basePagos(sedeId);
 
     const ingresosHoyRaw = await base()
       .andWhere('pago.pagado_en >= :inicioHoy', { inicioHoy })
@@ -286,7 +325,7 @@ export class AdminService {
       .groupBy('pago.metodo')
       .getRawMany<{ metodo: string; total: string }>();
 
-    const porSedeRaw = await this.pagosRepo.manager
+    const porSedeQb = await this.pagosRepo.manager
       .createQueryBuilder()
       .select('sede.id', 'sedeId')
       .addSelect('sede.nombre', 'sede')
@@ -308,7 +347,11 @@ export class AdminService {
       )
       .where('pago.estado = :estado', { estado: EstadoPago.APROBADO })
       .andWhere('pago.pagado_en >= :inicioMes', { inicioMes })
-      .andWhere('sede.id IS NOT NULL')
+      .andWhere('sede.id IS NOT NULL');
+    if (sedeId) {
+      porSedeQb.andWhere('sede.id = :sedeId', { sedeId });
+    }
+    const porSedeRaw = await porSedeQb
       .groupBy('sede.id')
       .addGroupBy('sede.nombre')
       .getRawMany<{ sedeId: string; sede: string; total: string }>();
@@ -329,7 +372,18 @@ export class AdminService {
     };
   }
 
-  async obtenerMembresiasPorSede(sedeId?: string): Promise<MembresiaPorSede[]> {
+  async obtenerMembresiasPorSede(
+    sedeId: string | undefined,
+    currentUser: UsuarioAutenticado,
+  ): Promise<MembresiaPorSede[]> {
+    // GS solo su sede (ignora el parámetro, nunca el consolidado).
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser.tipoActor !== TipoActor.GERENTE_GENERAL) {
+      if (!currentUser.sedeId) {
+        throw new ForbiddenException('Tu usuario no tiene una sede asignada');
+      }
+      sedeId = currentUser.sedeId;
+    }
     const sedes = sedeId
       ? await this.sedesRepo.find({ where: { id: sedeId } })
       : await this.sedesRepo.find();
@@ -367,12 +421,21 @@ export class AdminService {
     return resultado;
   }
 
-  async obtenerPopularidadPlanes(): Promise<PlanPopularidad[]> {
-    const raw = await this.membresiasRepo
+  async obtenerPopularidadPlanes(
+    currentUser: UsuarioAutenticado,
+  ): Promise<PlanPopularidad[]> {
+    const sedeId = this.sedeParaReporte(currentUser);
+    const qb = this.membresiasRepo
       .createQueryBuilder('m')
       .select('m.plan', 'plan')
       .addSelect('COUNT(*)', 'socios')
-      .where('m.estado = :estado', { estado: EstadoMembresia.ACTIVO })
+      .where('m.estado = :estado', { estado: EstadoMembresia.ACTIVO });
+    if (sedeId) {
+      qb.innerJoin('m.sedeAlta', 'sede').andWhere('sede.id = :sedeId', {
+        sedeId,
+      });
+    }
+    const raw = await qb
       .groupBy('m.plan')
       .getRawMany<{ plan: string; socios: string }>();
 

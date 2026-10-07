@@ -277,15 +277,23 @@ export class AccesoService {
     return this.accesoRepo.save(sesionAbierta);
   }
 
-  // Agregado de solo lectura para el Gerente: métricas de accesos de
-  // todas las sedes activas. Reusa el criterio de obtenerAforo
-  // (hora_egreso IS NULL) para el aforo actual.
-  async obtenerResumenAccesos(): Promise<ResumenAccesos> {
+  // Agregado de solo lectura para la Gerencia: métricas de accesos por
+  // sede. GG ve todas las activas; GS solo la suya (403 sin sede).
+  // Reusa el criterio de obtenerAforo (hora_egreso IS NULL) para el aforo actual.
+  async obtenerResumenAccesos(
+    currentUser: UsuarioAutenticado,
+  ): Promise<ResumenAccesos> {
     const inicioHoy = new Date();
     inicioHoy.setHours(0, 0, 0, 0);
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const esGG = currentUser.tipoActor === TipoActor.GERENTE_GENERAL;
+    if (!esGG && !currentUser.sedeId) {
+      throw new ForbiddenException('Tu usuario no tiene una sede asignada');
+    }
+
     const sedes = await this.sedesRepo.find({
-      where: { activa: true },
+      where: esGG ? { activa: true } : { id: currentUser.sedeId as string },
       order: { nombre: 'ASC' },
     });
 

@@ -1,12 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { RotateCw } from 'lucide-react';
+import { Clock3, RotateCw } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { accesoApi } from '../acceso.api';
 import { membresiasApi } from '../../membresias/membresias.api';
 import type { Membresia } from '../../membresias/membresias.types';
-import { Button } from '../../../shared/components/ui';
+import { Badge } from '../../../shared/components/ui';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+
+function tonoMembresia(estado: Membresia['estado']): 'success' | 'warning' | 'danger' {
+  return estado === 'ACTIVO' ? 'success' : estado === 'SUSPENDIDO' ? 'warning' : 'danger';
+}
+
+function etiquetaMembresia(estado: Membresia['estado']): string {
+  return estado === 'ACTIVO' ? 'Activo' : estado === 'SUSPENDIDO' ? 'Suspendido' : 'Vencido';
+}
+
+function formatearSegundos(total: number): string {
+  const m = Math.floor(total / 60);
+  const s = Math.max(0, total % 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 export function MiQr() {
   useTitulo('Mi QR de ingreso');
@@ -53,7 +67,7 @@ export function MiQr() {
     return () => clearTimeout(t);
   }, [seconds, expired, qrToken]);
 
-  const urgente = seconds <= 10;
+  const urgente = seconds <= 10 && !expired;
   const diasRestantes = membresia
     ? Math.max(
         0,
@@ -65,99 +79,82 @@ export function MiQr() {
     : null;
 
   return (
-    <div className="max-w-sm lg:max-w-md mx-auto px-4 sm:px-6 py-8 lg:py-12 flex flex-col items-center">
-      {!error && (
-        <div className="w-full max-w-xs mb-8">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold text-gray-400">El código se renueva en</span>
-            <span className="text-xs font-black" style={{ color: urgente ? '#EF4444' : '#8B2EFF' }}>
-              {seconds}s
-            </span>
-          </div>
-          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-1000 ease-linear"
-              style={{ width: `${(seconds / 60) * 100}%`, backgroundColor: urgente ? '#EF4444' : '#8B2EFF' }}
-            />
-          </div>
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Mi QR de ingreso</h2>
+          <p>Mostráselo al recepcionista en la entrada.</p>
         </div>
-      )}
+      </div>
 
-      <h2 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Mi QR de ingreso</h2>
-      <p className="text-sm text-gray-400 text-center mb-8">Mostráselo al recepcionista en la entrada</p>
+      <section className="qr-screen" aria-label="Código QR de ingreso">
+        <span className="eyebrow">CÓDIGO DE ACCESO</span>
+        <h2>Acercá tu QR al lector</h2>
+        <p>Se actualiza automáticamente para proteger tu cuenta.</p>
 
-      {error ? (
-        <div className="py-10 text-center">
-          <p className="text-sm text-[#DC2626] mb-4">No se pudo generar el código.</p>
-          <Button onClick={generar}>
-            <RotateCw size={16} /> Reintentar
-          </Button>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-center mb-6">
-            <div
-              className={`w-44 h-44 bg-white rounded-3xl flex items-center justify-center shadow-xl border-2 transition-colors ${urgente ? 'border-red-200' : 'border-[#8B2EFF]/10'}`}
-              style={expired ? { filter: 'grayscale(1) opacity(0.3)' } : undefined}
-            >
-              {qrToken && <QRCodeSVG value={qrToken} size={144} />}
-            </div>
+        {error ? (
+          <div style={{ padding: '28px 0 8px' }}>
+            <p style={{ fontSize: 12, marginBottom: 16 }}>No se pudo generar el código.</p>
+            <button className="btn btn-secondary" onClick={() => void generar()}>
+              <RotateCw size={17} aria-hidden /> Volver a intentar
+            </button>
           </div>
-
-          {codigoCorto && (
-            <div
-              className="text-center mb-8 -mt-2 transition-opacity"
-              style={expired ? { filter: 'grayscale(1) opacity(0.3)' } : undefined}
-            >
-              <p className="text-4xl font-black tracking-[0.2em] text-gray-900">
-                {codigoCorto.slice(0, 3)} {codigoCorto.slice(3)}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">O dictale este código al recepcionista</p>
+        ) : (
+          <>
+            <div className={`qr-real${expired ? ' expired' : ''}`} role="img" aria-label={expired ? 'Código QR expirado' : 'Código QR de ingreso'}>
+              {qrToken && <QRCodeSVG value={qrToken} size={232} />}
             </div>
-          )}
 
-          <p className="text-xs text-gray-400 mb-8">El código se renueva automáticamente</p>
+            {codigoCorto && (
+              <div className="short-code" style={expired ? { filter: 'grayscale(1)', opacity: 0.4 } : undefined}>
+                <span>CÓDIGO ALTERNATIVO</span>
+                <strong>
+                  {codigoCorto.slice(0, 3)} {codigoCorto.slice(3)}
+                </strong>
+              </div>
+            )}
 
-          {expired && (
-            <div className="text-center space-y-3 mb-8">
-              <p className="text-sm font-semibold text-[#DC2626]">Código expirado</p>
-              <Button onClick={generar}>
-                <RotateCw size={16} /> Generar nuevo
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+            {expired ? (
+              <div style={{ marginTop: 22 }}>
+                <p style={{ fontSize: 12, marginBottom: 14 }}>Código expirado.</p>
+                <button className="btn btn-primary" onClick={() => void generar()}>
+                  <RotateCw size={17} aria-hidden /> Generar nuevo
+                </button>
+              </div>
+            ) : (
+              <div className="countdown" aria-live="off">
+                <Clock3 size={17} aria-hidden />
+                <span>Nuevo código en</span>
+                <strong style={urgente ? { color: 'var(--coral)' } : undefined}>
+                  {formatearSegundos(seconds)}
+                </strong>
+                <i aria-hidden>
+                  <b style={{ width: `${(seconds / 60) * 100}%`, background: urgente ? 'var(--coral)' : undefined }} />
+                </i>
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       {membresia && (
-        <div className="w-full bg-white rounded-[1.75rem] border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-black text-gray-900">Estado de membresía</p>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
-              ● {membresia.estado === 'ACTIVO' ? 'Activo' : membresia.estado}
-            </span>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Plan</span>
-              <span className="font-bold text-gray-900">{membresia.plan}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Válido hasta</span>
-              <span className="font-bold text-gray-900">
-                {new Date(`${membresia.fechaFin}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Días restantes</span>
-              <span className="font-bold text-[#8B2EFF]">{diasRestantes} días</span>
+        <section className="glass panel" style={{ maxWidth: 520, margin: '14px auto 0' }} aria-label="Estado de membresía">
+          <div className="stack-list">
+            <div className="list-row">
+              <div className="row-main">
+                <strong>Plan {membresia.plan}</strong>
+                <span>
+                  Válido hasta{' '}
+                  {new Date(`${membresia.fechaFin}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                  {diasRestantes !== null && ` · ${diasRestantes} días restantes`} · {membresia.sedeAlta.nombre}
+                </span>
+              </div>
+              <Badge variant={tonoMembresia(membresia.estado)}>{etiquetaMembresia(membresia.estado)}</Badge>
             </div>
           </div>
-          <p className="text-xs text-gray-300 mt-4 pt-4 border-t border-gray-50">Si el acceso falla, verificá que tu membresía esté al día.</p>
-        </div>
+          <p style={{ fontSize: 10, marginTop: 12 }}>Si el acceso falla, verificá que tu membresía esté al día.</p>
+        </section>
       )}
-
-      <div className="h-6" />
-    </div>
+    </>
   );
 }

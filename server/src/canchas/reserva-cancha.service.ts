@@ -54,11 +54,14 @@ export class ReservasCanchaService {
     if (!cancha)
       throw new NotFoundException(`Cancha ${dto.canchaId} no encontrada`);
 
-    // Un Recepcionista solo puede operar reservas de SU sede.
-    // Un Gerente no tiene restricción. Un Socio/Externo reservando para
-    // sí mismo tampoco (puede reservar en cualquier sede, RF03).
+    // Scope por exclusión (REGLAS GERENTE_SEDE): todo actor no-GG que
+    // reserva para otro queda acotado a la sede de la cancha. El socio
+    // o externo reservando para sí mismo no pasa por acá (RF03).
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (currentUser.tipoActor === TipoActor.RECEPCIONISTA) {
+    if (
+      currentUser.id !== dto.usuarioId &&
+      currentUser.tipoActor !== TipoActor.GERENTE_GENERAL
+    ) {
       assertSedeScope(currentUser, cancha.sede.id);
     }
 
@@ -97,6 +100,16 @@ export class ReservasCanchaService {
       relations: { sede: true },
     });
     if (!cancha) throw new NotFoundException(`Cancha ${dto.canchaId} no encontrada`);
+
+    // Mismo scope que reservar: el staff que cotiza para otro queda
+    // acotado a la sede de la cancha.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (
+      currentUser.id !== dto.usuarioId &&
+      currentUser.tipoActor !== TipoActor.GERENTE_GENERAL
+    ) {
+      assertSedeScope(currentUser, cancha.sede.id);
+    }
 
     const usuario = await this.usuariosRepo.findOne({ where: { id: dto.usuarioId } });
     if (!usuario) throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);

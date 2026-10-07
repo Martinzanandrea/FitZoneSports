@@ -1,0 +1,620 @@
+/* Auth (login, registro, verificación, membresía): shell del diseño con
+   manchas lima/aqua/coral, marca FitZone y tarjeta central de vidrio.
+   La estructura split-screen actual se conserva; solo cambia la piel. */
+
+.auth-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  padding: 96px 20px 48px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.auth-brand {
+  position: absolute;
+  left: 32px;
+  top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  z-index: 2;
+}
+
+.auth-brand-mark {
+  width: 39px;
+  height: 39px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--lime);
+  color: var(--bg);
+  transform: rotate(-4deg);
+}
+
+.auth-brand-mark svg {
+  width: 23px;
+}
+
+.auth-brand > span {
+  font: 800 18px/1 var(--font-title);
+  letter-spacing: -0.04em;
+  color: var(--text);
+}
+
+.auth-brand small {
+  display: block;
+  font: 600 8px/1.4 var(--font-title);
+  letter-spacing: 0.32em;
+  color: var(--aqua);
+}
+
+.auth-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  width: min(920px, 100%);
+  position: relative;
+  z-index: 1;
+  border-radius: 27px;
+  overflow: hidden;
+}
+
+.auth-photo {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.auth-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.auth-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(7, 26, 29, 0.88) 0%,
+    rgba(7, 26, 29, 0.25) 55%,
+    rgba(7, 26, 29, 0.05) 100%
+  );
+}
+
+.auth-photo-copy {
+  position: absolute;
+  left: 32px;
+  right: 32px;
+  bottom: 32px;
+  z-index: 1;
+}
+
+.auth-photo-copy h2 {
+  font-size: 34px;
+  line-height: 1.05;
+  white-space: pre-line;
+  color: var(--text);
+}
+
+.auth-photo-copy p {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.auth-photo-tag {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 1;
+  border: 1px solid var(--line);
+  background: rgba(7, 26, 29, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.auth-split > .auth-card {
+  width: 100%;
+  padding: 34px;
+  border-radius: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card--narrow {
+  width: min(460px, 100%);
+  margin-inline: auto;
+  padding: 34px;
+  border-radius: 27px;
+  border: 1px solid var(--line);
+}
+
+.auth-card--embedded {
+  margin-inline: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.auth-card--wide {
+  width: min(560px, 100%);
+}
+
+.auth-card--narrow > * + * {
+  margin-top: 16px;
+}
+
+.auth-card--narrow > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Checkbox en línea (solo testing en completar membresía). */
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  min-height: 44px;
+}
+
+.auth-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--lime);
+}
+
+.auth-card h1 {
+  font-size: 28px;
+  margin: 6px 0;
+  color: var(--text);
+}
+
+.auth-card > p,
+.auth-card .w-full > p,
+.auth-card--narrow > p {
+  font-size: 11px;
+  margin-bottom: 22px;
+}
+
+.auth-card form,
+.auth-card--narrow form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.back-link {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  min-height: 44px;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+.back-link svg {
+  width: 15px;
+}
+
+.full-button {
+  width: 100%;
+  margin-top: 5px;
+  min-height: 44px;
+  font-size: 14px;
+}
+
+.auth-switch {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.auth-switch a,
+.auth-switch button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--lime);
+  font-weight: 700;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Campos del formulario de auth (asociación implícita label > input). */
+.auth-field {
+  display: block;
+}
+
+.auth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.auth-input-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.field-input.auth-input-has-icon {
+  padding-left: 38px;
+}
+
+.field-input.auth-input-has-right {
+  padding-right: 44px;
+}
+
+.auth-input-right {
+  position: absolute;
+  right: 6px;
+  display: flex;
+}
+
+.auth-input-right button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+}
+
+.auth-input-right button:hover {
+  color: var(--text);
+}
+
+.field-input:focus {
+  border-color: var(--aqua);
+}
+
+/* Selector de tipo de cuenta (registro): tarjetas de vidrio. */
+.account-pick {
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.account-pick button {
+  text-align: left;
+  border-radius: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  transition: border-color 0.2s;
+  min-height: 44px;
+}
+
+.account-pick button[aria-pressed="true"] {
+  border-color: var(--lime);
+  background: rgba(202, 255, 61, 0.07);
+}
+
+.account-pick .account-pick-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--muted);
+}
+
+.account-pick button[aria-pressed="true"] .account-pick-icon {
+  background: var(--lime);
+  color: var(--bg);
+}
+
+.account-pick strong {
+  display: block;
+  font-size: 13px;
+}
+
+.account-pick span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Subida de foto (registro). */
+.photo-pick {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.photo-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.photo-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-pick p {
+  font-size: 11px;
+}
+
+/* Medidor de fuerza de contraseña (registro): colores funcionales. */
+.strength {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strength-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.strength-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.3s;
+}
+
+.strength span {
+  font-size: 11px;
+  font-weight: 700;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Fila de email con icono (verificación). */
+.mail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 0 12px;
+  transition: border-color 0.2s;
+}
+
+.mail-row:focus-within {
+  border-color: var(--aqua);
+}
+
+.mail-row svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.mail-row input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  font-size: 13px;
+  padding: 12px 0;
+  min-height: 44px;
+}
+
+.mail-row input::placeholder {
+  color: #81928e;
+}
+
+/* Spinner del diseño (lima sobre primario, lima sobre vidrio). */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(7, 26, 29, 0.25);
+  border-top-color: var(--bg);
+  animation: auth-spin 0.8s linear infinite;
+}
+
+.spinner--big {
+  width: 32px;
+  height: 32px;
+  border-color: rgba(202, 255, 61, 0.2);
+  border-top-color: var(--lime);
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Planes (completar membresía). */
+.plan-pick {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  text-align: left;
+  transition: border-color 0.2s;
+  min-height: 44px;
+}
+
+.plan-pick[aria-pressed="true"] {
+  border-color: var(--lime);
+  background: rgba(202, 255, 61, 0.07);
+}
+
+.plan-pick strong {
+  display: block;
+  font-size: 13px;
+}
+
+.plan-pick small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.plan-pick .plan-price {
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.plan-pick .plan-check {
+  color: var(--lime);
+  display: inline-flex;
+}
+
+.pay-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pay-pick button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  min-height: 44px;
+}
+
+.pay-pick button[aria-pressed="true"] {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--bg);
+}
+
+/* Mobile: la tarjeta baja (la marca queda arriba) y hay aire abajo para
+   que el teclado no tape el botón principal. Sin scroll horizontal. */
+@media (max-width: 900px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+  }
+
+  .auth-photo {
+    min-height: 168px;
+    max-height: 200px;
+  }
+
+  .auth-photo-copy {
+    left: 22px;
+    right: 22px;
+    bottom: 20px;
+  }
+
+  .auth-photo-copy h2 {
+    font-size: 24px;
+  }
+
+  .auth-photo-copy p {
+    font-size: 12px;
+  }
+
+  .auth-split > .auth-card {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 760px) {
+  .auth-shell {
+    align-items: start;
+    padding: 92px 12px 72px;
+  }
+
+  .auth-brand {
+    left: 16px;
+    top: 18px;
+  }
+
+  .auth-split > .auth-card,
+  .auth-card--narrow {
+    padding: 25px 20px;
+  }
+
+  .auth-card h1 {
+    font-size: 24px;
+  }
+
+  .account-pick {
+    grid-template-columns: 1fr;
+  }
+}

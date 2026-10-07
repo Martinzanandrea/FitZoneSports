@@ -13,6 +13,8 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { TipoActor } from '../entities/enums';
 import { InstructoresService } from './instructores.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -33,12 +35,17 @@ import {
 export class InstructoresController {
   constructor(private readonly instructoresService: InstructoresService) {}
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  // Recurso global (Instructor no tiene sede): sin scope. POST y PATCH
+  // para GG y GS; RECEPCIONISTA ya no crea ni edita instructores.
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Post()
   @ApiOperation({ summary: 'Crear un instructor' })
   @Auditable('CREAR_INSTRUCTOR', 'Instructor')
-  create(@Body() dto: CreateInstructorDto) {
-    return this.instructoresService.create(dto);
+  create(
+    @Body() dto: CreateInstructorDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.instructoresService.create(dto, user);
   }
 
   @Get()
@@ -54,20 +61,21 @@ export class InstructoresController {
     return this.instructoresService.findOne(id);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un instructor' })
   @ApiParam({ name: 'id', description: 'UUID del instructor' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInstructorDto,
+    @CurrentUser() user: UsuarioAutenticado,
   ) {
-    return this.instructoresService.update(id, dto);
+    return this.instructoresService.update(id, dto, user);
   }
 
   // El borrado (baja lógica) queda exclusivo de Gerente — dar de baja
   // un instructor es una decisión más sensible que darlo de alta.
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Delete(':id')
   @ApiOperation({ summary: 'Dar de baja un instructor' })
   @ApiParam({ name: 'id', description: 'UUID del instructor' })

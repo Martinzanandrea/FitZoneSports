@@ -42,7 +42,7 @@ export class PagosController {
     return this.pagosService.pagarConPasarela(dto);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
   @Post('efectivo')
   @ApiOperation({ summary: 'Registrar un pago en efectivo' })
   @Auditable('COBRAR_EFECTIVO', 'Pago')
@@ -53,7 +53,7 @@ export class PagosController {
     return this.pagosService.registrarPagoEfectivo(dto, user.id);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
   @Get('efectivo/opciones')
   @ApiOperation({ summary: 'Obtener opciones para cobro en efectivo' })
   opcionesEfectivo(@CurrentUser() user: UsuarioAutenticado) {

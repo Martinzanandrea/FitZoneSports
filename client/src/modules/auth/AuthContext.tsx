@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { authApi } from './auth.api';
 import type { UsuarioAutenticado } from './auth.types';
 
@@ -7,6 +7,8 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<UsuarioAutenticado>; // 👈 ahora devuelve el usuario
   logout: () => Promise<void>;
+  // Vuelve a pedir /auth/me y actualiza el usuario (p. ej. tras pasar de EXTERNO a SOCIO).
+  refrescarUsuario: () => Promise<UsuarioAutenticado>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -34,8 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  // Sin tocar `loading`: no desmonta las rutas protegidas mientras refresca.
+  const refrescarUsuario = useCallback(async (): Promise<UsuarioAutenticado> => {
+    const usuario = await authApi.me();
+    setUser(usuario);
+    return usuario;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refrescarUsuario }}>
       {children}
     </AuthContext.Provider>
   );

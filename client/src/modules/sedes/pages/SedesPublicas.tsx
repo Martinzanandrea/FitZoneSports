@@ -1,49 +1,51 @@
-import { useEffect, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { sedesApi } from '../sedes.api';
-import type { SedePublica } from '../sedes.types';
 import { PageHeading, PinIcon, RegisterCta } from '../../../shared/components/Landing';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
+import { useDatosPublicos } from '../../../shared/hooks/useDatosPublicos';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function SedesPublicas() {
   useTitulo('Nuestras sedes');
-  const [sedes, setSedes] = useState<SedePublica[]>([]);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    sedesApi
-      .getAllPublico()
-      .then((data) => setSedes(data.filter((s) => s.activa !== false)))
-      .catch(() => setSedes([]))
-      .finally(() => setCargando(false));
-  }, []);
+  const { data, cargando, error, reintentar } = useDatosPublicos(sedesApi.getAllPublico);
+  const sedes = (data ?? []).filter((s) => s.activa !== false);
 
   return (
     <>
       <PageHeading
-        title="Nuestras"
         accent="sedes."
         description="Un solo abono te da acceso a todas. Elegí la que te quede más cerca."
+        title="Nuestras"
       />
-      <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8 lg:px-12 lg:pb-32">
+      <section className="lp-wrap" style={{ paddingBottom: 'clamp(24px, 5vw, 48px)' }}>
         {cargando ? (
-          <p className="text-sm text-black/50">Cargando sedes…</p>
+          <LoadingState label="Cargando sedes" rows={3} />
+        ) : error ? (
+          <ErrorState
+            description="No pudimos obtener las sedes. Intentá de nuevo en unos segundos."
+            onRetry={reintentar}
+            title="No pudimos cargar las sedes"
+          />
         ) : sedes.length === 0 ? (
-          <p className="text-sm text-black/50">Todavía no hay sedes publicadas.</p>
+          <EmptyState
+            description="Cuando se publiquen sedes las vas a ver acá."
+            icon={MapPin}
+            title="Todavía no hay sedes publicadas"
+          />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+          <div className="lp-grid lp-grid-3">
             {sedes.map((sede) => (
-              <article
-                key={sede.id}
-                className="group rounded-[1.75rem] border border-black/8 bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#8B2EFF]/25 hover:shadow-[0_20px_45px_-25px_rgba(139,46,255,0.4)] sm:p-8"
-              >
-                <div className="flex size-11 items-center justify-center rounded-full bg-[#EEE1FF] text-[#7119DE]">
+              <article className="lp-card glass" key={sede.id}>
+                <div className="lp-card-icon">
                   <PinIcon />
                 </div>
-                <h2 className="mt-5 text-2xl font-extrabold tracking-[-0.04em]">
+                <h2 style={{ font: '800 1.6rem/1.1 var(--font-title)', letterSpacing: '-0.03em', overflowWrap: 'anywhere' }}>
                   {sede.nombre}
                 </h2>
-                <p className="mt-2 text-sm text-black/55">{sede.direccion}</p>
-                <p className="mt-5 border-t border-black/8 pt-4 text-xs font-semibold text-black/40">
+                <p>{sede.direccion}</p>
+                <p className="lp-meta">
                   {sede.franjas?.length
                     ? sede.franjas.map((f) => `${f.apertura.slice(0, 5)}–${f.cierre.slice(0, 5)}`).join(' · ')
                     : 'Horario a confirmar'}

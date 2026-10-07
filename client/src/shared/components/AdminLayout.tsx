@@ -1,138 +1,88 @@
-/* eslint-disable react-hooks/static-components */
-import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { Menu, LogOut, Zap, Users, Building2, ScanLine, BookOpen, CreditCard, TrendingUp, QrCode, Calendar, CalendarCheck, Banknote, ClipboardList, GraduationCap, Tag } from 'lucide-react';
+import {
+  Banknote,
+  BookOpen,
+  Building2,
+  Calendar,
+  CalendarCheck,
+  ClipboardList,
+  CreditCard,
+  GraduationCap,
+  QrCode,
+  ScanLine,
+  Tag,
+  TrendingUp,
+  UserCheck,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '../../modules/auth/AuthContext';
-import { TipoActor } from '../../shared/types/enums';
+import { TipoActor } from '../types/enums';
+import { AppShell, type AppShellNavItem } from '../layout/AppShell';
+import '../../styles/operarios.css';
 
-const MANAGER_NAV = [
-  { to: '/admin/gerente', icon: TrendingUp, label: 'Panel' },
-  { to: '/admin/personal', icon: Users, label: 'Personal' },
-  { to: '/admin/sedes', icon: Building2, label: 'Sedes' },
-  { to: '/admin/canchas', icon: ScanLine, label: 'Canchas' },
-  { to: '/admin/clases', icon: BookOpen, label: 'Clases' },
-  { to: '/admin/instructores', icon: GraduationCap, label: 'Instructores' },
-  { to: '/admin/membresias', icon: CreditCard, label: 'Membresías' },
-  { to: '/admin/reservas', icon: ClipboardList, label: 'Reservas' },
-  { to: '/admin/reportes', icon: TrendingUp, label: 'Reportes' },
-  { to: '/admin/precios', icon: Tag, label: 'Precios' },
+interface MenuAdminItem extends AppShellNavItem {
+  /** false = ítem preparado pero todavía oculto. */
+  visible?: boolean;
+}
+
+// Menús del área de operarios, definidos en un solo lugar. El backend es la
+// autoridad: ocultar un ítem es solo UX.
+const MENU_RECEPCION: MenuAdminItem[] = [
+  { to: '/admin/recepcion', label: 'Recepción', icon: QrCode },
+  { to: '/admin/acceso', label: 'Control de acceso', icon: ScanLine },
+  { to: '/admin/acceso/dentro', label: 'Quién está dentro', icon: UserCheck },
+  { to: '/admin/cobrar', label: 'Cobrar', icon: Banknote },
+  { to: '/admin/reservas-clases', label: 'Reservas de clases', icon: Calendar },
+  { to: '/admin/reservas-canchas', label: 'Reservas de canchas', icon: CalendarCheck },
 ];
 
-const RECEPTION_NAV = [
-  { to: '/admin/recepcion', icon: QrCode, label: 'Panel' },
-  { to: '/admin/acceso', icon: QrCode, label: 'Control de acceso' },
-  { to: '/admin/instructores', icon: GraduationCap, label: 'Instructores' },
-  { to: '/admin/reservas-clases', icon: Calendar, label: 'Reservas de clases' },
-  { to: '/admin/reservas-canchas', icon: CalendarCheck, label: 'Reservas de canchas' },
-  { to: '/admin/cobrar', icon: Banknote, label: 'Cobrar en efectivo' },
+// Gerente de Sede: todo lo de su sede, sin Precios ni Sedes.
+const MENU_SEDE: MenuAdminItem[] = [
+  { to: '/admin/sede', label: 'Panel', icon: TrendingUp },
+  { to: '/admin/personal', label: 'Personal', icon: Users },
+  { to: '/admin/canchas', label: 'Canchas', icon: ScanLine },
+  { to: '/admin/clases', label: 'Clases', icon: BookOpen },
+  { to: '/admin/instructores', label: 'Instructores', icon: GraduationCap },
+  { to: '/admin/membresias', label: 'Membresías', icon: CreditCard },
+  { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList },
+  { to: '/admin/acceso', label: 'Control de acceso', icon: QrCode },
+  { to: '/admin/cobrar', label: 'Cobrar', icon: Banknote },
+  { to: '/admin/reportes', label: 'Reportes', icon: TrendingUp },
 ];
+
+const MENU_GENERAL: MenuAdminItem[] = [
+  { to: '/admin/gerente', label: 'Panel', icon: TrendingUp },
+  { to: '/admin/personal', label: 'Personal', icon: Users },
+  { to: '/admin/sedes', label: 'Sedes', icon: Building2 },
+  { to: '/admin/canchas', label: 'Canchas', icon: ScanLine },
+  { to: '/admin/clases', label: 'Clases', icon: BookOpen },
+  { to: '/admin/instructores', label: 'Instructores', icon: GraduationCap },
+  { to: '/admin/membresias', label: 'Membresías', icon: CreditCard },
+  { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList },
+  { to: '/admin/reportes', label: 'Reportes', icon: TrendingUp },
+  { to: '/admin/precios', label: 'Precios', icon: Tag },
+];
+
+function configuracionPorRol(tipo: string | undefined) {
+  switch (tipo) {
+    case TipoActor.GERENTE_GENERAL:
+      return { eyebrow: 'Panel general', roleLabel: 'Gerente general', items: MENU_GENERAL };
+    case TipoActor.GERENTE_SEDE:
+      return { eyebrow: 'Panel de sede', roleLabel: 'Gerente de sede', items: MENU_SEDE };
+    default:
+      return { eyebrow: 'Panel de recepción', roleLabel: 'Recepcionista', items: MENU_RECEPCION };
+  }
+}
 
 export function AdminLayout() {
-  const { user, logout } = useAuth();
-  const [open, setOpen] = useState(false);
-  const navItems = user?.tipoActor === TipoActor.GERENTE ? MANAGER_NAV : RECEPTION_NAV;
-  const iniciales = user ? `${user.nombre[0]}${user.apellido[0]}` : '';
-
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-white/[0.08]">
-        <div className="flex items-center justify-center rounded-xl bg-[#8B2EFF] shrink-0 w-8 h-8">
-          <Zap size={16} className="text-white" fill="white" />
-        </div>
-        <div>
-          <p className="text-white text-sm font-bold leading-tight">FitZone</p>
-          <p className="text-[#8B2EFF] text-[11px] font-medium leading-tight">Admin</p>
-        </div>
-      </div>
-
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end
-            onClick={() => setOpen(false)}
-            className={({ isActive }) =>
-              `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-              transition-all duration-150 focus:outline-none ${
-                isActive
-                  ? 'bg-[#8B2EFF] text-white shadow-lg shadow-[#8B2EFF]/30'
-                  : 'text-white/50 hover:text-white hover:bg-white/[0.06]'
-              }`
-            }
-          >
-            <item.icon size={17} />
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="px-3 py-4 border-t border-white/[0.08]">
-        <div className="flex items-center gap-3 px-3 py-2 mb-1">
-          <div className="w-7 h-7 rounded-full bg-[#8B2EFF]/30 flex items-center justify-center shrink-0">
-            <span className="text-[11px] font-bold text-[#8B2EFF]">{iniciales}</span>
-          </div>
-          <div className="min-w-0">
-            <p className="text-white text-xs font-semibold truncate">
-              {user?.nombre} {user?.apellido}
-            </p>
-            <p className="text-white/40 text-[11px] truncate">{user?.tipoActor}</p>
-          </div>
-        </div>
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-white/40
-            hover:text-red-400 hover:bg-red-400/10 transition-all duration-150 focus:outline-none"
-        >
-          <LogOut size={15} />
-          Salir
-        </button>
-      </div>
-    </div>
-  );
-
+  const { user } = useAuth();
+  const { eyebrow, roleLabel, items } = configuracionPorRol(user?.tipoActor);
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FAFAFA]">
-      <aside className="hidden md:flex flex-col w-60 bg-[#0A0A0A] shrink-0 overflow-hidden">
-        <SidebarContent />
-      </aside>
-
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed inset-y-0 left-0 w-64 bg-[#0A0A0A] z-30 md:hidden
-          transform transition-transform duration-300 ease-in-out
-          ${open ? 'translate-x-0' : '-translate-x-full'}`}
-      >
-        <SidebarContent />
-      </aside>
-
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-[#0A0A0A] border-b border-white/[0.06] shrink-0">
-          <button
-            onClick={() => setOpen(true)}
-            className="text-white/70 hover:text-white transition-colors p-1"
-            aria-label="Abrir menú"
-          >
-            <Menu size={20} />
-          </button>
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center rounded-xl bg-[#8B2EFF] shrink-0 w-6 h-6">
-              <Zap size={12} className="text-white" fill="white" />
-            </div>
-            <span className="text-white text-sm font-bold">FitZone Admin</span>
-          </div>
-        </div>
-
-        <main className="flex-1 overflow-y-auto p-5 md:p-8">
-          <Outlet />
-        </main>
-      </div>
-    </div>
+    <AppShell
+      eyebrow={eyebrow}
+      roleLabel={roleLabel}
+      items={items.filter((i) => i.visible !== false)}
+      accountTo={null}
+      logoutTo="/admin/login"
+    />
   );
 }

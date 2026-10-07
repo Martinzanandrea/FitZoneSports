@@ -3,7 +3,11 @@ import { Banknote, CreditCard, Smartphone, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext';
 import { pagosApi } from '../pagos.api';
 import type { Pago } from '../pagos.types';
-import { Badge, Card, Pagination } from '../../../shared/components/ui';
+import { Badge } from '../../../shared/components/ui';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function concepto(p: Pago) {
@@ -14,17 +18,17 @@ function concepto(p: Pago) {
 }
 
 const metodoIcono: Record<string, { icon: LucideIcon; color: string }> = {
-  EFECTIVO: { icon: Banknote, color: '#16A34A' },
-  MERCADOPAGO: { icon: CreditCard, color: '#3B82F6' },
-  MODO: { icon: Smartphone, color: '#8B2EFF' },
+  EFECTIVO: { icon: Banknote, color: '#8cf2a6' },
+  MERCADOPAGO: { icon: CreditCard, color: '#54e6d8' },
+  MODO: { icon: Smartphone, color: '#ffd071' },
 };
 
-function variantPorEstado(estado: string): 'green' | 'red' | 'amber' {
-  return estado === 'APROBADO' ? 'green' : estado === 'RECHAZADO' ? 'red' : 'amber';
+function variantePorEstado(estado: string): 'success' | 'danger' | 'warning' {
+  return estado === 'APROBADO' ? 'success' : estado === 'RECHAZADO' ? 'danger' : 'warning';
 }
 
 function etiquetaEstado(estado: string) {
-  return estado === 'APROBADO' ? '● Aprobado' : estado === 'RECHAZADO' ? '✕ Rechazado' : `◌ ${estado}`;
+  return estado === 'APROBADO' ? 'Aprobado' : estado === 'RECHAZADO' ? 'Rechazado' : 'Pendiente';
 }
 
 export function MisPagos() {
@@ -32,66 +36,148 @@ export function MisPagos() {
   const { user } = useAuth();
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (!user) return;
-    pagosApi.getPorUsuario(user.id, page).then((res) => { setPagos(res.data); setTotalPages(res.totalPages); }).catch(() => setError('No se pudieron cargar los pagos.')).finally(() => setLoading(false));
+    setLoading(true);
+    setError(false);
+    pagosApi
+      .getPorUsuario(user.id, page)
+      .then((res) => {
+        setPagos(res.data);
+        setTotalPages(res.totalPages);
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
   }, [user, page]);
-
-  if (loading) return <div className="max-w-2xl lg:max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-sm text-[#6B7280]">Cargando pagos...</div>;
 
   const aprobados = pagos.filter((p) => p.estado === 'APROBADO');
   const total = aprobados.reduce((s, p) => s + Number(p.monto), 0);
 
   return (
-    <div className="max-w-2xl lg:max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      <div>
-        <h2 className="text-2xl font-black tracking-tight text-gray-900">Mis pagos</h2>
-        <p className="text-sm text-gray-400 mb-5">Historial de transacciones</p>
-      </div>
-      {error && <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{error}</p>}
-
-      <div className="rounded-[1.75rem] p-5 mb-5 text-white" style={{ background: 'linear-gradient(135deg, #8B2EFF 0%, #A855F7 100%)' }}>
-        <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Total abonado</p>
-        <p className="text-4xl font-black tracking-tight">${total.toLocaleString('es-AR')}</p>
-        <p className="text-xs text-white/70 mt-1">{aprobados.length} pagos aprobados en esta página</p>
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Mis pagos</h2>
+          <p>Historial de transacciones y comprobantes.</p>
+        </div>
       </div>
 
-      {pagos.length === 0 ? (
-        <Card className="text-center py-8"><p className="text-sm text-[#6B7280]">Todavía no tenés pagos.</p></Card>
+      {loading ? (
+        <LoadingState rows={4} label="Cargando pagos" />
+      ) : error ? (
+        <ErrorState
+          title="No pudimos cargar los pagos"
+          description="Revisá tu conexión e intentá de nuevo en unos segundos."
+          onRetry={() => window.location.reload()}
+        />
       ) : (
-        <div className="space-y-3">
-          {pagos.map((p) => {
-            const { icon: IconoMetodo, color: colorMetodo } = metodoIcono[p.metodo] ?? { icon: CreditCard, color: '#6B7280' };
-            return (
-              <div key={p.id} className="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm p-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${colorMetodo}1A` }}>
-                    <IconoMetodo size={22} style={{ color: colorMetodo }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-sm font-black text-gray-900 leading-tight">{concepto(p)}</p>
-                      <p className="text-base font-black text-gray-900 flex-shrink-0">${p.monto}</p>
+        <>
+          <div className="glass panel" style={{ marginBottom: 14 }}>
+            <div className="chart-value">
+              <strong>${total.toLocaleString('es-AR')}</strong>
+              <span>total abonado en esta página</span>
+            </div>
+            <p style={{ fontSize: 11, marginTop: 4 }}>{aprobados.length} pagos aprobados</p>
+          </div>
+
+          {pagos.length === 0 ? (
+            <EmptyState
+              title="Todavía no tenés pagos"
+              description="Cuando realices un pago aparece acá con su comprobante."
+              icon={CreditCard}
+            />
+          ) : (
+            <section className="glass table-panel" aria-label="Historial de pagos">
+              <SectionHeader title="Historial" description="Últimas transacciones." />
+              <div className="data-table">
+                <div className="table-head">
+                  <span>Concepto</span>
+                  <span>Estado</span>
+                  <span>Fecha</span>
+                  <span>Monto</span>
+                </div>
+                {pagos.map((p) => {
+                  const { icon: IconoMetodo, color: colorMetodo } = metodoIcono[p.metodo] ?? {
+                    icon: CreditCard,
+                    color: 'var(--muted)',
+                  };
+                  return (
+                    <div className="table-row" key={p.id}>
+                      <div className="person-cell">
+                        <span
+                          className="avatar"
+                          style={{ background: `${colorMetodo}1A`, color: colorMetodo, fontSize: 14 }}
+                          aria-hidden
+                        >
+                          <IconoMetodo size={16} />
+                        </span>
+                        <span>
+                          <strong>{concepto(p)}</strong>
+                          <small>
+                            {p.metodo} · {new Date(p.creadoEn).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </small>
+                        </span>
+                      </div>
+                      <span>
+                        <Badge variant={variantePorEstado(p.estado)}>{etiquetaEstado(p.estado)}</Badge>
+                      </span>
+                      <span className="cell-value">
+                        {new Date(p.creadoEn).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                      </span>
+                      <span className="row-actions">
+                        <span className="cell-value" style={{ fontWeight: 700, color: 'var(--text)' }}>
+                          ${p.monto}
+                        </span>
+                        {p.comprobante?.pdfPath && (
+                          <a
+                            href={p.comprobante.pdfPath}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost"
+                            style={{ minHeight: 44, padding: '0 8px' }}
+                            aria-label={`Ver comprobante de ${concepto(p)}`}
+                          >
+                            🧾
+                          </a>
+                        )}
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-400">{new Date(p.creadoEn).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })} · {p.metodo}</p>
-                    <div className="flex items-center justify-between mt-3">
-                      <Badge variant={variantPorEstado(p.estado)}>{etiquetaEstado(p.estado)}</Badge>
-                      {p.comprobante?.pdfPath && (
-                        <a href={p.comprobante.pdfPath} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-[#8B2EFF] hover:underline">🧾 Comprobante</a>
-                      )}
-                    </div>
+                  );
+                })}
+              </div>
+              {totalPages > 1 && (
+                <div className="pagination-shell">
+                  <span>
+                    Página {page} de {totalPages}
+                  </span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button
+                      className="btn btn-secondary"
+                      disabled={page <= 1}
+                      onClick={() => setPage(page - 1)}
+                      style={{ minHeight: 44, padding: '0 12px' }}
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      disabled={page >= totalPages}
+                      onClick={() => setPage(page + 1)}
+                      style={{ minHeight: 44, padding: '0 12px' }}
+                    >
+                      Siguiente
+                    </button>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              )}
+            </section>
+          )}
+        </>
       )}
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-    </div>
+    </>
   );
 }

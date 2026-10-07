@@ -1,14 +1,12 @@
 import { Outlet } from 'react-router-dom';
-import { Footer, SiteHeader } from './Landing';
+import { PublicShell } from './Landing';
 
-// Layout público compartido (header + footer del diseño Figma) para
-// la landing y las páginas públicas: /, /clases, /canchas, /sedes, /nosotros.
+// Layout público compartido (barra + pie) para la landing y las páginas
+// públicas: /, /clases, /canchas, /sedes, /nosotros, /terminos.
 export function PublicLayout() {
   return (
-    <main className="min-h-screen bg-[#FAFAFA] text-[#0A0A0A]">
-      <SiteHeader />
+    <PublicShell>
       <Outlet />
-      <Footer />
-    </main>
+    </PublicShell>
   );
 }

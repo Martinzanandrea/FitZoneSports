@@ -115,15 +115,15 @@ export function Select({ value, onChange, opciones, placeholder, disabled, ariaL
         disabled={disabled}
         onClick={() => (abierto ? setAbierto(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2.5 text-left text-sm outline-none transition-colors ${
-          abierto ? 'border-[#8B2EFF] ring-2 ring-[#8B2EFF]/20' : 'border-[#E5E7EB] focus:border-[#8B2EFF]'
+        className={`flex w-full items-center justify-between gap-2 rounded-[11px] border bg-layer-2 px-3 py-2.5 text-left text-[11px] outline-none transition-colors ${
+          abierto ? 'border-lime ring-2 ring-lime/20' : 'border-white/10 focus:border-lime'
         } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${
-          value === '' && placeholder !== undefined ? 'text-[#9CA3AF]' : 'text-[#111111]'
+          value === '' && placeholder !== undefined ? 'text-mist' : 'text-ink'
         }`}
         style={{ minHeight: 44 }}
       >
         <span className="truncate">{etiqueta}</span>
-        <ChevronDown size={16} className={`shrink-0 text-[#6B7280] transition-transform ${abierto ? 'rotate-180' : ''}`} />
+        <ChevronDown size={16} className={`shrink-0 text-mist transition-transform ${abierto ? 'rotate-180' : ''}`} />
       </button>
       {required && (
         <input
@@ -139,7 +139,7 @@ export function Select({ value, onChange, opciones, placeholder, disabled, ariaL
         <div
           ref={listaRef}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-[#E5E7EB] bg-white p-1.5 shadow-[0_16px_35px_-22px_rgba(139,46,255,0.55)]"
+          className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-[#0e2b2f] p-1.5 shadow-[0_16px_35px_-12px_rgba(0,0,0,0.6)]"
         >
           {items.map((op, i) => {
             const seleccionada = op.value === value;
@@ -155,17 +155,17 @@ export function Select({ value, onChange, opciones, placeholder, disabled, ariaL
                 onMouseEnter={() => setDestacado(i)}
                 className={`flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                   op.disabled
-                    ? 'cursor-not-allowed text-[#9CA3AF]'
+                    ? 'cursor-not-allowed text-mist/60'
                     : seleccionada
-                      ? 'bg-[#F3E8FF] font-semibold text-[#111111]'
+                      ? 'bg-lime/15 font-semibold text-ink'
                       : i === destacado
-                        ? 'bg-[#F3E8FF]/60 text-[#111111]'
-                        : 'text-[#374151] hover:bg-[#F3E8FF]/60'
+                        ? 'bg-white/[0.06] text-ink'
+                        : 'text-mist hover:bg-white/[0.06]'
                 }`}
                 style={{ minHeight: 44 }}
               >
                 <span className="truncate">{op.label}</span>
-                {seleccionada && <Check size={16} className="shrink-0 text-[#8B2EFF]" />}
+                {seleccionada && <Check size={16} className="shrink-0 text-lime" />}
               </button>
             );
           })}

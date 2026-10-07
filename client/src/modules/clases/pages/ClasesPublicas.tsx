@@ -1,78 +1,51 @@
-import { useEffect, useState } from 'react';
-import { clasesApi, type ResumenClasePublica } from '../clases.api';
+import { clasesApi } from '../clases.api';
 import { useAuth } from '../../auth/AuthContext';
 import { PageHeading, RegisterCta } from '../../../shared/components/Landing';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
+import { useDatosPublicos } from '../../../shared/hooks/useDatosPublicos';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
-interface FichaClase {
-  name: string;
-  description: string;
-  image: string;
+interface FotoClase {
+  src: string;
   alt: string;
-  accent: string;
+  width: number;
+  height: number;
 }
 
-// Mismas descripciones del diseño Figma, matcheables por tipoClase en
-// minúsculas sin tildes. Imágenes locales (sin hotlinks).
-const FICHAS: Record<string, FichaClase> = {
-  yoga: {
-    name: 'Yoga Flow',
-    description: 'Respirá, soltá y movete a tu ritmo. Una práctica para volver al centro.',
-    image: '/images/landing/yoga-clase.jpg',
-    alt: 'Grupo practicando yoga en un estudio',
-    accent: 'bg-[#D8FF59] text-[#0A0A0A]',
-  },
-  spinning: {
-    name: 'Ride',
-    description: 'Música arriba, luces bajas y energía en equipo. Pedaleá y salí con todo.',
-    image: '/images/landing/spinning-clase.jpg',
-    alt: 'Personas entrenando en bicicletas de spinning',
-    accent: 'bg-[#FF693A] text-white',
-  },
-  funcional: {
-    name: 'Functional Team',
-    description: 'Fuerza, agilidad y potencia en circuitos dinámicos que nunca son iguales.',
-    image: '/images/landing/gimnasio-alt.jpg',
-    alt: 'Entrenamiento funcional en gimnasio',
-    accent: 'bg-[#8B2EFF] text-white',
-  },
-  pilates: {
-    name: 'Pilates Reformer',
-    description: 'Control, precisión y fuerza profunda para descubrir una forma de moverte mejor.',
-    image: '/images/landing/yoga-alt.jpg',
-    alt: 'Persona practicando pilates',
-    accent: 'bg-[#FFB7DF] text-[#0A0A0A]',
-  },
+// Fotos locales del repo, elegidas por tipo de clase (sin tildes, minúsculas).
+// El nombre que se muestra es siempre el tipo real que devuelve la API.
+const FOTOS: Record<string, FotoClase> = {
+  yoga: { src: '/images/landing/opt/yoga-clase.jpg', alt: 'Grupo practicando yoga en un estudio', width: 1400, height: 933 },
+  spinning: { src: '/images/landing/opt/spinning-clase.jpg', alt: 'Personas entrenando en bicicletas de spinning', width: 933, height: 1400 },
+  pilates: { src: '/images/landing/opt/yoga-alt.jpg', alt: 'Persona practicando pilates', width: 933, height: 1400 },
 };
 
-const FICHA_GENERICA: FichaClase = {
-  name: '',
-  description: 'Entrenamientos grupales con acompañamiento profesional en todas las sedes.',
-  image: '/images/landing/gimnasio-alt.jpg',
+const FOTO_GENERICA: FotoClase = {
+  src: '/images/landing/opt/gimnasio-alt.jpg',
   alt: 'Entrenamiento grupal en gimnasio',
-  accent: 'bg-[#8B2EFF] text-white',
+  width: 934,
+  height: 1400,
 };
 
 function normalizarTipo(tipoClase: string): string {
   return tipoClase
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+    .replace(/[̀-ͯ]/g, '');
+}
+
+function fotoPara(tipoClase: string): FotoClase {
+  const clave = normalizarTipo(tipoClase);
+  const hallada = Object.keys(FOTOS).find((k) => clave.includes(k));
+  return hallada ? FOTOS[hallada] : FOTO_GENERICA;
 }
 
 export function ClasesPublicas() {
   useTitulo('Clases grupales');
   const { user } = useAuth();
-  const [resumen, setResumen] = useState<ResumenClasePublica[]>([]);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    clasesApi
-      .getAllPublico()
-      .then(setResumen)
-      .catch(() => setResumen([]))
-      .finally(() => setCargando(false));
-  }, []);
+  const { data, cargando, error, reintentar } = useDatosPublicos(clasesApi.getAllPublico);
 
   return (
     <>
@@ -81,58 +54,65 @@ export function ClasesPublicas() {
         description="Entrenar se siente distinto cuando lo hacés con otros. Encontrá la clase que te enciende."
         title="Clases"
       />
-      <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8 lg:px-12 lg:pb-32">
+      <section className="lp-wrap" style={{ paddingBottom: 'clamp(24px, 5vw, 48px)' }}>
         {cargando ? (
-          <p className="text-sm text-black/50">Cargando clases…</p>
-        ) : resumen.length === 0 ? (
-          <p className="text-sm text-black/50">Todavía no hay clases publicadas.</p>
+          <LoadingState label="Cargando clases" rows={3} />
+        ) : error ? (
+          <ErrorState
+            description="No pudimos obtener el catálogo de clases. Intentá de nuevo en unos segundos."
+            onRetry={reintentar}
+            title="No pudimos cargar las clases"
+          />
+        ) : !data || data.length === 0 ? (
+          <EmptyState
+            description="Cuando se publiquen clases grupales las vas a ver acá."
+            title="Todavía no hay clases publicadas"
+          />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
-            {resumen.map((item) => {
-              const ficha = FICHAS[normalizarTipo(item.tipoClase)] ?? {
-                ...FICHA_GENERICA,
-                name: item.tipoClase,
-              };
+          <div className="lp-grid lp-grid-2">
+            {data.map((item, i) => {
+              const foto = fotoPara(item.tipoClase);
               return (
-                <article
-                  className="group overflow-hidden rounded-[1.75rem] border border-black/8 bg-white transition-all duration-500 hover:-translate-y-1 hover:border-[#8B2EFF]/25 hover:shadow-[0_24px_60px_-24px_rgba(139,46,255,0.42)]"
-                  key={item.tipoClase}
-                >
-                  <div className="relative aspect-video overflow-hidden bg-black/5">
+                <article className="lp-photo-card glass" key={item.tipoClase}>
+                  <div className="lp-photo">
                     <img
-                      alt={ficha.alt}
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.055]"
-                      src={ficha.image}
+                      alt={foto.alt}
+                      decoding="async"
+                      height={foto.height}
+                      loading={i < 2 ? 'eager' : 'lazy'}
+                      src={foto.src}
+                      width={foto.width}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                    <span
-                      className={`absolute left-5 top-5 rounded-full px-3.5 py-2 text-xs font-extrabold uppercase tracking-[0.12em] shadow-lg ${ficha.accent}`}
-                    >
-                      {item.tipoClase}
-                    </span>
+                    <span className="lp-photo-tag">0{i + 1}</span>
                   </div>
-                  <div className="p-6 sm:p-8">
-                    <h2 className="text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">
-                      {ficha.name}
-                    </h2>
-                    <p className="mt-3 text-[15px] leading-relaxed text-black/58 sm:min-h-[3.25rem] sm:text-base">
-                      {ficha.description}
-                    </p>
-                    <p className="mt-6 border-t border-black/8 pt-5 text-xs font-semibold text-black/40">
-                      Disponible en {item.sedesQueOfrecen} {item.sedesQueOfrecen === 1 ? 'sede' : 'sedes'} · {item.horasSemanalesTotales} hs semanales
-                    </p>
+                  <div className="lp-photo-body">
+                    <h2>{item.tipoClase}</h2>
+                    <div className="lp-meta">
+                      <span>
+                        <b>{item.sedesQueOfrecen}</b>
+                        {item.sedesQueOfrecen === 1 ? 'sede' : 'sedes'}
+                      </span>
+                      <span>
+                        <b>{item.horasSemanalesTotales}</b>hs semanales
+                      </span>
+                    </div>
                   </div>
                 </article>
               );
             })}
           </div>
         )}
+        <div className="lp-note glass">
+          <span className="lp-eyebrow">Cupos</span>
+          <h2>¿Cupo completo?</h2>
+          <p>Si la clase se llena, entrás en la lista de espera y te avisamos cuando se libera un lugar.</p>
+        </div>
       </section>
       <RegisterCta
         copy={user ? 'Ver horarios y reservar' : 'Registrate para ver horarios y reservar'}
-        to={user ? '/reservar-clases' : '/registro'}
         ctaLabel={user ? 'Reservar ahora' : undefined}
         footnote={user ? 'Tenés sesión iniciada. Elegí tu próximo turno.' : undefined}
+        to={user ? '/reservar-clases' : '/registro'}
       />
     </>
   );

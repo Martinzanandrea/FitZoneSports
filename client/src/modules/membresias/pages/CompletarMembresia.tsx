@@ -9,9 +9,15 @@ import { preciosApi } from '../../precios/precios.api';
 import type { Sede } from '../../sedes/sedes.types';
 import type { TipoPlan } from '../membresias.types';
 import type { PrecioPlan } from '../../precios/precios.types';
-import { Button } from '../../../shared/components/ui';
+import { formatMoney } from '../../../shared/components/ui';
 import { Select } from '../../../shared/components/Select';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { AuthLayout } from '../../auth/AuthLayout';
+import { TipoActor } from '../../../shared/types/enums';
+import { invalidarUnaVez, unaVez } from '../../../shared/utils/unaVez';
 
 const DESCRIPCIONES: Record<string, string> = {
   MENSUAL: 'Ideal para empezar',
@@ -21,7 +27,7 @@ const DESCRIPCIONES: Record<string, string> = {
 
 export function CompletarMembresia() {
   useTitulo('Completá tu membresía');
-  const { user } = useAuth();
+  const { user, refrescarUsuario } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const esRenovacion = searchParams.get('renovar') === 'true';
@@ -33,10 +39,41 @@ export function CompletarMembresia() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [simularRechazo, setSimularRechazo] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(false);
+  const esExterno = user?.tipoActor === TipoActor.EXTERNO;
+  const [verificando, setVerificando] = useState(!esExterno);
+
+  // Un Socio con membresía ACTIVA no se queda acá (va a su panel), salvo que
+  // venga a renovar a propósito (?renovar=true); sin membresía, vencida o
+  // suspendida se queda. El Externo se queda siempre: ve los planes y, al
+  // pagar, el backend lo promueve a Socio.
+  const usuarioId = user?.id;
+  useEffect(() => {
+    if (!usuarioId || esExterno) return;
+    let viva = true;
+    unaVez(`vigente:${usuarioId}`, () => membresiasApi.getVigente(usuarioId))
+      .then((m) => {
+        if (viva && m?.estado === 'ACTIVO' && !esRenovacion) navigate('/dashboard', { replace: true });
+      })
+      .catch(() => undefined)
+      .finally(() => viva && setVerificando(false));
+    return () => {
+      viva = false;
+    };
+  }, [usuarioId, esExterno, esRenovacion, navigate]);
 
   useEffect(() => {
-    sedesApi.getAllPublico().then(setSedes).catch(() => setSedes([]));
-    preciosApi.getMembresiasPublico().then(setPrecios).catch(() => setPrecios([]));
+    Promise.all([
+      sedesApi.getAllPublico().catch(() => [] as Sede[]),
+      preciosApi.getMembresiasPublico().catch(() => [] as PrecioPlan[]),
+    ])
+      .then(([s, p]) => {
+        setSedes(s);
+        setPrecios(p);
+      })
+      .catch(() => setErrorCarga(true))
+      .finally(() => setCargando(false));
   }, []);
 
   // Reemplaza al array PLANES hardcodeado: ahora sale de precios_plan
@@ -74,7 +111,12 @@ export function CompletarMembresia() {
         setError('El pago fue rechazado. Podés reintentar con otro método.');
         return;
       }
-      navigate('/dashboard');
+      // Pago aprobado: el backend ya promovió al Externo a Socio. Se descarta
+      // cualquier carga previa de `vigente` y se vuelve a pedir /auth/me para
+      // que el panel muestre la vista de Socio sin cerrar sesión.
+      invalidarUnaVez(`vigente:${user.id}`);
+      await refrescarUsuario().catch(() => undefined);
+      navigate('/dashboard', { replace: true });
     } catch {
       setError('No se pudo completar el pago. Intentá de nuevo.');
     } finally {
@@ -82,86 +124,115 @@ export function CompletarMembresia() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-lg bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8">
-        <h1 className="text-xl font-bold text-[#111111]">{esRenovacion ? 'Renovar tu membresía' : '¡Ya casi! Elegí tu plan'}</h1>
-        <p className="mt-1 text-sm text-[#6B7280]">Para activar tu membresía necesitamos que elijas un plan y una sede.</p>
+  if (cargando || verificando)
+    return (
+      <AuthLayout>
+        <LoadingState rows={3} label="Cargando planes" />
+      </AuthLayout>
+    );
+  if (errorCarga)
+    return (
+      <AuthLayout>
+        <ErrorState
+          title="No pudimos cargar los planes"
+          description="Revisá tu conexión e intentá de nuevo en unos segundos."
+          onRetry={() => window.location.reload()}
+        />
+      </AuthLayout>
+    );
 
-        <div className="mt-6 space-y-2.5">
-          {planes.length === 0 ? (
-            <p className="text-sm text-[#6B7280] py-4 text-center">Cargando planes…</p>
-          ) : (
-            planes.map((p) => (
+  return (
+    <AuthLayout>
+      <span className="eyebrow">{esRenovacion ? 'RENOVACIÓN' : esExterno ? 'HACETE SOCIO' : 'ÚLTIMO PASO'}</span>
+      <h1>{esRenovacion ? 'Renovar tu membresía' : '¡Ya casi! Elegí tu plan'}</h1>
+      <p>Para activar tu membresía necesitamos que elijas un plan y una sede.</p>
+      {esExterno && planSeleccionado && (
+        <p style={{ marginTop: 8 }}>
+          Al pagar el plan {planSeleccionado.label} ({formatMoney(planSeleccionado.precio)}) pasás a ser socio.
+        </p>
+      )}
+
+      <div>
+        {planes.length === 0 ? (
+          <EmptyState
+            title="No hay planes disponibles"
+            description="Los precios de los planes no se pudieron cargar. Intentá más tarde."
+            icon={CreditCard}
+          />
+        ) : (
+          <div className="stack-list" style={{ marginBottom: 18 }}>
+            {planes.map((p) => (
               <button
                 key={p.value}
+                className={`plan-option${plan === p.value ? ' active' : ''}`}
                 onClick={() => setPlan(p.value as TipoPlan)}
-                className={`w-full flex items-center justify-between p-4 rounded-xl border-2 text-left transition-colors ${
-                  plan === p.value ? 'border-[#8B2EFF] bg-[#F3E8FF]/40' : 'border-[#E5E7EB] hover:border-[#8B2EFF]/40'
-                }`}
+                aria-pressed={plan === p.value}
               >
-                <div>
-                  <p className="text-sm font-semibold text-[#111111]">{p.label}</p>
-                  <p className="text-xs text-[#6B7280]">{p.descripcion}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-[#111111]">${p.precio.toLocaleString('es-AR')}</span>
-                  {plan === p.value && <Check size={16} className="text-[#8B2EFF]" />}
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-
-        <div className="mt-5 space-y-1.5">
-          <label className="text-sm font-medium text-[#374151]">Sede donde te vas a registrar</label>
-          <Select
-            value={sedeId}
-            onChange={(v) => setSedeId(v)}
-            opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
-            placeholder="Seleccionar sede…"
-          />
-          <p className="text-xs text-[#6B7280]">Recordá que tu abono te da acceso a todas las sedes por igual.</p>
-        </div>
-
-        <div className="mt-5 space-y-1.5">
-          <label className="text-sm font-medium text-[#374151]">Método de pago</label>
-          <div className="grid grid-cols-2 gap-2">
-            {(['MERCADOPAGO', 'MODO'] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMetodo(m)}
-                className={`py-2.5 rounded-lg text-sm font-semibold border flex items-center justify-center gap-2 transition-colors ${
-                  metodo === m ? 'bg-[#8B2EFF] text-white border-[#8B2EFF]' : 'bg-white text-[#374151] border-[#E5E7EB]'
-                }`}
-              >
-                <CreditCard size={14} /> {m === 'MERCADOPAGO' ? 'Mercado Pago' : 'Modo'}
+                <span>
+                  <strong>{p.label}</strong>
+                  <small>{p.descripcion}</small>
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="price">${p.precio.toLocaleString('es-AR')}</span>
+                  {plan === p.value && <Check size={16} aria-hidden style={{ color: 'var(--lime)' }} />}
+                </span>
               </button>
             ))}
           </div>
-          <label className="flex items-center gap-2 text-xs text-[#6B7280] mt-2">
+        )}
+
+        <div style={{ marginBottom: 18 }}>
+          <span className="field-label">SEDE DONDE TE VAS A REGISTRAR</span>
+          <Select
+            value={sedeId}
+            onChange={setSedeId}
+            opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+            placeholder="Seleccionar sede…"
+          />
+          <p style={{ fontSize: 10, marginTop: 8 }}>Recordá que tu abono te da acceso a todas las sedes por igual.</p>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <span className="field-label">MÉTODO DE PAGO</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {(['MERCADOPAGO', 'MODO'] as const).map((m) => (
+              <button
+                key={m}
+                className={`plan-option${metodo === m ? ' active' : ''}`}
+                onClick={() => setMetodo(m)}
+                aria-pressed={metodo === m}
+                style={{ justifyContent: 'center' }}
+              >
+                <CreditCard size={16} aria-hidden />
+                <span style={{ fontSize: 12, fontWeight: 600 }}>{m === 'MERCADOPAGO' ? 'Mercado Pago' : 'Modo'}</span>
+              </button>
+            ))}
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, marginTop: 10, color: 'var(--muted)' }}>
             <input
               type="checkbox"
               checked={simularRechazo}
               onChange={(e) => setSimularRechazo(e.target.checked)}
-              className="rounded"
             />
             🧪 Simular pago rechazado (solo testing)
           </label>
         </div>
 
-        {error && <p className="mt-4 text-sm text-[#DC2626]">{error}</p>}
+        {error && (
+          <p role="alert" style={{ fontSize: 12, marginBottom: 14, color: 'var(--coral)' }}>
+            {error}
+          </p>
+        )}
 
-        <Button
-          fullWidth
-          size="lg"
-          className="mt-6"
-          onClick={handleConfirmar}
-          disabled={loading || !planSeleccionado}
+        <button
+          className="btn btn-primary"
+          style={{ width: '100%' }}
+          onClick={() => void handleConfirmar()}
+          disabled={loading || !planSeleccionado || !sedeId}
         >
           {loading ? 'Procesando pago…' : `Pagar $${(planSeleccionado?.precio ?? 0).toLocaleString('es-AR')}`}
-        </Button>
+        </button>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

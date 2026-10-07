@@ -19,6 +19,7 @@ import { AssignRoleDto } from './dto/assign-role.dto';
 import { ActualizarDniDto } from './dto/actualizar-dni.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -51,21 +52,44 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Post('staff')
   @ApiOperation({ summary: 'Crear un usuario de staff' })
   @Auditable('CREAR_PERSONAL', 'Usuario')
-  createStaff(@Body() dto: CreateUsuarioDto) {
-    return this.usuariosService.create(dto);
+  createStaff(
+    @Body() dto: CreateUsuarioDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.usuariosService.crearStaff(dto, user);
   }
   // IMPORTANTE: 'staff' tiene que ir ANTES de ':id' en el archivo,
   // para que Nest no lo interprete como un parámetro.
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Get('staff')
   @ApiOperation({ summary: 'Listar usuarios de staff' })
-  findStaff(@Query() query: PaginationQueryDto) {
-    return this.usuariosService.findStaff(query);
+  findStaff(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.usuariosService.findStaff(query, user);
+  }
+
+  // Búsqueda para el mostrador (RECEPCIONISTA, GS, GG). Va ANTES de
+  // ':id' para que Nest no la capture como parámetro.
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    TipoActor.RECEPCIONISTA,
+    TipoActor.GERENTE_SEDE,
+    TipoActor.GERENTE_GENERAL,
+  )
+  @Get('buscar-clientes')
+  @ApiOperation({
+    summary:
+      'Buscar socios y externos por nombre/apellido/DNI (mínimo 3 caracteres)',
+  })
+  buscarClientes(@Query('q') q?: string) {
+    return this.usuariosService.buscarClientes(q ?? '');
   }
 
   // Públicos, sin guard — van ANTES de ':id' para que Nest no los
@@ -84,7 +108,7 @@ export class UsuariosController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Patch(':id/sede')
   @ApiOperation({ summary: 'Asignar una sede a un usuario' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
@@ -120,21 +144,25 @@ export class UsuariosController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Get()
   @ApiOperation({ summary: 'Listar usuarios' })
-  findAll(@Query() query: PaginationQueryDto) {
-    return this.usuariosService.findAll(query);
+  findAll(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.usuariosService.findAll(query, user);
   }
 
-  @UseGuards(JwtAuthGuard) // sin RolesGuard: cualquier logueado, se valida ownership abajo
+  @UseGuards(JwtAuthGuard) // sin RolesGuard: matriz de perfiles en el service
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    assertOwnerOrStaff(user, id);
-    return this.usuariosService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.usuariosService.leerPerfil(id, user);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -154,10 +182,9 @@ export class UsuariosController {
       }),
     )
     dto: UpdateUsuarioDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UsuarioAutenticado,
   ) {
-    assertOwnerOrStaff(user, id);
-    return this.usuariosService.update(id, dto);
+    return this.usuariosService.update(id, dto, user);
   }
 
   @UseGuards(JwtAuthGuard) // sin RolesGuard: el propio usuario o staff (ownership abajo)
@@ -180,15 +207,13 @@ export class UsuariosController {
       }),
     )
     foto: Express.Multer.File,
-    @CurrentUser() user: any,
+    @CurrentUser() user: UsuarioAutenticado,
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    assertOwnerOrStaff(user, id);
-    return this.usuariosService.actualizarFoto(id, foto);
+    return this.usuariosService.actualizarFoto(id, foto, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Patch(':id/rol')
   @ApiOperation({ summary: 'Asignar rol a un usuario' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
@@ -200,15 +225,16 @@ export class UsuariosController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Patch(':id/dni')
   @ApiOperation({ summary: 'Actualizar el DNI de un usuario' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
   actualizarDni(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ActualizarDniDto,
+    @CurrentUser() user: UsuarioAutenticado,
   ) {
-    return this.usuariosService.actualizarDni(id, dto.dni);
+    return this.usuariosService.actualizarDni(id, dto.dni, user);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -230,12 +256,15 @@ export class UsuariosController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Delete(':id')
   @ApiOperation({ summary: 'Desactivar un usuario' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
   @Auditable('DESACTIVAR_USUARIO', 'Usuario')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usuariosService.remove(id);
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.usuariosService.remove(id, user);
   }
 }

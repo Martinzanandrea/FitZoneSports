@@ -1,18 +1,34 @@
 import { ArrowLeft, type LucideIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
-type BadgeVariant = 'green' | 'red' | 'amber' | 'violet' | 'gray';
-const badgeStyles: Record<BadgeVariant, string> = {
-  green: 'bg-[#F0FDF4] text-[#16A34A]',
-  red: 'bg-[#FEF2F2] text-[#DC2626]',
-  amber: 'bg-[#FFFBEB] text-[#D97706]',
-  violet: 'bg-[#F3E8FF] text-[#8B2EFF]',
-  gray: 'bg-[#F3F4F6] text-[#6B7280]',
+// Variantes históricas (green/red/amber/gray) se conservan y mapean a
+// los tonos del diseño; además se aceptan los nombres nuevos del diseño.
+type BadgeVariant =
+  | 'green'
+  | 'red'
+  | 'amber'
+  | 'gray'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'neutral';
+const badgeTones: Record<BadgeVariant, string> = {
+  green: 'badge-success',
+  success: 'badge-success',
+  red: 'badge-danger',
+  danger: 'badge-danger',
+  amber: 'badge-warning',
+  warning: 'badge-warning',
+  info: 'badge-info',
+  gray: 'badge-neutral',
+  neutral: 'badge-neutral',
 };
 
 export function Badge({ variant, children }: { variant: BadgeVariant; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center rounded-full text-xs font-semibold px-2.5 py-0.5 ${badgeStyles[variant]}`}>
+    <span className={`badge ${badgeTones[variant]}`}>
+      <i />
       {children}
     </span>
   );
@@ -20,7 +36,7 @@ export function Badge({ variant, children }: { variant: BadgeVariant; children: 
 
 export function Card({ children, className = '', style }: { children: ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={`rounded-xl p-4 bg-white border border-[#E5E7EB] ${className}`} style={style}>
+    <div className={`glass rounded-[22px] p-5 text-ink ${className}`} style={style}>
       {children}
     </div>
   );
@@ -30,7 +46,7 @@ interface ButtonProps {
   children: ReactNode;
   onClick?: () => void;
   type?: 'button' | 'submit';
-  variant?: 'primary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   fullWidth?: boolean;
@@ -39,10 +55,14 @@ interface ButtonProps {
 
 const btnBase = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all select-none';
 const btnVariants: Record<string, string> = {
-  primary: 'bg-[#8B2EFF] text-white hover:bg-[#7A25E6]',
-  outline: 'bg-transparent text-[#8B2EFF] border-[1.5px] border-[#8B2EFF] hover:bg-[#F3E8FF]',
-  ghost: 'bg-[#F3F4F6] text-[#374151] border border-[#E5E7EB] hover:bg-[#E5E7EB]',
-  danger: 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] hover:bg-[#FEE2E2]',
+  // Los colores de texto llevan `!` porque `button { color: inherit }` (theme.css,
+  // sin capa) pisa las utilidades de Tailwind y dejaba el texto claro sobre lime.
+  // #071a1d sobre lime ≈ 15:1 y sobre coral ≈ 7:1; ink/mist sobre glass > 7:1.
+  primary: 'bg-lime text-bg! hover:brightness-110 border border-transparent',
+  secondary: 'bg-white/[0.06] text-ink! border border-white/10 hover:bg-white/10',
+  outline: 'bg-transparent text-lime! border-[1.5px] border-lime/60 hover:bg-lime/10',
+  ghost: 'bg-transparent text-mist! border border-transparent hover:text-ink! hover:bg-white/[0.05]',
+  danger: 'bg-coral text-bg! border border-transparent hover:brightness-110',
 };
 const btnSizes: Record<string, string> = { sm: 'px-3 text-sm', md: 'px-4 text-sm', lg: 'px-5 text-base' };
 const btnHeights: Record<string, string> = { sm: 'h-9', md: 'h-11', lg: 'h-12' };
@@ -62,7 +82,7 @@ export function Button({ children, onClick, type = 'button', variant = 'primary'
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="text-base font-bold text-[#111111] mb-3">{children}</h2>;
+  return <h2 className="font-title text-base font-bold text-ink mb-3">{children}</h2>;
 }
 
 export function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
@@ -70,7 +90,7 @@ export function Chip({ label, active, onClick }: { label: string; active: boolea
     <button
       onClick={onClick}
       className={`rounded-full text-sm font-medium px-4 h-9 inline-flex items-center whitespace-nowrap transition-colors ${
-        active ? 'bg-[#8B2EFF] text-white' : 'bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB] hover:border-[#8B2EFF]'
+        active ? 'bg-lime text-bg' : 'bg-white/[0.05] text-mist border border-white/10 hover:border-lime/60'
       }`}
       style={{ minHeight: '44px' }}
     >
@@ -79,13 +99,13 @@ export function Chip({ label, active, onClick }: { label: string; active: boolea
   );
 }
 
-export function StatCard({ label, value, sub, icon: Icon, iconColor = '#8B2EFF', trend }: {
+export function StatCard({ label, value, sub, icon: Icon, iconColor = '#caff3d', trend }: {
   label: string; value: string; sub?: string; icon?: LucideIcon; iconColor?: string; trend?: 'up' | 'down';
 }) {
   return (
-    <div className="rounded-xl p-4 bg-white border border-[#E5E7EB]">
+    <div className="glass rounded-[20px] p-4">
       <div className="flex items-start justify-between">
-        <span className="text-[13px] font-medium text-[#6B7280]">{label}</span>
+        <span className="text-[13px] font-medium text-mist">{label}</span>
         {Icon && (
           <span
             className="flex h-9 w-9 items-center justify-center rounded-full shrink-0"
@@ -95,10 +115,10 @@ export function StatCard({ label, value, sub, icon: Icon, iconColor = '#8B2EFF',
           </span>
         )}
       </div>
-      <div className="text-[28px] font-bold text-[#111111] tracking-tight mt-2">{value}</div>
+      <div className="font-title text-[28px] font-bold text-ink tracking-tight mt-2">{value}</div>
       {sub && (
         <div className={`text-[13px] mt-1 flex items-center gap-1 ${
-          trend === 'up' ? 'text-[#16A34A]' : trend === 'down' ? 'text-[#DC2626]' : 'text-[#6B7280]'
+          trend === 'up' ? 'text-[#8cf2a6]' : trend === 'down' ? 'text-coral' : 'text-mist'
         }`}>
           {trend === 'up' && '↑ '}{trend === 'down' && '↓ '}{sub}
         </div>
@@ -107,9 +127,9 @@ export function StatCard({ label, value, sub, icon: Icon, iconColor = '#8B2EFF',
   );
 }
 
-export function ProgressBar({ value, color = '#8B2EFF' }: { value: number; color?: string }) {
+export function ProgressBar({ value, color = '#caff3d' }: { value: number; color?: string }) {
   return (
-    <div className="w-full h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden">
+    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
       <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, value)}%`, background: color }} />
     </div>
   );
@@ -117,7 +137,7 @@ export function ProgressBar({ value, color = '#8B2EFF' }: { value: number; color
 
 export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
   const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('');
-  const colors = ['#8B2EFF', '#3B82F6', '#16A34A', '#F59E0B', '#DC2626'];
+  const colors = ['#caff3d', '#54e6d8', '#ff826c', '#8cf2a6', '#ffd071'];
   const color = colors[name.charCodeAt(0) % colors.length];
   return (
     <div
@@ -138,12 +158,12 @@ export function Donut({ active, inactive, size = 80 }: { active: number; inactiv
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F3F4F6" strokeWidth={10} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#8B2EFF" strokeWidth={10}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={10} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#caff3d" strokeWidth={10}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-sm font-bold text-[#111111]">{Math.round(activePct * 100)}%</span>
+        <span className="text-sm font-bold text-ink">{Math.round(activePct * 100)}%</span>
       </div>
     </div>
   );
@@ -167,7 +187,7 @@ export function PageHeader({
     <div className="flex items-center justify-between mb-6">
       <div className="flex flex-col gap-1">
         {onBack && <BackButton onClick={onBack} />}
-        <h2 className="text-[22px] font-bold text-[#111111] tracking-tight">{title}</h2>
+        <h2 className="font-title text-[22px] font-bold text-ink tracking-tight">{title}</h2>
       </div>
       {action}
     </div>
@@ -177,7 +197,7 @@ export function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 text-sm font-medium text-[#6B7280] hover:text-[#8B2EFF] transition-colors mb-1"
+      className="flex items-center gap-1.5 text-sm font-medium text-mist hover:text-lime transition-colors mb-1"
       style={{ minHeight: 44 }}
     >
       <ArrowLeft size={18} />
@@ -193,13 +213,13 @@ export function Pagination({ page, totalPages, onChange }: {
   return (
     <div className="flex items-center justify-center gap-3 mt-4">
       <button disabled={page <= 1} onClick={() => onChange(page - 1)}
-        className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm disabled:opacity-40"
+        className="px-3 py-1.5 rounded-lg border border-white/10 text-sm text-ink disabled:opacity-40"
         style={{ minHeight: 44 }}>
         Anterior
       </button>
-      <span className="text-sm text-[#6B7280]">Página {page} de {totalPages}</span>
+      <span className="text-sm text-mist">Página {page} de {totalPages}</span>
       <button disabled={page >= totalPages} onClick={() => onChange(page + 1)}
-        className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm disabled:opacity-40"
+        className="px-3 py-1.5 rounded-lg border border-white/10 text-sm text-ink disabled:opacity-40"
         style={{ minHeight: 44 }}>
         Siguiente
       </button>
@@ -220,7 +240,7 @@ export function Tooltip({ text, children, className = '' }: { text: string; chil
     >
       {children}
       {visible && (
-        <span className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[220px] rounded-lg bg-[#111111] px-3 py-2 text-xs text-white shadow-lg">
+        <span className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[220px] rounded-lg bg-black/90 border border-white/10 px-3 py-2 text-xs text-ink shadow-lg">
           {text}
         </span>
       )}

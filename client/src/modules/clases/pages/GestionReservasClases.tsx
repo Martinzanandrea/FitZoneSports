@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, HelpCircle, Plus, Users, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { AlertTriangle, Building2, CalendarDays, Plus, Search, Users, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { clasesApi } from '../clases.api';
 import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
-import { usuariosApi } from '../../usuarios/usuarios.api';
-import type { Usuario } from '../../usuarios/usuarios.types';
+import { usuariosApi, type ClienteBuscado } from '../../usuarios/usuarios.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
-import { Badge, Button, Card, Chip, StatCard, Tooltip } from '../../../shared/components/ui';
 import { Select } from '../../../shared/components/Select';
-import { colorPorTipo } from '../../../shared/utils/colorClase';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const DIAS_A_FUTURO = 14;
+const MIN_BUSQUEDA = 3;
 
 const DIAS_SEMANA = [
   { value: 1, label: 'Lun' },
@@ -25,6 +27,14 @@ const DIAS_SEMANA = [
   { value: 6, label: 'Sáb' },
   { value: 0, label: 'Dom' },
 ];
+
+// Acento de cada tipo de clase con los tokens de la paleta (determinístico por nombre).
+const ACENTOS = ['var(--lime)', 'var(--aqua)', 'var(--coral)'];
+function acentoPorTipo(tipoClase: string): string {
+  let hash = 0;
+  for (let i = 0; i < tipoClase.length; i++) hash = (hash * 31 + tipoClase.charCodeAt(i)) >>> 0;
+  return ACENTOS[hash % ACENTOS.length];
+}
 
 function aYMD(d: Date): string {
   return d.toISOString().split('T')[0];
@@ -49,21 +59,27 @@ function etiquetaOcurrencia(o: ClaseOcurrencia): string {
   return `${formatearFecha(o.fecha)} · ${o.horaInicio.slice(0, 5)} - ${o.horaFin.slice(0, 5)}`;
 }
 
+function mensajeDe(e: unknown, porDefecto: string): string {
+  const ax = e as { response?: { data?: { message?: string | string[] } } };
+  const raw = ax.response?.data?.message;
+  return Array.isArray(raw) ? raw.join(', ') : raw ?? porDefecto;
+}
+
 export function GestionReservasClases() {
   useTitulo('Reservas de clases');
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const sedeId = searchParams.get('sedeId') ?? user?.sedeId ?? null;
+  const esGG = user?.tipoActor === TipoActor.GERENTE_GENERAL;
+  // La sede del Gerente de Sede y del Recepcionista va fija; solo el GG la elige.
+  const sedeId = esGG ? searchParams.get('sedeId') ?? user?.sedeId ?? null : user?.sedeId ?? null;
 
   const [sedeNombre, setSedeNombre] = useState('');
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [clases, setClases] = useState<Clase[]>([]);
   const [ocurrenciasPorClase, setOcurrenciasPorClase] = useState<Record<string, ClaseOcurrencia[]>>({});
   const [reservasPorOcurrencia, setReservasPorOcurrencia] = useState<Record<string, ReservaClase[]>>({});
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [accionId, setAccionId] = useState<string | null>(null);
 
@@ -73,13 +89,16 @@ export function GestionReservasClases() {
   const [panelAbierto, setPanelAbierto] = useState(false);
   const [paso, setPaso] = useState(1);
   const [occSelId, setOccSelId] = useState('');
-  const [usuarioSelId, setUsuarioSelId] = useState('');
+  const [socioElegido, setSocioElegido] = useState<ClienteBuscado | null>(null);
   const [busquedaUsuario, setBusquedaUsuario] = useState('');
+  const [resultados, setResultados] = useState<ClienteBuscado[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState('');
 
   useEffect(() => {
-    if (user?.tipoActor !== TipoActor.GERENTE) return;
+    if (!esGG) return;
     sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
-  }, [user?.tipoActor]);
+  }, [esGG]);
 
   const clasesDeSede = useMemo(() => {
     if (!sedeId) return [];
@@ -93,9 +112,7 @@ export function GestionReservasClases() {
     const todas = Object.entries(ocurrenciasPorClase)
       .filter(([claseId]) => clasesDeSede.some((c) => c.id === claseId))
       .flatMap(([claseId, occs]) => occs.map((o) => ({ ...o, claseId })));
-    return todas
-      .filter((o) => o.estado === 'PROGRAMADA')
-      .sort((a, b) => inicioOcurrencia(a) - inicioOcurrencia(b));
+    return todas.filter((o) => o.estado === 'PROGRAMADA').sort((a, b) => inicioOcurrencia(a) - inicioOcurrencia(b));
   }, [ocurrenciasPorClase, clasesDeSede]);
 
   const conteoPorDia = useMemo(() => {
@@ -108,10 +125,7 @@ export function GestionReservasClases() {
   }, [ocurrenciasDeSede]);
 
   const ocurrenciasDelDia = useMemo(
-    () =>
-      ocurrenciasDeSede.filter(
-        (o) => new Date(`${o.fecha}T00:00`).getDay() === diaSel,
-      ),
+    () => ocurrenciasDeSede.filter((o) => new Date(`${o.fecha}T00:00`).getDay() === diaSel),
     [ocurrenciasDeSede, diaSel],
   );
 
@@ -122,8 +136,7 @@ export function GestionReservasClases() {
     let capacidad = 0;
     let casiLlenas = 0;
     for (const o of deHoy) {
-      const clase = clasePorId.get(o.claseId);
-      const cap = clase?.capacidad ?? 0;
+      const cap = clasePorId.get(o.claseId)?.capacidad ?? 0;
       const oc = (reservasPorOcurrencia[o.id] ?? []).filter((r) => r.estado === 'RESERVADA').length;
       ocupadas += oc;
       capacidad += cap;
@@ -132,6 +145,7 @@ export function GestionReservasClases() {
     return { clasesHoy: deHoy.length, ocupadas, capacidad, casiLlenas };
   }, [ocurrenciasDeSede, reservasPorOcurrencia, clasePorId]);
 
+  // Se puede anotar hasta 30 minutos antes del inicio.
   const anotables = useMemo(() => {
     const limite = Date.now() + 30 * 60 * 1000;
     return ocurrenciasDeSede.filter((o) => inicioOcurrencia(o) >= limite);
@@ -147,38 +161,18 @@ export function GestionReservasClases() {
     return Array.from(grupos.entries());
   }, [anotables]);
 
-  const usuariosFiltrados = useMemo(() => {
-    const q = busquedaUsuario.trim().toLowerCase();
-    const base = usuarios.filter((u) => u.tipoActor === 'SOCIO' || u.tipoActor === 'EXTERNO');
-    if (!q) return base.slice(0, 50);
-    return base.filter((u) =>
-      `${u.nombre} ${u.apellido} ${u.email} ${u.dni ?? ''}`.toLowerCase().includes(q),
-    ).slice(0, 50);
-  }, [usuarios, busquedaUsuario]);
-
-  const occElegida = useMemo(
-    () => anotables.find((o) => o.id === occSelId) ?? null,
-    [anotables, occSelId],
-  );
-  const socioElegido = useMemo(
-    () => usuarios.find((u) => u.id === usuarioSelId) ?? null,
-    [usuarios, usuarioSelId],
-  );
+  const occElegida = useMemo(() => anotables.find((o) => o.id === occSelId) ?? null, [anotables, occSelId]);
 
   async function cargar() {
     setLoading(true);
-    setError(null);
+    setError(false);
     try {
-      const [clasesRes, usuariosRes, sede] = await Promise.all([
+      const [clasesRes, sede] = await Promise.all([
         clasesApi.getAll(sedeId ?? undefined, 1, 100),
-        usuariosApi.getAll(1, 100),
         sedeId ? sedesApi.getOne(sedeId).catch(() => null) : Promise.resolve(null),
       ]);
       const allClases = clasesRes.data;
-      // TODO: este buscador solo aplica a la página actual, no al total — filtrar server-side en el futuro.
-      const allUsuarios = usuariosRes.data;
       setClases(allClases);
-      setUsuarios(allUsuarios);
       if (sede) setSedeNombre(sede.nombre);
       const deSede = allClases.filter((c) => c.activa && sedeId !== null && c.sede.id === sedeId);
       const hoy = aYMD(new Date());
@@ -208,7 +202,7 @@ export function GestionReservasClases() {
       );
       setReservasPorOcurrencia(resMap);
     } catch {
-      setError('No se pudieron cargar las clases.');
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -219,17 +213,50 @@ export function GestionReservasClases() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sedeId]);
 
+  // Búsqueda de socio en el panel: GET /usuarios/buscar-clientes (mínimo 3 caracteres).
+  useEffect(() => {
+    const q = busquedaUsuario.trim();
+    if (!panelAbierto || paso !== 2 || q.length < MIN_BUSQUEDA) {
+      setResultados([]);
+      setErrorBusqueda('');
+      return;
+    }
+    let viva = true;
+    setBuscando(true);
+    const t = window.setTimeout(() => {
+      usuariosApi
+        .buscarClientes(q)
+        .then((r) => {
+          if (!viva) return;
+          setResultados(r);
+          setErrorBusqueda('');
+        })
+        .catch(() => viva && setErrorBusqueda('No se pudo buscar. Intentá de nuevo.'))
+        .finally(() => viva && setBuscando(false));
+    }, 300);
+    return () => {
+      viva = false;
+      window.clearTimeout(t);
+      setBuscando(false);
+    };
+  }, [busquedaUsuario, panelAbierto, paso]);
+
+  useEffect(() => {
+    if (!panelAbierto) return;
+    function alEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') setPanelAbierto(false);
+    }
+    document.addEventListener('keydown', alEscape);
+    return () => document.removeEventListener('keydown', alEscape);
+  }, [panelAbierto]);
+
   function abrirPanel() {
     setPaso(1);
     setOccSelId('');
-    setUsuarioSelId('');
+    setSocioElegido(null);
     setBusquedaUsuario('');
     setMsg(null);
     setPanelAbierto(true);
-  }
-
-  function cerrarPanel() {
-    setPanelAbierto(false);
   }
 
   function ocupadasDe(ocurrenciaId: string) {
@@ -237,19 +264,16 @@ export function GestionReservasClases() {
   }
 
   async function handleConfirmar() {
-    if (!occSelId || !usuarioSelId) return;
+    if (!occSelId || !socioElegido) return;
     setAccionId('anotar');
     setMsg(null);
     try {
-      const reserva = await clasesApi.reservar(occSelId, usuarioSelId);
+      const reserva = await clasesApi.reservar(occSelId, socioElegido.id);
       setReservasPorOcurrencia((prev) => ({ ...prev, [occSelId]: [...(prev[occSelId] ?? []), reserva] }));
-      cerrarPanel();
+      setPanelAbierto(false);
       setMsg({ type: 'ok', text: `Reserva creada: ${reserva.usuario.nombre} ${reserva.usuario.apellido} — ${reserva.estado}` });
     } catch (e: unknown) {
-      const ax = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = ax.response?.data?.message;
-      const text = Array.isArray(raw) ? raw.join(', ') : raw ?? 'No se pudo reservar.';
-      setMsg({ type: 'err', text });
+      setMsg({ type: 'err', text: mensajeDe(e, 'No se pudo reservar.') });
     } finally {
       setAccionId(null);
     }
@@ -267,283 +291,296 @@ export function GestionReservasClases() {
       });
       setMsg({ type: 'ok', text: 'Reserva cancelada.' });
     } catch (e: unknown) {
-      const ax = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = ax.response?.data?.message;
-      const text = Array.isArray(raw) ? raw.join(', ') : raw ?? 'No se pudo cancelar.';
-      setMsg({ type: 'err', text });
+      setMsg({ type: 'err', text: mensajeDe(e, 'No se pudo cancelar.') });
     } finally {
       setAccionId(null);
     }
   }
 
-  // Solo el Recepcionista necesita sede asignada para operar. El Gerente
-  // tiene sedeId null por diseño ("todas las sedes") y no debe bloquearse.
-  if (!sedeId && user?.tipoActor === TipoActor.RECEPCIONISTA) {
+  // Todos necesitan sede asignada para operar salvo el GG, que tiene sedeId
+  // null por diseño ("todas las sedes") y elige la sede con el selector.
+  if (!sedeId && !esGG) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-6">
-        <h1 className="text-xl font-bold text-[#111111]">Reservas de clases</h1>
-        <div className="mt-4 p-4 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] text-sm text-[#92400E]">
-          Tu usuario no tiene una sede asignada.
-        </div>
-      </div>
+      <EmptyState
+        icon={Building2}
+        title="Todavía no tenés una sede asignada"
+        description="Contactá a un gerente para que te asigne una sede."
+      />
     );
   }
 
-  if (loading) return <div className="max-w-lg mx-auto px-4 py-6 text-sm text-[#6B7280]">Cargando clases...</div>;
-
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-24">
-      <div>
-        <h1 className="text-xl font-bold text-[#111111]">Reservas de clases</h1>
-        <p className="text-sm text-[#6B7280] mt-1">{sedeNombre || 'Tu sede'}</p>
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Reservas de clases</h2>
+          <p>{sedeNombre || 'Tu sede'}</p>
+        </div>
+        {sedeId && !loading && !error && (
+          <button className="btn btn-primary" onClick={abrirPanel}>
+            <Plus size={16} aria-hidden /> Anotar socio
+          </button>
+        )}
       </div>
 
-      {user?.tipoActor === TipoActor.GERENTE && (
-        <label className="block text-sm font-medium text-[#374151]">
-          Sede
-          <div className="mt-1.5">
+      {esGG && (
+        <div className="filters">
+          <div className="select-field">
+            <span className="field-label">SEDE</span>
             <Select
               value={sedeId ?? ''}
               onChange={(v) => setSearchParams(v ? { sedeId: v } : {})}
               opciones={sedes.map((sede) => ({ value: sede.id, label: sede.nombre }))}
               placeholder="Seleccionar sede..."
+              ariaLabel="Sede"
             />
           </div>
-        </label>
+        </div>
       )}
 
-      {error && <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{error}</p>}
-      {msg && <p className={`rounded-lg border p-3 text-sm ${msg.type==='ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>{msg.text}</p>}
+      {msg && (
+        <p role="status" className={`notice ${msg.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginBottom: 14 }}>
+          {msg.text}
+        </p>
+      )}
 
-      {!sedeId && user?.tipoActor === TipoActor.GERENTE ? (
-        <Card className="text-center py-8">
-          <p className="text-sm text-[#6B7280]">Seleccioná una sede para gestionar sus reservas.</p>
-        </Card>
+      {!sedeId ? (
+        <EmptyState icon={Building2} title="Elegí una sede" description="Seleccioná una sede para gestionar sus reservas." />
+      ) : loading ? (
+        <LoadingState rows={4} label="Cargando clases" />
+      ) : error ? (
+        <ErrorState title="No pudimos cargar las clases" onRetry={() => void cargar()} />
       ) : (
-      <div className="grid grid-cols-3 gap-2">
-        <StatCard label="Clases hoy" value={String(statsHoy.clasesHoy)} icon={CalendarDays} iconColor="#8B2EFF" />
-        <StatCard label="Cupo ocupado hoy" value={`${statsHoy.ocupadas}/${statsHoy.capacidad}`} icon={Users} iconColor="#3B82F6" />
-        <StatCard label="Casi llenas (>80%)" value={String(statsHoy.casiLlenas)} icon={AlertTriangle} iconColor="#D97706" />
-      </div>
-      )}
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-      <div className="min-w-0 space-y-6">
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {DIAS_SEMANA.map((d) => (
-          <Chip
-            key={d.value}
-            label={`${d.label} (${conteoPorDia.get(d.value) ?? 0})`}
-            active={diaSel === d.value}
-            onClick={() => setDiaSel(d.value)}
-          />
-        ))}
-      </div>
+        <>
+          <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
+            <MetricCard label="Clases hoy" value={String(statsHoy.clasesHoy)} change="programadas" icon={CalendarDays} />
+            <MetricCard label="Cupo ocupado hoy" value={`${statsHoy.ocupadas}/${statsHoy.capacidad}`} change="lugares reservados" icon={Users} />
+            <MetricCard label="Casi llenas" value={String(statsHoy.casiLlenas)} change="más del 80% de cupo" icon={AlertTriangle} />
+          </div>
 
-      <div className="space-y-2">
-        {ocurrenciasDelDia.length === 0 ? (
-          <Card className="text-center py-8">
-            <p className="text-sm text-[#6B7280]">Sin clases este día.</p>
-          </Card>
-        ) : (
-          ocurrenciasDelDia.map((o) => {
-            const clase = clasePorId.get(o.claseId);
-            if (!clase) return null;
-            const color = colorPorTipo(clase.tipoClase);
-            const ocupadas = ocupadasDe(o.id);
-            const llena = ocupadas >= clase.capacidad;
-            const expandida = expandidas[o.id] ?? false;
-            const reservas = reservasPorOcurrencia[o.id] ?? [];
-            return (
-              <Card
-                key={o.id}
-                className="border-l-4"
-                style={{ backgroundColor: color.fondo, borderLeftColor: color.borde }}
+          <div className="segmented" role="tablist" aria-label="Día de la semana">
+            {DIAS_SEMANA.map((d) => (
+              <button
+                key={d.value}
+                type="button"
+                role="tab"
+                aria-selected={diaSel === d.value}
+                className={diaSel === d.value ? 'active' : ''}
+                onClick={() => setDiaSel(d.value)}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-[#111111]">{clase.tipoClase}</p>
-                    <p className="mt-0.5 text-xs text-[#6B7280]">
-                      {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)} · {clase.instructor.nombre}
-                    </p>
-                  </div>
-                  {llena ? <Badge variant="amber">Llena</Badge> : <Badge variant="green">{ocupadas}/{clase.capacidad}</Badge>}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setExpandidas((prev) => ({ ...prev, [o.id]: !expandida }))}
-                  className="mt-2 text-xs font-semibold text-[#8B2EFF] hover:underline"
-                  style={{ minHeight: 44 }}
-                >
-                  {expandida ? 'Ocultar reservas' : `Ver reservas (${reservas.length})`}
-                </button>
-                {expandida && (
-                  <div className="mt-2 space-y-2">
-                    {reservas.length === 0 ? (
-                      <p className="text-xs text-[#6B7280]">Sin reservas.</p>
-                    ) : (
-                      reservas.map((r) => (
-                        <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white p-2.5">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-[#111111] truncate">{r.usuario.nombre} {r.usuario.apellido}</p>
-                            <div className="mt-1 flex items-center gap-1 flex-wrap">
-                              <Badge variant={r.estado === 'RESERVADA' ? 'green' : r.estado === 'LISTA_ESPERA' ? 'amber' : r.estado === 'CANCELADA' ? 'gray' : 'violet'}>{r.estado}</Badge>
-                              {r.estado === 'LISTA_ESPERA' && (
-                                <Tooltip text="En espera: entra solo si alguien cancela su lugar">
-                                  <HelpCircle size={14} className="text-[#9CA3AF]" />
-                                </Tooltip>
+                {d.label} ({conteoPorDia.get(d.value) ?? 0})
+              </button>
+            ))}
+          </div>
+
+          {ocurrenciasDelDia.length === 0 ? (
+            <EmptyState icon={CalendarDays} title="Sin clases este día" description="No hay clases programadas para este día en los próximos 14 días." />
+          ) : (
+            <div className="stack-gap">
+              {ocurrenciasDelDia.map((o) => {
+                const clase = clasePorId.get(o.claseId);
+                if (!clase) return null;
+                const ocupadas = ocupadasDe(o.id);
+                const llena = ocupadas >= clase.capacidad;
+                const expandida = expandidas[o.id] ?? false;
+                const reservas = reservasPorOcurrencia[o.id] ?? [];
+                return (
+                  <article key={o.id} className="glass panel" style={{ borderLeft: `4px solid ${acentoPorTipo(clase.tipoClase)}` }}>
+                    <div className="section-header" style={{ marginBottom: 6 }}>
+                      <div>
+                        <h2>{clase.tipoClase}</h2>
+                        <p>
+                          {formatearFecha(o.fecha)} · {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)} · {clase.instructor.nombre}
+                        </p>
+                      </div>
+                      <span className={`badge ${llena ? 'badge-warning' : 'badge-success'}`}>
+                        <i />
+                        {llena ? 'Llena' : `${ocupadas}/${clase.capacidad}`}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      aria-expanded={expandida}
+                      onClick={() => setExpandidas((prev) => ({ ...prev, [o.id]: !expandida }))}
+                    >
+                      {expandida ? 'Ocultar reservas' : `Ver reservas (${reservas.length})`}
+                    </button>
+                    {expandida && (
+                      <div className="stack-list" style={{ marginTop: 6 }}>
+                        {reservas.length === 0 ? (
+                          <p style={{ fontSize: 12 }}>Sin reservas.</p>
+                        ) : (
+                          reservas.map((r) => (
+                            <div className="list-row" key={r.id}>
+                              <div className="row-main">
+                                <strong>
+                                  {r.usuario.nombre} {r.usuario.apellido}
+                                </strong>
+                                <span>
+                                  {r.estado === 'LISTA_ESPERA' ? 'En espera: entra solo si alguien cancela su lugar' : ' '}
+                                </span>
+                              </div>
+                              <span
+                                className={`badge ${
+                                  r.estado === 'RESERVADA' ? 'badge-success' : r.estado === 'LISTA_ESPERA' ? 'badge-warning' : r.estado === 'CANCELADA' ? 'badge-neutral' : 'badge-info'
+                                }`}
+                              >
+                                <i />
+                                {r.estado}
+                              </span>
+                              {r.estado !== 'CANCELADA' && (
+                                <button className="btn btn-secondary" onClick={() => void handleCancelar(r.id)} disabled={accionId === r.id}>
+                                  {accionId === r.id ? '...' : 'Cancelar'}
+                                </button>
                               )}
                             </div>
-                          </div>
-                          {r.estado !== 'CANCELADA' && (
-                            <Button variant="outline" size="sm" onClick={() => handleCancelar(r.id)} disabled={accionId === r.id}>
-                              {accionId === r.id ? '...' : 'Cancelar'}
-                            </Button>
-                          )}
-                        </div>
-                      ))
+                          ))
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
-              </Card>
-            );
-          })
-        )}
-      </div>
-      </div>
-      <div>
-        <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-          <Button fullWidth onClick={() => navigate('/admin/acceso')}>Control de Acceso</Button>
-          <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-canchas')}>Reservas de Canchas</Button>
-          <Button variant="outline" fullWidth onClick={() => navigate('/admin/cobrar')}>Cobrar</Button>
-        </div>
-      </div>
-      </div>
-
-      <Tooltip
-        text="Anotá a un socio que no tiene la app a mano o no puede reservar solo"
-        className="fixed bottom-6 right-6 z-40"
-      >
-        <button
-          type="button"
-          onClick={abrirPanel}
-          aria-label="Anotar socio"
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-[#8B2EFF] text-white shadow-lg hover:bg-[#7A25E6]"
-        >
-          <Plus size={24} />
-        </button>
-      </Tooltip>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
 
       {panelAbierto && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4">
-          <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 md:rounded-2xl md:p-6">
-            <div className="mb-4 flex items-start justify-between gap-3">
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Anotar socio"
+          onClick={(e) => e.target === e.currentTarget && setPanelAbierto(false)}
+        >
+          <div className="glass panel modal-card">
+            <div className="section-header">
               <div>
-                <h2 className="text-lg font-bold text-[#111111]">
-                  {paso === 1 ? 'Elegir clase' : paso === 2 ? 'Buscar socio' : 'Confirmar anotación'}
-                </h2>
-                <p className="mt-0.5 text-xs text-[#6B7280]">Paso {paso} de 3</p>
+                <h2>{paso === 1 ? 'Elegir clase' : paso === 2 ? 'Buscar socio' : 'Confirmar anotación'}</h2>
+                <p>Paso {paso} de 3</p>
               </div>
-              <button
-                type="button"
-                onClick={cerrarPanel}
-                aria-label="Cerrar"
-                className="rounded-lg p-1 text-[#6B7280] hover:text-[#111111]"
-                style={{ minHeight: 44, minWidth: 44 }}
-              >
-                <X size={20} />
+              <button className="icon-button" aria-label="Cerrar" onClick={() => setPanelAbierto(false)}>
+                <X size={18} />
               </button>
             </div>
 
-            {paso === 1 && (
-              <div className="space-y-2">
-                {anotables.length === 0 ? (
-                  <p className="text-sm text-[#6B7280]">No hay fechas disponibles para anotar.</p>
-                ) : (
-                  anotablesPorDia.map(([fecha, ocurrencias]) => (
-                    <section key={fecha} className="space-y-2">
-                      <h3 className="pt-2 text-sm font-bold text-[#111111]">
-                        {etiquetaDia(fecha)}
-                      </h3>
-                      {ocurrencias.map((o) => {
-                        const clase = clasePorId.get(o.claseId);
-                        if (!clase) return null;
-                        const ocupadas = ocupadasDe(o.id);
-                        return (
-                          <button
-                            key={o.id}
-                            type="button"
-                            onClick={() => { setOccSelId(o.id); setPaso(2); }}
-                            className="w-full rounded-xl border border-[#E5E7EB] bg-white p-3 text-left hover:border-[#8B2EFF]"
-                            style={{ minHeight: 44 }}
-                          >
-                            <p className="text-sm font-semibold text-[#111111]">{clase.tipoClase}</p>
-                            <p className="mt-0.5 text-xs text-[#6B7280]">
-                              {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)} · Cupo {ocupadas}/{clase.capacidad}
-                            </p>
-                          </button>
-                        );
-                      })}
+            {paso === 1 &&
+              (anotables.length === 0 ? (
+                <p style={{ fontSize: 12 }}>No hay fechas disponibles para anotar.</p>
+              ) : (
+                <div className="stack-gap">
+                  {anotablesPorDia.map(([fecha, ocurrencias]) => (
+                    <section key={fecha} aria-label={etiquetaDia(fecha)}>
+                      <span className="field-label">{etiquetaDia(fecha).toUpperCase()}</span>
+                      <div className="pick-list" style={{ maxHeight: 'none' }}>
+                        {ocurrencias.map((o) => {
+                          const clase = clasePorId.get(o.claseId);
+                          if (!clase) return null;
+                          return (
+                            <button
+                              key={o.id}
+                              type="button"
+                              className="pick-item"
+                              onClick={() => {
+                                setOccSelId(o.id);
+                                setPaso(2);
+                              }}
+                            >
+                              <span>
+                                {clase.tipoClase}
+                                <br />
+                                <small>
+                                  {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)}
+                                </small>
+                              </span>
+                              <small>
+                                Cupo {ocupadasDe(o.id)}/{clase.capacidad}
+                              </small>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </section>
-                  ))
-                )}
-              </div>
-            )}
+                  ))}
+                </div>
+              ))}
 
             {paso === 2 && (
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={busquedaUsuario}
-                  onChange={(e) => setBusquedaUsuario(e.target.value)}
-                  placeholder="Buscar por nombre o DNI"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none"
-                  style={{ minHeight: 44 }}
-                />
-                <div className="space-y-2">
-                  {usuariosFiltrados.map((u) => (
+              <div className="stack-gap">
+                <label className="search search-wide">
+                  <Search size={15} aria-hidden />
+                  <input
+                    type="search"
+                    autoFocus
+                    value={busquedaUsuario}
+                    onChange={(e) => setBusquedaUsuario(e.target.value)}
+                    placeholder="Nombre, apellido o DNI (mínimo 3 letras)"
+                    aria-label="Buscar socio"
+                  />
+                </label>
+                {buscando && <LoadingState rows={1} label="Buscando" />}
+                {errorBusqueda && (
+                  <p role="alert" className="notice notice-err">
+                    {errorBusqueda}
+                  </p>
+                )}
+                {!buscando && !errorBusqueda && busquedaUsuario.trim().length >= MIN_BUSQUEDA && resultados.length === 0 && (
+                  <p style={{ fontSize: 12 }}>No encontramos clientes con esa búsqueda.</p>
+                )}
+                <div className="pick-list">
+                  {resultados.map((u) => (
                     <button
                       key={u.id}
                       type="button"
-                      onClick={() => { setUsuarioSelId(u.id); setPaso(3); }}
-                      className="w-full rounded-xl border border-[#E5E7EB] bg-white p-3 text-left hover:border-[#8B2EFF]"
-                      style={{ minHeight: 44 }}
+                      className="pick-item"
+                      onClick={() => {
+                        setSocioElegido(u);
+                        setPaso(3);
+                      }}
                     >
-                      <p className="text-sm font-semibold text-[#111111]">{u.nombre} {u.apellido}</p>
-                      <p className="mt-0.5 text-xs text-[#6B7280]">{u.email}{u.dni ? ` · DNI ${u.dni}` : ''}</p>
+                      <span>
+                        {u.nombre} {u.apellido}
+                        <br />
+                        <small>DNI {u.dni ?? 'sin DNI'}</small>
+                      </span>
+                      <small>{u.tipoActor === TipoActor.EXTERNO ? 'Externo' : 'Socio'}</small>
                     </button>
                   ))}
                 </div>
-                <Button variant="ghost" fullWidth onClick={() => setPaso(1)}>← Volver</Button>
+                <button className="btn btn-ghost" onClick={() => setPaso(1)}>
+                  ← Volver
+                </button>
               </div>
             )}
 
             {paso === 3 && occElegida && socioElegido && (
-              <div className="space-y-4">
-                <Card>
-                  <p className="text-sm font-bold text-[#111111]">
-                    {clasePorId.get(occElegida.claseId)?.tipoClase}
-                  </p>
-                  <p className="mt-1 text-xs text-[#6B7280]">{etiquetaOcurrencia(occElegida)}</p>
-                  <p className="mt-2 text-sm text-[#111111]">
-                    {socioElegido.nombre} {socioElegido.apellido}
-                    {socioElegido.dni ? ` · DNI ${socioElegido.dni}` : ''}
-                  </p>
-                </Card>
-                <p className="text-xs text-[#6B7280]">
-                  Se validará que el socio tenga membresía activa antes de confirmar.
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="ghost" fullWidth onClick={() => setPaso(2)}>← Volver</Button>
-                  <Button fullWidth onClick={() => void handleConfirmar()} disabled={accionId === 'anotar'}>
+              <div className="stack-gap">
+                <div className="list-row" style={{ borderTop: 0 }}>
+                  <div className="row-main">
+                    <strong>{clasePorId.get(occElegida.claseId)?.tipoClase}</strong>
+                    <span>{etiquetaOcurrencia(occElegida)}</span>
+                    <span style={{ color: 'var(--text)' }}>
+                      {socioElegido.nombre} {socioElegido.apellido}
+                      {socioElegido.dni ? ` · DNI ${socioElegido.dni}` : ''}
+                    </span>
+                  </div>
+                </div>
+                <p style={{ fontSize: 11 }}>Se validará que el socio tenga membresía activa antes de confirmar.</p>
+                <div className="inline-actions">
+                  <button className="btn btn-ghost" onClick={() => setPaso(2)}>
+                    ← Volver
+                  </button>
+                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => void handleConfirmar()} disabled={accionId === 'anotar'}>
                     {accionId === 'anotar' ? 'Anotando...' : 'Confirmar anotación'}
-                  </Button>
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

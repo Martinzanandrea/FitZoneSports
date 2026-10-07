@@ -1,27 +1,61 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { BookOpen, GraduationCap } from 'lucide-react';
+import { useAuth } from '../../auth/AuthContext';
 import { clasesApi } from '../../clases/clases.api';
 import type { Clase } from '../../clases/clases.types';
-import { Badge, Button, Card, Chip, PageHeader } from '../../../shared/components/ui';
+import { sedesApi } from '../../sedes/sedes.api';
+import type { Sede } from '../../sedes/sedes.types';
+import { Badge } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
+import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 type Tab = 'ACTIVIDADES' | 'INSTRUCTORES' | 'RECURRENCIA';
 
+const TABS: Array<{ id: Tab; label: string }> = [
+  { id: 'ACTIVIDADES', label: 'Actividades' },
+  { id: 'INSTRUCTORES', label: 'Instructores' },
+  { id: 'RECURRENCIA', label: 'Recurrencia' },
+];
+
 export function ConfiguracionClases() {
   useTitulo('Configurar clases');
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const esGG = user?.tipoActor === TipoActor.GERENTE_GENERAL;
   const [tab, setTab] = useState<Tab>('ACTIVIDADES');
   const [clases, setClases] = useState<Clase[]>([]);
+  const [sedes, setSedes] = useState<Sede[]>([]);
+  // Solo el GG elige sede; el backend ya acota las clases del GS a la suya.
+  const [sedeFiltro, setSedeFiltro] = useState('TODAS');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(false);
+  const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
+    if (!esGG) return;
+    sedesApi.getAll(1, 100).then((r) => setSedes(r.data)).catch(() => setSedes([]));
+  }, [esGG]);
+
+  useEffect(() => {
+    let viva = true;
+    setLoading(true);
+    setError(false);
     clasesApi
-      .getAll(undefined, 1, 100)
-      .then((res) => setClases(res.data.filter((c) => c.activa !== false)))
-      .catch(() => setError('No se pudieron cargar las clases.'))
-      .finally(() => setLoading(false));
-  }, []);
+      .getAll(esGG && sedeFiltro !== 'TODAS' ? sedeFiltro : undefined, 1, 100)
+      .then((res) => viva && setClases(res.data.filter((c) => c.activa !== false)))
+      .catch(() => viva && setError(true))
+      .finally(() => viva && setLoading(false));
+    return () => {
+      viva = false;
+    };
+  }, [esGG, sedeFiltro, recarga]);
 
   const porTipo = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -30,88 +64,92 @@ export function ConfiguracionClases() {
   }, [clases]);
 
   return (
-    <div className="max-w-5xl">
-      <PageHeader title="Configuración de Clases" onBack={() => window.history.back()} />
-
-      <div className="mb-6 flex gap-2">
-        <Chip label="Actividades" active={tab === 'ACTIVIDADES'} onClick={() => setTab('ACTIVIDADES')} />
-        <Chip label="Instructores" active={tab === 'INSTRUCTORES'} onClick={() => setTab('INSTRUCTORES')} />
-        <Chip label="Recurrencia" active={tab === 'RECURRENCIA'} onClick={() => setTab('RECURRENCIA')} />
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Configuración de clases</h2>
+          <p>Actividades, instructores y cómo se generan las fechas.</p>
+        </div>
+        <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+          Volver
+        </button>
       </div>
 
-      {error && (
-        <p className="mb-4 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">
-          {error}
-        </p>
-      )}
+      <div className="segmented" role="tablist" aria-label="Secciones">
+        {TABS.map((t) => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {tab === 'ACTIVIDADES' && (
-        <Card>
-          {loading ? (
-            <p className="text-sm text-[#6B7280]">Cargando actividades...</p>
-          ) : porTipo.length === 0 ? (
-            <p className="text-sm text-[#6B7280]">Todavía no hay tipos de clase cargados.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#E5E7EB] text-left text-xs text-[#6B7280] uppercase tracking-wide">
-                  <th className="px-4 py-3 font-medium">Nombre</th>
-                  <th className="px-4 py-3 font-medium">Clases activas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {porTipo.map(([tipo, cantidad]) => {
-                  const color = colorPorTipo(tipo);
-                  return (
-                    <tr key={tipo} className="border-b border-[#E5E7EB] last:border-0">
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-2 font-medium text-[#111111]">
-                          <span
-                            className="inline-block h-3 w-3 rounded-full"
-                            style={{ backgroundColor: color.borde }}
-                          />
-                          {tipo}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="violet">{cantidad}</Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <section className="glass panel" aria-label="Actividades">
+          {esGG && (
+            <div className="filters" style={{ boxShadow: 'none', marginBottom: 14 }}>
+              <div className="select-field">
+                <span className="field-label">SEDE</span>
+                <Select
+                  value={sedeFiltro}
+                  onChange={setSedeFiltro}
+                  ariaLabel="Sede"
+                  opciones={[{ value: 'TODAS', label: 'Todas las sedes' }, ...sedes.map((s) => ({ value: s.id, label: s.nombre }))]}
+                />
+              </div>
+            </div>
           )}
-        </Card>
+          <SectionHeader title="Clases activas por tipo" />
+          {loading ? (
+            <LoadingState rows={3} label="Cargando actividades" />
+          ) : error ? (
+            <ErrorState title="No pudimos cargar las clases" onRetry={() => setRecarga((n) => n + 1)} />
+          ) : porTipo.length === 0 ? (
+            <EmptyState icon={BookOpen} title="Todavía no hay tipos de clase" description="Cuando crees una clase, su tipo aparece acá." />
+          ) : (
+            <div className="stack-list">
+              {porTipo.map(([tipo, cantidad]) => {
+                const color = colorPorTipo(tipo);
+                return (
+                  <div className="list-row" key={tipo}>
+                    <span aria-hidden style={{ width: 12, height: 12, borderRadius: '50%', background: color.borde, flex: 'none' }} />
+                    <div className="row-main">
+                      <strong>{tipo}</strong>
+                    </div>
+                    <Badge variant="info">{cantidad} activa(s)</Badge>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
 
       {tab === 'INSTRUCTORES' && (
-        <Card className="text-center py-8">
-          <p className="text-sm font-semibold text-[#111111]">Los instructores se gestionan en su propia pantalla</p>
-          <p className="mt-1 text-xs text-[#6B7280]">Altas, datos y clases asignadas por instructor.</p>
-          <div className="mt-4">
-            <Link to="/admin/instructores">
-              <Button>Ir a Instructores</Button>
+        <EmptyState
+          icon={GraduationCap}
+          title="Los instructores se gestionan en su propia pantalla"
+          description="Altas, datos y clases asignadas por instructor."
+          action={
+            <Link to="/admin/instructores" className="btn btn-primary">
+              Ir a Instructores
             </Link>
-          </div>
-        </Card>
+          }
+        />
       )}
 
       {tab === 'RECURRENCIA' && (
-        <Card className="space-y-3">
-          <p className="text-sm font-semibold text-[#111111]">Cómo se generan las clases</p>
-          <p className="text-sm text-[#6B7280] leading-relaxed">
-            Las clases son plantillas semanales: al crear una se generan automáticamente sus
-            fechas concretas (ocurrencias) para las próximas 4 semanas, y un proceso automático
-            semanal mantiene siempre esa ventana hacia adelante sin que tengas que hacer nada.
+        <section className="glass panel" aria-label="Recurrencia">
+          <SectionHeader title="Cómo se generan las clases" />
+          <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+            Las clases son plantillas semanales: al crear una se generan automáticamente sus fechas concretas (ocurrencias) para las próximas 4 semanas, y un proceso automático semanal
+            mantiene siempre esa ventana hacia adelante sin que tengas que hacer nada.
           </p>
-          <p className="text-sm text-[#6B7280] leading-relaxed">
-            Si desactivás una clase, deja de generar fechas nuevas pero lo ya generado y reservado
-            queda intacto. Cada sede tiene una única sala, así que dos clases nunca se superponen
-            en la misma sede: el sistema no te deja guardar horarios solapados.
+          <p style={{ fontSize: 13, lineHeight: 1.6, marginTop: 10 }}>
+            Si desactivás una clase, deja de generar fechas nuevas pero lo ya generado y reservado queda intacto. Cada sede tiene una única sala, así que dos clases nunca se superponen en la
+            misma sede: el sistema no te deja guardar horarios solapados.
           </p>
-        </Card>
+        </section>
       )}
-    </div>
+    </>
   );
 }

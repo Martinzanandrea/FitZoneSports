@@ -4,9 +4,10 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type FindOptionsWhere } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { EmailVerificacionService } from './email-verificacion.service';
@@ -18,6 +19,8 @@ import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { ConfigService } from '@nestjs/config';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { assertAccesoPerfil } from '../auth/helpers/ownership.helper';
 
 const SALT_ROUNDS = 10; // "costo" del hasheo: más alto = más lento pero más seguro. 10 es el estándar razonable hoy.
 
@@ -43,6 +46,13 @@ export class UsuariosService {
     },
   ): Promise<Usuario> {
     const { password, sedeId, ...resto } = dto;
+    // GERENTE_SEDE opera con scope a una sede (ver assertSedeScope):
+    // sin sede asignada no podría operar nada, así que se exige acá.
+    if (dto.tipoActor === TipoActor.GERENTE_SEDE && !sedeId) {
+      throw new BadRequestException(
+        'sedeId es obligatorio para un GERENTE_SEDE',
+      );
+    }
     const fotoUrl = foto
       ? await this.storageService.subirArchivo(
           this.config.getOrThrow<string>('SUPABASE_BUCKET_FOTOS'),
@@ -145,13 +155,79 @@ export class UsuariosService {
     return generico;
   }
 
+  // Scope de Gerente de Sede: solo puede operar sobre recepcionistas
+  // de SU sede. Fail-closed: sin sede propia o con otro rol/sede → 403.
+  private exigirRecepcionistaDeSede(
+    actor: UsuarioAutenticado,
+    usuario: Usuario,
+  ): void {
+    if (!actor.sedeId) {
+      throw new ForbiddenException('No tenés sede asignada');
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const esRecepcionista = usuario.tipoActor === TipoActor.RECEPCIONISTA;
+    if (!esRecepcionista || usuario.sede?.id !== actor.sedeId) {
+      throw new ForbiddenException(
+        'Solo podés operar sobre recepcionistas de tu sede',
+      );
+    }
+  }
+
+  // Alta de staff con reglas por rol: GG crea cualquier tipo; GS solo
+  // RECEPCIONISTA y siempre en su propia sede (sedeId forzado).
+  async crearStaff(
+    dto: CreateUsuarioDto,
+    actor: UsuarioAutenticado,
+  ): Promise<Usuario> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (actor.tipoActor === TipoActor.GERENTE_SEDE) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      if (dto.tipoActor !== TipoActor.RECEPCIONISTA) {
+        throw new ForbiddenException(
+          'Solo podés dar de alta Recepcionistas',
+        );
+      }
+      if (!actor.sedeId) {
+        throw new ForbiddenException('No tenés sede asignada');
+      }
+      if (dto.sedeId && dto.sedeId !== actor.sedeId) {
+        throw new ForbiddenException(
+          'Solo podés dar de alta en tu propia sede',
+        );
+      }
+      return this.create({ ...dto, sedeId: actor.sedeId });
+    }
+    return this.create(dto);
+  }
+
   async findAll(
     query: PaginationQueryDto,
+    actor?: UsuarioAutenticado,
   ): Promise<PaginatedResponse<Usuario>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const esGS = actor?.tipoActor === TipoActor.GERENTE_SEDE;
+    // GS: solo recepcionistas de su sede + socios/externos (sin sede
+    // propia). GG: todo, como antes.
+    const where: FindOptionsWhere<Usuario>[] | undefined = esGS
+      ? actor?.sedeId
+        ? [
+            { tipoActor: TipoActor.SOCIO },
+            { tipoActor: TipoActor.EXTERNO },
+            {
+              tipoActor: TipoActor.RECEPCIONISTA,
+              sede: { id: actor.sedeId },
+            },
+          ]
+        : undefined
+      : undefined;
+    if (esGS && !where) {
+      throw new ForbiddenException('No tenés sede asignada');
+    }
     // passwordHash no viene igual, porque en la entidad tiene select:false.
     const [data, total] = await this.usuariosRepo.findAndCount({
+      ...(where ? { where } : {}),
       relations: { sede: true },
       skip: (page - 1) * limit,
       take: limit,
@@ -164,17 +240,45 @@ export class UsuariosService {
       totalPages: Math.ceil(total / limit) || 1,
     };
   }
-  // Lista solo el personal interno (RECEPCIONISTA/GERENTE), con su sede
-  // cargada, para el panel de "Personal" del Gerente.
+  // Lista el personal interno con su sede cargada. GG ve todo
+  // (incluidos GERENTE_SEDE); GS ve solo recepcionistas de su sede.
   async findStaff(
     query: PaginationQueryDto,
+    actor?: UsuarioAutenticado,
   ): Promise<PaginatedResponse<Usuario>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const esGS = actor?.tipoActor === TipoActor.GERENTE_SEDE;
+    if (esGS) {
+      if (!actor?.sedeId) {
+        throw new ForbiddenException('No tenés sede asignada');
+      }
+      const [data, total] = await this.usuariosRepo.findAndCount({
+        where: [
+          {
+            tipoActor: TipoActor.RECEPCIONISTA,
+            sede: { id: actor.sedeId },
+          },
+        ],
+        relations: { sede: true },
+        order: { creadoEn: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      return {
+        data,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      };
+    }
     const [data, total] = await this.usuariosRepo.findAndCount({
       where: [
         { tipoActor: TipoActor.RECEPCIONISTA },
-        { tipoActor: TipoActor.GERENTE },
+        { tipoActor: TipoActor.GERENTE_GENERAL },
+        { tipoActor: TipoActor.GERENTE_SEDE },
       ],
       relations: { sede: true },
       order: { creadoEn: 'DESC' },
@@ -190,8 +294,9 @@ export class UsuariosService {
     };
   }
 
-  // Reasigna la sede de un Recepcionista. No aplica a Gerente (no tiene
-  // sede fija) ni a Socio/Externo (no corresponde).
+  // Reasigna la sede. Solo la llama GG (el endpoint es GG-only):
+  // vale para Recepcionistas y para Gerentes de Sede. No aplica a
+  // GERENTE_GENERAL (sin sede fija) ni a Socio/Externo.
   async asignarSede(usuarioId: string, sedeId: string): Promise<Usuario> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id: usuarioId },
@@ -199,9 +304,14 @@ export class UsuariosService {
     if (!usuario)
       throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
 
-    if (usuario.tipoActor !== TipoActor.RECEPCIONISTA) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const reubicable =
+      usuario.tipoActor === TipoActor.RECEPCIONISTA ||
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      usuario.tipoActor === TipoActor.GERENTE_SEDE;
+    if (!reubicable) {
       throw new BadRequestException(
-        'Solo se puede asignar sede a un Recepcionista',
+        'Solo se puede asignar sede a un Recepcionista o Gerente de Sede',
       );
     }
 
@@ -211,14 +321,25 @@ export class UsuariosService {
     return this.findOne(usuarioId); // recarga con la relación sede ya poblada
   }
 
-  // Actualiza solo el DNI (endpoint dedicado, solo GERENTE). El PATCH
-  // general lo rechaza con 400 por ser campo sensible.
-  async actualizarDni(usuarioId: string, dni: string): Promise<Usuario> {
+  // Actualiza solo el DNI (endpoint dedicado). GG sobre cualquiera;
+  // GS solo sobre recepcionistas de su sede. El PATCH general lo
+  // rechaza con 400 por ser campo sensible.
+  async actualizarDni(
+    usuarioId: string,
+    dni: string,
+    actor?: UsuarioAutenticado,
+  ): Promise<Usuario> {
     const usuario = await this.usuariosRepo.findOne({
       where: { id: usuarioId },
+      relations: { sede: true },
     });
     if (!usuario)
       throw new NotFoundException(`Usuario ${usuarioId} no encontrado`);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (actor?.tipoActor === TipoActor.GERENTE_SEDE) {
+      this.exigirRecepcionistaDeSede(actor, usuario);
+    }
 
     const existente = await this.usuariosRepo.findOne({ where: { dni } });
     if (existente && existente.id !== usuarioId) {
@@ -228,6 +349,14 @@ export class UsuariosService {
     usuario.dni = dni;
     await this.usuariosRepo.save(usuario);
     return this.findOne(usuarioId);
+  }
+  // Lectura/edición de perfil con matriz por rol (REGLAS GERENTE_SEDE):
+  // propio siempre, GG todo, GS recepcionistas propios + clientes,
+  // RECEPCIONISTA solo propio. No usar findOne crudo en endpoints.
+  async leerPerfil(id: string, actor: UsuarioAutenticado): Promise<Usuario> {
+    const usuario = await this.findOne(id);
+    assertAccesoPerfil(actor, usuario);
+    return usuario;
   }
   async findOne(id: string): Promise<Usuario> {
     const usuario = await this.usuariosRepo.findOne({
@@ -258,8 +387,13 @@ export class UsuariosService {
     });
   }
 
-  async update(id: string, dto: UpdateUsuarioDto): Promise<Usuario> {
+  async update(
+    id: string,
+    dto: UpdateUsuarioDto,
+    actor: UsuarioAutenticado,
+  ): Promise<Usuario> {
     const usuario = await this.findOne(id);
+    assertAccesoPerfil(actor, usuario);
     // Asignación explícita campo por campo (nunca spread del DTO): si en el
     // futuro alguien agrega un campo sensible al DTO, no se aplica solo.
     if (dto.nombre !== undefined) usuario.nombre = dto.nombre;
@@ -284,8 +418,10 @@ export class UsuariosService {
       originalname: string;
       mimetype: string;
     },
+    actor: UsuarioAutenticado,
   ): Promise<Usuario> {
     const usuario = await this.findOne(id);
+    assertAccesoPerfil(actor, usuario);
     usuario.fotoUrl = await this.storageService.subirArchivo(
       this.config.getOrThrow<string>('SUPABASE_BUCKET_FOTOS'),
       foto.buffer,
@@ -318,11 +454,43 @@ export class UsuariosService {
     await this.usuariosRepo.update(id, { passwordHash });
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, actor?: UsuarioAutenticado): Promise<void> {
     const usuario = await this.findOne(id);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (actor?.tipoActor === TipoActor.GERENTE_SEDE) {
+      this.exigirRecepcionistaDeSede(actor, usuario);
+    }
     // Baja lógica: un usuario con membresías/reservas/pagos asociados
     // no se puede borrar físicamente sin romper integridad referencial.
     usuario.activo = false;
     await this.usuariosRepo.save(usuario);
+  }
+
+  // Búsqueda para el mostrador (recepción): solo SOCIO y EXTERNO, con
+  // campos mínimos (nunca personal ni emails/teléfonos). Mínimo 3
+  // caracteres, máximo 20 resultados.
+  async buscarClientes(
+    q: string,
+  ): Promise<
+    Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'dni' | 'tipoActor'>[]
+  > {
+    const texto = (q ?? '').trim();
+    if (texto.length < 3) {
+      throw new BadRequestException(
+        'La búsqueda requiere al menos 3 caracteres',
+      );
+    }
+    return this.usuariosRepo
+      .createQueryBuilder('u')
+      .select(['u.id', 'u.nombre', 'u.apellido', 'u.dni', 'u.tipoActor'])
+      .where('u.tipoActor IN (:...roles)', {
+        roles: [TipoActor.SOCIO, TipoActor.EXTERNO],
+      })
+      .andWhere(
+        '(u.nombre ILIKE :q OR u.apellido ILIKE :q OR u.dni ILIKE :q)',
+        { q: `%${texto}%` },
+      )
+      .take(20)
+      .getMany();
   }
 }

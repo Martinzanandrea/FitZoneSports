@@ -1,15 +1,10 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { TipoActor } from '../../shared/types/enums';
+import { rutaPanelStaff } from '../../shared/utils/rutaPanel';
 
 export function AdminIndex() {
   const { user } = useAuth();
+  const destino = user ? rutaPanelStaff(user.tipoActor) : null;
 
-  if (user?.tipoActor === TipoActor.GERENTE) {
-    return <Navigate to="/admin/gerente" replace />;
-  }
-  if (user?.tipoActor === TipoActor.RECEPCIONISTA) {
-    return <Navigate to="/admin/recepcion" replace />;
-  }
-  return <Navigate to="/" replace />;
+  return <Navigate to={destino ?? '/'} replace />;
 }

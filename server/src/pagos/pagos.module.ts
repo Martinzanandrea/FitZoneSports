@@ -9,6 +9,7 @@ import {
   ReservaCancha,
 } from '../entities';
 import { StorageModule } from '../storage/storage.module';
+import { MembresiasModule } from '../membresias/membresias.module';
 import { PagosService } from './pagos.service';
 import { PagosController } from './pagos.controller';
 import { PasarelaMockService } from './gateway/pasarela-mock.service';
@@ -16,6 +17,7 @@ import { PASARELA_PAGO } from './pasarela-pago.interface';
 import { ComprobantesService } from './comprobantes.service';
 import { PdfGeneratorService } from './comprobantes/pdf-generator.service';
 import { PreciosModule } from 'src/precios/precios.module';
+import { AuditoriaModule } from '../auditoria/auditoria.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { PreciosModule } from 'src/precios/precios.module';
     ]),
     StorageModule,
     PreciosModule,
+    MembresiasModule,
+    AuditoriaModule,
   ],
   controllers: [PagosController],
   providers: [

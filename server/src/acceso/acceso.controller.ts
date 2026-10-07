@@ -40,7 +40,7 @@ export class AccesoController {
     return this.accesoService.generarQr(usuarioId);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
   @Post('validar')
   @ApiOperation({ summary: 'Validar ingreso mediante QR' })
   validarIngreso(
@@ -50,7 +50,7 @@ export class AccesoController {
     return this.accesoService.validarIngreso(dto.qrToken, dto.sedeId, user);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
   @Post('validar-codigo')
   @ApiOperation({ summary: 'Validar ingreso mediante código corto de 6 dígitos' })
   validarCodigo(
@@ -60,7 +60,7 @@ export class AccesoController {
     return this.accesoService.validarCodigo(dto.codigo, dto.sedeId, user);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
   @Post('egreso')
   @ApiOperation({ summary: 'Registrar egreso de un usuario' })
   registrarEgreso(
@@ -70,11 +70,11 @@ export class AccesoController {
     return this.accesoService.registrarEgreso(dto.usuarioId, user);
   }
 
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Get('resumen')
   @ApiOperation({ summary: 'Obtener resumen de accesos por sede (solo lectura)' })
-  obtenerResumenAccesos() {
-    return this.accesoService.obtenerResumenAccesos();
+  obtenerResumenAccesos(@CurrentUser() user: UsuarioAutenticado) {
+    return this.accesoService.obtenerResumenAccesos(user);
   }
 
   @Get('aforo/:sedeId') // sin ownership: es info de la sede, no de un usuario
@@ -84,6 +84,7 @@ export class AccesoController {
     return this.accesoService.obtenerAforo(sedeId);
   }
 
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
   @Get('dentro/:sedeId')
   @ApiOperation({ summary: 'Listar usuarios actualmente dentro de una sede' })
   @ApiParam({ name: 'sedeId', description: 'UUID de la sede' })

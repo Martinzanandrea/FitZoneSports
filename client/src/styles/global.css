@@ -63,7 +63,7 @@ body {
 }
 
 .app-header__nav a.active {
-  color: var(--color-violet);
+  color: var(--color-accent);
 }
 
 .app-header__user {
@@ -165,7 +165,7 @@ body {
 .login-card button {
   margin-top: 8px;
   padding: 12px;
-  background: var(--color-violet);
+  background: var(--color-accent);
   color: white;
   border: none;
   border-radius: 8px;
@@ -182,4 +182,4 @@ body {
   justify-content: center;
   height: 100vh;
   color: var(--color-gray);
-}
+}

@@ -2,7 +2,14 @@ import { api } from "../../api/axios";
 import type { Usuario, CrearStaffPayload } from "./usuarios.types";
 import type { PaginatedResponse } from "../../shared/types/pagination";
 
+// Resultado mínimo de GET /usuarios/buscar-clientes (solo Socios y Externos).
+export type ClienteBuscado = Pick<Usuario, "id" | "nombre" | "apellido" | "dni" | "tipoActor">;
+
 export const usuariosApi = {
+  // Búsqueda para el mostrador (recepción y gerentes): mínimo 3 caracteres,
+  // por nombre, apellido o DNI; el backend devuelve hasta 20 resultados.
+  buscarClientes: (q: string) =>
+    api.get<ClienteBuscado[]>("/usuarios/buscar-clientes", { params: { q } }).then((res) => res.data),
   // Le pide al backend la lista de todos los usuarios (solo la ven
   // recepcionistas y gerentes, se usa para buscar a alguien por nombre).
   // Viene paginada: page arranca en 1 y limit trae 20 por defecto.
@@ -18,6 +25,9 @@ export const usuariosApi = {
   // Da de alta a un recepcionista o gerente nuevo — solo lo puede hacer un gerente.
   crearStaff: (payload: CrearStaffPayload) =>
     api.post<Usuario>("/usuarios/staff", payload).then((res) => res.data),
+  // Da de baja (baja lógica) a un usuario del personal. El gerente de sede solo puede
+  // hacerlo con recepcionistas de su sede; el backend es quien lo exige.
+  desactivar: (id: string) => api.delete(`/usuarios/${id}`).then((res) => res.data),
   // Le cambia la sede a un miembro del personal: el id dice a quién
   // y sedeId a qué sede nueva pasa.
   asignarSede: (id: string, sedeId: string) =>

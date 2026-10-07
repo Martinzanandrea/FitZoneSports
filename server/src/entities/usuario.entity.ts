@@ -24,7 +24,7 @@ import { TipoActor } from './enums';
 )
 @Check(
   'chk_password_staff',
-  `"tipo_actor" NOT IN ('RECEPCIONISTA','GERENTE') OR "password_hash" IS NOT NULL`,
+  `"tipo_actor" NOT IN ('RECEPCIONISTA','GERENTE','GERENTE_GENERAL','GERENTE_SEDE') OR "password_hash" IS NOT NULL`,
 )
 @Check(
   'chk_password_hash_formato',

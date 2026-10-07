@@ -15,7 +15,10 @@ export interface Usuario {
 }
 
 export interface CrearStaffPayload {
-  tipoActor: typeof TipoActor.RECEPCIONISTA | typeof TipoActor.GERENTE;
+  tipoActor:
+    | typeof TipoActor.RECEPCIONISTA
+    | typeof TipoActor.GERENTE_GENERAL
+    | typeof TipoActor.GERENTE_SEDE;
   nombre: string;
   apellido: string;
   email: string;

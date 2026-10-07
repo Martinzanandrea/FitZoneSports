@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Comprobante, Pago } from '../entities';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
@@ -16,7 +16,7 @@ export class ComprobantesService {
     private readonly config: ConfigService,
   ) {}
 
-  async generar(pago: Pago): Promise<Comprobante> {
+  async generar(pago: Pago, manager?: EntityManager): Promise<Comprobante> {
     const bufferPdf = await this.pdfGenerator.generarComprobantePago(pago);
 
     const pdfPath = await this.storageService.subirArchivo(
@@ -26,7 +26,9 @@ export class ComprobantesService {
       'application/pdf',
     );
 
-    const comprobante = this.comprobantesRepo.create({ pago, pdfPath });
-    return this.comprobantesRepo.save(comprobante);
+    const comprobantesRepo =
+      manager?.getRepository(Comprobante) ?? this.comprobantesRepo;
+    const comprobante = comprobantesRepo.create({ pago, pdfPath });
+    return comprobantesRepo.save(comprobante);
   }
 }

@@ -1,12 +1,12 @@
 import { type FormEvent, useState } from 'react';
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { useAuth } from '../../auth/AuthContext';
-import { Button } from '../../../shared/components/ui';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import '../../../styles/auth.css';
 
 const inputClass =
-  'w-full px-3.5 py-2.5 pr-10 rounded-lg border border-[#E5E7EB] text-sm outline-none focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20';
+  'field-input auth-input-has-right';
 
 // Sección reutilizable (misma lógica que la pantalla standalone original,
 // ahora montada dentro de Configuración). Sin chrome de página propio.
@@ -68,79 +68,82 @@ export function CambiarPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#374151]">
-              Contraseña actual
-            </label>
-            <div className="relative">
-              <input
-                type={showPasswords ? 'text' : 'password'}
-                required
-                value={passwordActual}
-                onChange={(e) => setPasswordActual(e.target.value)}
-                className={inputClass}
-                style={{ minHeight: 44 }}
-              />
+    <div className="auth-card--narrow auth-card--embedded" style={{ maxWidth: 420 }}>
+      <span className="eyebrow">SEGURIDAD</span>
+      <h1>Cambiar contraseña</h1>
+      <p>Escribí tu contraseña actual y la nueva.</p>
+
+      <form onSubmit={handleSubmit}>
+        <label className="auth-field">
+          <span className="field-label">CONTRASEÑA ACTUAL</span>
+          <span className="auth-input-wrap">
+            <input
+              type={showPasswords ? 'text' : 'password'}
+              required
+              value={passwordActual}
+              onChange={(e) => setPasswordActual(e.target.value)}
+              className={inputClass}
+              autoComplete="current-password"
+              style={{ minHeight: 44 }}
+            />
+            <span className="auth-input-right">
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => setShowPasswords(!showPasswords)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280]"
-                style={{ minHeight: 44, minWidth: 44 }}
                 aria-label="Mostrar u ocultar contraseñas"
               >
                 {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-            </div>
-          </div>
+            </span>
+          </span>
+        </label>
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#374151]">
-              Nueva contraseña
-            </label>
-            <input
-              type={showPasswords ? 'text' : 'password'}
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-              style={{ minHeight: 44 }}
-            />
-          </div>
+        <label className="auth-field">
+          <span className="field-label">NUEVA CONTRASEÑA</span>
+          <input
+            type={showPasswords ? 'text' : 'password'}
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="field-input"
+            autoComplete="new-password"
+            style={{ minHeight: 44 }}
+          />
+        </label>
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#374151]">
-              Confirmar nueva contraseña
-            </label>
-            <input
-              type={showPasswords ? 'text' : 'password'}
-              required
-              value={confirmar}
-              onChange={(e) => setConfirmar(e.target.value)}
-              className={inputClass}
-              style={{ minHeight: 44 }}
-            />
-          </div>
+        <label className="auth-field">
+          <span className="field-label">CONFIRMAR NUEVA CONTRASEÑA</span>
+          <input
+            type={showPasswords ? 'text' : 'password'}
+            required
+            value={confirmar}
+            onChange={(e) => setConfirmar(e.target.value)}
+            className="field-input"
+            autoComplete="new-password"
+            style={{ minHeight: 44 }}
+          />
+        </label>
 
-          {error && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[#FEF2F2] border border-[#FECACA]">
-              <AlertCircle size={15} className="text-[#DC2626] mt-0.5 shrink-0" />
-              <p className="text-xs text-[#DC2626] leading-relaxed">{error}</p>
-            </div>
-          )}
+        {error && (
+          <span className="badge badge-danger">
+            <i />
+            {error}
+          </span>
+        )}
 
-          {exito && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0]">
-              <CheckCircle2 size={15} className="text-[#16A34A] mt-0.5 shrink-0" />
-              <p className="text-xs text-[#16A34A] leading-relaxed">{exito}</p>
-            </div>
-          )}
+        {exito && (
+          <span className="badge badge-success">
+            <i />
+            {exito}
+          </span>
+        )}
 
-          <Button type="submit" variant="primary" fullWidth disabled={loading}>
-            {loading ? 'Guardando…' : 'Guardar nueva contraseña'}
-          </Button>
-    </form>
+        <button type="submit" className="btn btn-primary full-button" disabled={loading}>
+          {loading ? 'Guardando…' : 'Guardar nueva contraseña'}
+        </button>
+      </form>
+    </div>
   );
 }

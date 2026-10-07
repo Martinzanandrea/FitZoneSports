@@ -1,7 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Auditoria } from '../entities';
+import { TipoActor } from '../entities/enums';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import { paginarQueryBuilder } from '../common/helpers/paginate.helper';
@@ -40,6 +42,7 @@ export class AuditoriaService {
   findAll(
     filtros: { entidad?: string; desde?: string; hasta?: string },
     query: PaginationQueryDto,
+    currentUser?: UsuarioAutenticado,
   ): Promise<PaginatedResponse<Auditoria>> {
     const qb = this.auditoriaRepo
       .createQueryBuilder('a')
@@ -48,6 +51,17 @@ export class AuditoriaService {
     if (filtros.entidad) qb.andWhere('a.entidad = :entidad', { entidad: filtros.entidad });
     if (filtros.desde) qb.andWhere('a.creado_en >= :desde', { desde: filtros.desde });
     if (filtros.hasta) qb.andWhere('a.creado_en <= :hasta', { hasta: filtros.hasta });
+    // La tabla no tiene sede propia: se filtra por la sede del actor.
+    // Registros sin actor (sistema) no pertenecen a ninguna sede y GS no los ve.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser && currentUser.tipoActor !== TipoActor.GERENTE_GENERAL) {
+      if (!currentUser.sedeId) {
+        throw new ForbiddenException('Tu usuario no tiene una sede asignada');
+      }
+      qb.leftJoin('actor.sede', 'sedeActor').andWhere('sedeActor.id = :sedeId', {
+        sedeId: currentUser.sedeId,
+      });
+    }
     return paginarQueryBuilder(qb, query.page ?? 1, query.limit ?? 20);
   }
 }

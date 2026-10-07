@@ -22,7 +22,7 @@ export class PreciosController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Patch(':plan')
   @ApiCookieAuth('token')
   @ApiOperation({ summary: 'Actualizar precio de un plan' })

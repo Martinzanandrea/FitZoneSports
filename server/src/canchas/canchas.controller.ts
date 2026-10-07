@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -30,19 +31,25 @@ export class CanchasController {
   constructor(private readonly canchasService: CanchasService) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Post()
   @ApiOperation({ summary: 'Crear una cancha' })
   @Auditable('CREAR_CANCHA', 'Cancha')
-  create(@Body() dto: CreateCanchaDto) {
-    return this.canchasService.create(dto);
+  create(
+    @Body() dto: CreateCanchaDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.canchasService.create(dto, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   @ApiOperation({ summary: 'Listar canchas' })
-  findAll(@Query() query: PaginationQueryDto) {
-    return this.canchasService.findAll(query);
+  findAll(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.canchasService.findAll(query, user);
   }
 
   // Va ANTES que ':id' para que Nest no lo confunda con un parámetro.
@@ -54,7 +61,7 @@ export class CanchasController {
 
   // Va ANTES que ':id' para que Nest no lo confunda con un parámetro.
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE, TipoActor.RECEPCIONISTA)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Get('ingresos-mes')
   @ApiOperation({ summary: 'Suma de pagos aprobados de canchas del mes actual' })
   obtenerIngresosMes(@CurrentUser() user: UsuarioAutenticado) {
@@ -70,17 +77,21 @@ export class CanchasController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una cancha' })
   @ApiParam({ name: 'id', description: 'UUID de la cancha' })
   @Auditable('ACTUALIZAR_CANCHA', 'Cancha')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCanchaDto) {
-    return this.canchasService.update(id, dto);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCanchaDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.canchasService.update(id, dto, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Post(':id/bloqueos')
   @ApiOperation({ summary: 'Crear un bloqueo de cancha' })
   @ApiParam({ name: 'id', description: 'UUID de la cancha' })
@@ -88,7 +99,23 @@ export class CanchasController {
   crearBloqueo(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateBloqueoDto,
+    @CurrentUser() user: UsuarioAutenticado,
   ) {
-    return this.canchasService.crearBloqueo(id, dto);
+    return this.canchasService.crearBloqueo(id, dto, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Eliminar una cancha sin reservas en su historial',
+  })
+  @ApiParam({ name: 'id', description: 'UUID de la cancha' })
+  @Auditable('ELIMINAR_CANCHA', 'Cancha')
+  eliminar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.canchasService.eliminar(id, user);
   }
 }

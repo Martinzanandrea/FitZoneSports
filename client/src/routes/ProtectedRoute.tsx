@@ -23,10 +23,11 @@ export function ProtectedRoute({
   if (allowedRoles && !allowedRoles.includes(user.tipoActor)) {
     return <Navigate to={fallbackPath} replace />;
   }
-  // Un Recepcionista sin sede asignada no puede operar: va a la pantalla
-  // de bloqueo en cualquier ruta bajo /admin (excepto la propia pantalla).
+  // Un Recepcionista o Gerente de Sede sin sede asignada no puede operar
+  // (el backend responde 403): va a la pantalla de bloqueo en cualquier
+  // ruta bajo /admin (excepto la propia pantalla).
   if (
-    user.tipoActor === TipoActor.RECEPCIONISTA &&
+    (user.tipoActor === TipoActor.RECEPCIONISTA || user.tipoActor === TipoActor.GERENTE_SEDE) &&
     !user.sedeId &&
     location.pathname.startsWith('/admin') &&
     location.pathname !== '/admin/sin-sede'

@@ -4,7 +4,8 @@ export const TipoActor = {
   SOCIO: 'SOCIO',
   EXTERNO: 'EXTERNO',
   RECEPCIONISTA: 'RECEPCIONISTA',
-  GERENTE: 'GERENTE',
+  GERENTE_GENERAL: 'GERENTE_GENERAL',
+  GERENTE_SEDE: 'GERENTE_SEDE',
 } as const;
 export type TipoActor = (typeof TipoActor)[keyof typeof TipoActor];
 

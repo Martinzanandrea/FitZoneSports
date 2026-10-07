@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 import { clasesApi } from '../../clases/clases.api';
 import type { HorarioClasePayload } from '../../clases/clases.api';
 import type { Clase } from '../../clases/clases.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { FranjaHoraria } from '../../sedes/sedes.types';
 import { instructoresApi, type Instructor } from '../../instructores/instructores.api';
-import { Button, Chip } from '../../../shared/components/ui';
+import { Chip } from '../../../shared/components/ui';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { Select } from '../../../shared/components/Select';
 
 export const DIAS = [
@@ -115,8 +117,11 @@ interface NuevaClasePanelProps {
   onCreada: () => void;
 }
 
-const inputCls =
-  'mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]';
+function mensajeDe(e: unknown, porDefecto: string): string {
+  const ax = e as { response?: { data?: { message?: string | string[] } } };
+  const raw = ax.response?.data?.message;
+  return Array.isArray(raw) ? raw.join(', ') : raw ?? porDefecto;
+}
 
 export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaClasePanelProps) {
   const [paso, setPaso] = useState(1);
@@ -133,6 +138,9 @@ export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaCla
   const [error, setError] = useState('');
   const [franjas, setFranjas] = useState<FranjaHoraria[]>([]);
   const [clasesSede, setClasesSede] = useState<Clase[]>([]);
+  // La clase ya quedó guardada pero el backend no pudo generar sus fechas.
+  const [claseCreadaId, setClaseCreadaId] = useState<string | null>(null);
+  const [reintentando, setReintentando] = useState(false);
 
   useEffect(() => {
     instructoresApi.getAll(1, 100).then((res) => setInstructores(res.data)).catch(() => setInstructores([]));
@@ -207,7 +215,7 @@ export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaCla
     setGuardando(true);
     setError('');
     try {
-      await clasesApi.crear({
+      const clase = await clasesApi.crear({
         sedeId,
         tipoClase: tipoClase.trim(),
         instructorId,
@@ -219,190 +227,186 @@ export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaCla
           horaFin: h.horaFin.slice(0, 5),
         })),
       });
-      onCreada();
-    } catch {
-      setError('No se pudo crear la clase. Revisá los horarios (puede haber solape).');
+      if (clase.ocurrenciasGeneradas) {
+        onCreada();
+      } else {
+        // La clase existe: NO se vuelve a crear, solo se reintenta la generación.
+        setClaseCreadaId(clase.id);
+        setPaso(4);
+      }
+    } catch (e) {
+      setError(mensajeDe(e, 'No se pudo crear la clase. Revisá los horarios (puede haber solape).'));
     } finally {
       setGuardando(false);
+    }
+  }
+
+  async function reintentarGeneracion() {
+    if (!claseCreadaId) return;
+    setReintentando(true);
+    setError('');
+    try {
+      await clasesApi.generarOcurrencias(claseCreadaId);
+      onCreada();
+    } catch (e) {
+      setError(mensajeDe(e, 'No se pudieron generar las fechas. Intentá de nuevo en unos segundos.'));
+    } finally {
+      setReintentando(false);
     }
   }
 
   const paso1Valido = tipoClase.trim().length > 0 && instructorId !== '' && horasSemanales >= 0.5;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 backdrop-blur-sm md:items-center md:p-4">
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 md:rounded-2xl md:p-6">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-[#111111]">Nueva clase</h2>
-            <p className="mt-0.5 text-xs text-[#6B7280]">Paso {paso} de 3</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded-lg p-1 text-[#6B7280] hover:text-[#111111]"
-            style={{ minHeight: 44, minWidth: 44 }}
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <div
+      className="modal-backdrop"
+      role="presentation"
+      onMouseDown={(e) => {
+        // En el paso 4 la clase ya existe: cerrar refresca el calendario.
+        if (e.target === e.currentTarget) (paso === 4 ? onCreada : onClose)();
+      }}
+    >
+      <div className="glass panel modal-card" role="dialog" aria-modal="true" aria-label="Nueva clase">
+        <SectionHeader
+          title="Nueva clase"
+          description={paso === 4 ? 'Clase creada' : `Paso ${paso} de 3`}
+          action={
+            <button type="button" className="icon-button" onClick={paso === 4 ? onCreada : onClose} aria-label="Cerrar">
+              <X size={16} />
+            </button>
+          }
+        />
 
         {error && (
-          <p className="mb-4 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">
+          <p role="alert" className="notice notice-err" style={{ marginBottom: 14 }}>
             {error}
           </p>
         )}
 
         {paso === 1 && (
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-[#374151]">
-              Tipo de clase
+          <div className="stack-gap">
+            <label>
+              <span className="field-label">TIPO DE CLASE</span>
               <input
+                className="field-input"
                 value={tipoClase}
                 onChange={(e) => setTipoClase(e.target.value)}
                 placeholder="Spinning, Yoga, Funcional..."
-                className={inputCls}
-                style={{ minHeight: 44 }}
               />
             </label>
-            <label className="block text-sm font-medium text-[#374151]">
-              Instructor
-              <div className="mt-1.5">
-                <Select
-                  value={instructorId}
-                  onChange={(v) => setInstructorId(v)}
-                  placeholder="Seleccionar instructor..."
-                  opciones={instructores
-                    .filter((i) => i.activo)
-                    .map((i) => ({ value: i.id, label: i.nombre }))}
-                />
-              </div>
-            </label>
-            <label className="block text-sm font-medium text-[#374151]">
-              Horas semanales totales
+            <div>
+              <span className="field-label">INSTRUCTOR</span>
+              <Select
+                value={instructorId}
+                onChange={(v) => setInstructorId(v)}
+                placeholder="Seleccionar instructor..."
+                ariaLabel="Instructor"
+                opciones={instructores.filter((i) => i.activo).map((i) => ({ value: i.id, label: i.nombre }))}
+              />
+            </div>
+            <label>
+              <span className="field-label">HORAS SEMANALES TOTALES</span>
               <input
+                className="field-input"
                 type="number"
                 min={0.5}
                 step={0.5}
                 value={horasSemanales}
                 onChange={(e) => setHorasSemanales(Number(e.target.value))}
-                className={inputCls}
-                style={{ minHeight: 44 }}
               />
             </label>
-            <Button fullWidth disabled={!paso1Valido} onClick={() => setPaso(2)}>
+            <button className="btn btn-primary" disabled={!paso1Valido} onClick={() => setPaso(2)}>
               Continuar
-            </Button>
+            </button>
           </div>
         )}
 
         {paso === 2 && (
-          <div className="space-y-4">
-            <p className="text-sm text-[#6B7280]">
-              ¿En cuántos días se reparten las {horasSemanales} h semanales?
-            </p>
-            <div className="flex flex-wrap gap-2">
+          <div className="stack-gap">
+            <p style={{ fontSize: 13 }}>¿En cuántos días se reparten las {horasSemanales} h semanales?</p>
+            <div className="inline-actions">
               {[1, 2, 3, 4, 5].map((n) => (
-                <Chip
-                  key={n}
-                  label={n === 1 ? '1 día' : `${n} días`}
-                  active={numDias === n}
-                  onClick={() => void elegirDias(n)}
-                />
+                <Chip key={n} label={n === 1 ? '1 día' : `${n} días`} active={numDias === n} onClick={() => void elegirDias(n)} />
               ))}
             </div>
 
-            {cargandoSugerencia && <p className="text-sm text-[#6B7280]">Calculando propuesta...</p>}
+            {cargandoSugerencia && <LoadingState rows={1} label="Calculando propuesta" />}
 
-            {motivo && (
-              <p className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] p-3 text-sm text-[#92400E]">
-                {motivo}
-              </p>
-            )}
+            {motivo && <p className="notice notice-err">{motivo}</p>}
 
             {horarios.length > 0 && (
-              <div className="space-y-2">
+              <div className="stack-gap" style={{ gap: 10 }}>
                 {horarios.map((h, i) => {
                   const huecos = huecosDelDia(h.diaSemana, i);
                   const inicios = iniciosEnHuecos(huecos);
                   const fines = h.horaInicio ? finesDesde(huecos, h.horaInicio) : [];
                   return (
-                  <div
-                    key={i}
-                    className="grid grid-cols-[1fr_1fr_1fr] items-end gap-2 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-3"
-                  >
-                    <label className="text-xs font-medium text-[#374151]">
-                      Día
-                      <div className="mt-1">
+                    <div
+                      key={i}
+                      className="glass"
+                      style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, borderRadius: 14, padding: 12 }}
+                    >
+                      <div>
+                        <span className="field-label">DÍA</span>
                         <Select
                           value={String(h.diaSemana)}
                           onChange={(v) => actualizarHorario(i, 'diaSemana', Number(v))}
+                          ariaLabel="Día"
                           opciones={DIAS.map((d) => ({ value: String(d.value), label: d.label }))}
                         />
                       </div>
-                    </label>
-                    <label className="text-xs font-medium text-[#374151]">
-                      Inicio
-                      <div className="mt-1">
+                      <div>
+                        <span className="field-label">INICIO</span>
                         <Select
                           value={inicios.includes(h.horaInicio) ? h.horaInicio : ''}
                           onChange={(v) => actualizarHorario(i, 'horaInicio', v)}
                           disabled={inicios.length === 0}
+                          ariaLabel="Hora de inicio"
                           placeholder={inicios.length === 0 ? 'Sin horarios libres este día' : 'Elegir hora…'}
                           opciones={inicios.map((t) => ({ value: t, label: t }))}
                         />
                       </div>
-                    </label>
-                    <label className="text-xs font-medium text-[#374151]">
-                      Fin
-                      <div className="mt-1">
+                      <div>
+                        <span className="field-label">FIN</span>
                         <Select
                           value={fines.includes(h.horaFin) ? h.horaFin : ''}
                           onChange={(v) => actualizarHorario(i, 'horaFin', v)}
                           disabled={!h.horaInicio || fines.length === 0}
+                          ariaLabel="Hora de fin"
                           placeholder={!h.horaInicio ? 'Elegí inicio primero' : 'Elegir hora…'}
                           opciones={fines.map((t) => ({ value: t, label: t }))}
                         />
                       </div>
-                    </label>
-                  </div>
+                    </div>
                   );
                 })}
               </div>
             )}
 
-            <div className="flex gap-2">
-              <Button variant="ghost" fullWidth onClick={() => setPaso(1)}>
+            <div className="inline-actions">
+              <button className="btn btn-secondary" onClick={() => setPaso(1)}>
                 Atrás
-              </Button>
-              <Button fullWidth disabled={!horariosValidos} onClick={() => setPaso(3)}>
+              </button>
+              <button className="btn btn-primary" disabled={!horariosValidos} onClick={() => setPaso(3)}>
                 Continuar
-              </Button>
+              </button>
             </div>
           </div>
         )}
 
         {paso === 3 && (
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-[#374151]">
-              Capacidad (cupo máximo)
-              <input
-                type="number"
-                min={1}
-                value={capacidad}
-                onChange={(e) => setCapacidad(Number(e.target.value))}
-                className={inputCls}
-                style={{ minHeight: 44 }}
-              />
+          <div className="stack-gap">
+            <label>
+              <span className="field-label">CAPACIDAD (CUPO MÁXIMO)</span>
+              <input className="field-input" type="number" min={1} value={capacidad} onChange={(e) => setCapacidad(Number(e.target.value))} />
             </label>
 
-            <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4 text-sm">
-              <p className="font-bold text-[#111111]">{tipoClase}</p>
-              <p className="mt-1 text-xs text-[#6B7280]">
+            <div className="glass" style={{ borderRadius: 14, padding: 14 }}>
+              <strong style={{ color: 'var(--text)' }}>{tipoClase}</strong>
+              <p style={{ marginTop: 4, fontSize: 12 }}>
                 {horasSemanales} h/semana · {horarios.length} día(s) · cupo {capacidad}
               </p>
-              <ul className="mt-2 space-y-1 text-xs text-[#374151]">
+              <ul style={{ marginTop: 8, fontSize: 12, listStyle: 'none', padding: 0 }}>
                 {horarios.map((h, i) => (
                   <li key={i}>
                     {nombreDia(h.diaSemana)} {h.horaInicio}–{h.horaFin}
@@ -411,13 +415,29 @@ export function NuevaClasePanel({ sedeId, inicial, onClose, onCreada }: NuevaCla
               </ul>
             </div>
 
-            <div className="flex gap-2">
-              <Button variant="ghost" fullWidth onClick={() => setPaso(2)}>
+            <div className="inline-actions">
+              <button className="btn btn-secondary" onClick={() => setPaso(2)}>
                 Atrás
-              </Button>
-              <Button fullWidth disabled={guardando} onClick={() => void crear()}>
+              </button>
+              <button className="btn btn-primary" disabled={guardando} onClick={() => void crear()}>
                 {guardando ? 'Creando...' : 'Crear clase'}
-              </Button>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {paso === 4 && (
+          <div className="stack-gap">
+            <p className="notice notice-err" role="status">
+              La clase se guardó, pero no pudimos generar sus fechas. Mientras tanto nadie puede reservarla. Reintentá la generación (es seguro repetirla) o cerrá y hacelo más tarde.
+            </p>
+            <div className="inline-actions">
+              <button className="btn btn-primary" disabled={reintentando} onClick={() => void reintentarGeneracion()}>
+                <RefreshCw size={15} aria-hidden /> {reintentando ? 'Reintentando...' : 'Reintentar generación'}
+              </button>
+              <button className="btn btn-secondary" disabled={reintentando} onClick={onCreada}>
+                Cerrar
+              </button>
             </div>
           </div>
         )}

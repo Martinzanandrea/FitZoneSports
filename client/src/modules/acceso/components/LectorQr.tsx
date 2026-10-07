@@ -83,8 +83,8 @@ export function LectorQr({ onDetectado }: { onDetectado: (token: string) => void
   if (estado === 'error') {
     return (
       <div className="text-center py-6 space-y-3">
-        <Camera size={28} className="mx-auto text-[#9CA3AF]" />
-        <p className="text-sm text-[#DC2626]">{mensajeError}</p>
+        <Camera size={28} className="mx-auto text-mist" />
+        <p className="text-sm text-coral">{mensajeError}</p>
         <Button variant="outline" onClick={() => { setEstado('pidiendo'); setIntento((i) => i + 1); }}>
           Reintentar
         </Button>
@@ -96,10 +96,10 @@ export function LectorQr({ onDetectado }: { onDetectado: (token: string) => void
     <div className="space-y-3">
       <div
         id={ELEMENT_ID}
-        className="w-full overflow-hidden rounded-2xl border border-[#E5E7EB] bg-black"
+        className="w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
         style={{ minHeight: 240 }}
       />
-      <p className="text-xs text-[#6B7280] text-center">
+      <p className="text-xs text-mist text-center">
         {estado === 'pidiendo' && 'Pidiendo permiso de cámara…'}
         {estado === 'escaneando' && 'Apuntá al QR del socio'}
         {estado === 'detectado' && 'QR detectado, validando…'}

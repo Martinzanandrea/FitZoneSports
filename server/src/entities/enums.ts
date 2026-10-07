@@ -6,7 +6,8 @@ export enum TipoActor {
   SOCIO = 'SOCIO',
   EXTERNO = 'EXTERNO',
   RECEPCIONISTA = 'RECEPCIONISTA',
-  GERENTE = 'GERENTE',
+  GERENTE_GENERAL = 'GERENTE_GENERAL',
+  GERENTE_SEDE = 'GERENTE_SEDE',
 }
 
 export enum TipoPlan {

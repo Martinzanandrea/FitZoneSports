@@ -75,8 +75,14 @@ export class ReservasClaseService {
 
     assertOwnerOrStaff(currentUser, usuarioId);
 
+    // Scope por exclusión (REGLAS GERENTE_SEDE): todo actor no-GG que
+    // reserva para otro queda acotado a la sede de la clase. El socio
+    // reservando para sí mismo no pasa por acá (sedeId null = todas).
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (currentUser.tipoActor === TipoActor.RECEPCIONISTA) {
+    if (
+      currentUser.id !== usuarioId &&
+      currentUser.tipoActor !== TipoActor.GERENTE_GENERAL
+    ) {
       assertSedeScope(currentUser, ocurrencia.clase.sede.id);
     }
 

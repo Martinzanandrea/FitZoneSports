@@ -1,4 +1,5 @@
 import { PageHeading } from '../../../shared/components/Landing';
+import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const SECCIONES: { titulo: string; cuerpo: string }[] = [
   {
@@ -44,22 +45,22 @@ const SECCIONES: { titulo: string; cuerpo: string }[] = [
 ];
 
 export function TerminosCondiciones() {
+  useTitulo('Términos y condiciones');
+
   return (
     <>
       <PageHeading
-        title="Términos y"
         accent="Condiciones."
         description="Las reglas de uso de la plataforma FitZone Sports."
+        eyebrow="Información legal"
+        title="Términos y"
       />
-      <section className="mx-auto max-w-3xl px-5 pb-24 sm:px-8 lg:px-12 lg:pb-32">
-        <div className="space-y-4">
+      <section className="lp-wrap" style={{ paddingBottom: 'clamp(40px, 7vw, 80px)' }}>
+        <div className="lp-prose">
           {SECCIONES.map((s) => (
-            <article
-              key={s.titulo}
-              className="rounded-[1.75rem] border border-black/8 bg-white p-6 sm:p-8"
-            >
-              <h2 className="text-lg font-extrabold tracking-[-0.025em]">{s.titulo}</h2>
-              <p className="mt-2 text-[15px] leading-relaxed text-black/60">{s.cuerpo}</p>
+            <article className="glass" key={s.titulo}>
+              <h2>{s.titulo}</h2>
+              <p>{s.cuerpo}</p>
             </article>
           ))}
         </div>

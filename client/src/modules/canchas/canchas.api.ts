@@ -22,6 +22,9 @@ export const canchasApi = {
   // Guarda cambios en una cancha (el id dice cuál); también se usa para pasarla
   // a mantenimiento sin borrar las reservas ya hechas.
   update: (id: string, payload: Partial<CanchaPayload> & { estado?: Cancha['estado'] }) => api.patch<Cancha>(`/canchas/${id}`, payload).then((r) => r.data),
+  // Borra una cancha de verdad, solo si no tiene reservas en su historial;
+  // si las tiene el backend responde 400 con el motivo.
+  eliminar: (id: string) => api.delete<void>(`/canchas/${id}`).then((r) => r.data),
   // Trae las reservas de una cancha (canchaId dice cuál); si se pasa una fecha,
   // devuelve solo las de ese día para armar la grilla horaria. También viene
   // paginado (un día tiene 15 turnos como máximo, así que una página alcanza).

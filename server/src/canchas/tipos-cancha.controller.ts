@@ -43,7 +43,7 @@ export class TiposCanchaController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Get('todos')
   @ApiOperation({ summary: 'Listar todos los tipos (incluidos inactivos)' })
   findTodos() {
@@ -51,7 +51,7 @@ export class TiposCanchaController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Post()
   @ApiOperation({ summary: 'Crear un tipo de cancha con foto' })
   @UseInterceptors(
@@ -83,7 +83,7 @@ export class TiposCanchaController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Patch(':id')
   @ApiOperation({ summary: 'Cambiar nombre y/o foto de un tipo de cancha' })
   @ApiParam({ name: 'id', description: 'UUID del tipo de cancha' })
@@ -117,7 +117,7 @@ export class TiposCanchaController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Patch(':id/estado')
   @ApiOperation({ summary: 'Activar o desactivar un tipo de cancha' })
   @ApiParam({ name: 'id', description: 'UUID del tipo de cancha' })
@@ -129,7 +129,7 @@ export class TiposCanchaController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un tipo de cancha sin canchas asociadas' })
   @ApiParam({ name: 'id', description: 'UUID del tipo de cancha' })

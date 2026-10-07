@@ -49,17 +49,17 @@ export class MembresiasController {
 
   // Debe ir ANTES que ':id' para que Nest no lo confunda con un parámetro.
   @Get('vigente/:usuarioId')
-  @ApiOperation({ summary: 'Obtener la membresía vigente de un usuario' })
+  @ApiOperation({ summary: 'Obtener el estado de membresía de un usuario (solo lectura)' })
   @ApiParam({ name: 'usuarioId', description: 'UUID del usuario' })
   vigente(
     @Param('usuarioId', ParseUUIDPipe) usuarioId: string,
     @CurrentUser() user: UsuarioAutenticado,
   ) {
     assertOwnerOrStaff(user, usuarioId);
-    return this.membresiasService.obtenerMembresiaVigente(usuarioId);
+    return this.membresiasService.obtenerEstadoSocio(usuarioId);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Get()
   @ApiOperation({ summary: 'Listar membresías' })
   findAll(@CurrentUser() user: UsuarioAutenticado, @Query() query: PaginationQueryDto) {
@@ -78,18 +78,19 @@ export class MembresiasController {
     return membresia;
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una membresía' })
   @ApiParam({ name: 'id', description: 'UUID de la membresía' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateMembresiaDto,
+    @CurrentUser() user: UsuarioAutenticado,
   ) {
-    return this.membresiasService.update(id, dto);
+    return this.membresiasService.update(id, dto, user);
   }
 
-  @Roles(TipoActor.GERENTE)
+  @Roles(TipoActor.GERENTE_GENERAL)
   @Post('marcar-vencidas')
   @ApiOperation({ summary: 'Marcar membresías vencidas' })
   async marcarVencidas() {
@@ -107,6 +108,6 @@ export class MembresiasController {
   ) {
     const membresia = await this.membresiasService.findOne(id);
     assertOwnerOrStaff(user, membresia.usuario.id);
-    return this.membresiasService.cancelar(id);
+    return this.membresiasService.cancelar(id, user);
   }
 }

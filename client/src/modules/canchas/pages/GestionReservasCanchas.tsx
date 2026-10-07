@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Clock3, DollarSign, HelpCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Building2, CalendarDays, Clock3, DollarSign, Search, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { canchasApi } from '../canchas.api';
 import type { Cancha, ReservaCancha } from '../canchas.types';
-import { usuariosApi } from '../../usuarios/usuarios.api';
-import type { Usuario } from '../../usuarios/usuarios.types';
+import { usuariosApi, type ClienteBuscado } from '../../usuarios/usuarios.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede, FranjaHoraria } from '../../sedes/sedes.types';
-import { Badge, Button, Card, Chip, StatCard, ProgressBar, Tooltip } from '../../../shared/components/ui';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { Select } from '../../../shared/components/Select';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+
+const MIN_BUSQUEDA = 3;
 
 function formatFecha(d: Date) {
   return d.toISOString().split('T')[0];
@@ -57,11 +62,20 @@ function duracionHoras(r: ReservaCancha) {
   return Math.max(0, (aMinutos(r.horaFin) - aMinutos(r.horaInicio)) / 60);
 }
 
+function mensajeDe(e: unknown, porDefecto: string): string {
+  const ax = e as { response?: { data?: { message?: string | string[] } } };
+  const raw = ax.response?.data?.message;
+  return Array.isArray(raw) ? raw.join(', ') : raw ?? porDefecto;
+}
+
 export function GestionReservasCanchas() {
   useTitulo('Reservas de canchas');
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const sedeId = user?.sedeId ?? null;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const esGG = user?.tipoActor === TipoActor.GERENTE_GENERAL;
+  // La sede del Gerente de Sede y del Recepcionista va fija; solo el GG la elige.
+  const sedeId = esGG ? searchParams.get('sedeId') ?? user?.sedeId ?? null : user?.sedeId ?? null;
+  const [sedes, setSedes] = useState<Sede[]>([]);
 
   const [sede, setSede] = useState<Sede | null>(null);
   const [franjas, setFranjas] = useState<FranjaHoraria[]>([]);
@@ -70,8 +84,8 @@ export function GestionReservasCanchas() {
   const [fecha, setFecha] = useState<string>(formatFecha(new Date()));
   const [reservas, setReservas] = useState<ReservaCancha[]>([]);
   const [reservasHoy, setReservasHoy] = useState<ReservaCancha[]>([]);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [accionId, setAccionId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -79,7 +93,10 @@ export function GestionReservasCanchas() {
   const [slotSel, setSlotSel] = useState<number | null>(null);
   const [paso, setPaso] = useState<1 | 2>(1);
   const [busqueda, setBusqueda] = useState('');
-  const [usuarioIdSel, setUsuarioIdSel] = useState('');
+  const [resultados, setResultados] = useState<ClienteBuscado[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState('');
+  const [clienteSel, setClienteSel] = useState<ClienteBuscado | null>(null);
   const [cotizacion, setCotizacion] = useState<{ precioFinal: number; estrategia: string } | null>(null);
   const [cotizando, setCotizando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
@@ -96,42 +113,44 @@ export function GestionReservasCanchas() {
   const canchaSel = canchasDeSede.find((c) => c.id === canchaId) ?? null;
   const slots = useMemo(() => slotsDeFranjas(franjas), [franjas]);
 
-  const usuariosFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    const base = usuarios.filter((u) => u.tipoActor === 'SOCIO' || u.tipoActor === 'EXTERNO');
-    if (!q) return base.slice(0, 50);
-    return base.filter((u) =>
-      `${u.nombre} ${u.apellido} ${u.email} ${u.dni ?? ''}`.toLowerCase().includes(q),
-    ).slice(0, 50);
-  }, [usuarios, busqueda]);
-
-  const usuarioSel = usuarios.find((u) => u.id === usuarioIdSel) ?? null;
+  useEffect(() => {
+    if (!esGG) return;
+    sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
+  }, [esGG]);
 
   useEffect(() => {
-    if (!sedeId) { setLoading(false); return; }
+    if (!sedeId) {
+      setLoading(false);
+      return;
+    }
+    let viva = true;
+    setLoading(true);
+    setError(false);
     async function init() {
       try {
-        const [canchasRes, usuariosRes, sedeData, franjasData] = await Promise.all([
+        const [canchasRes, sedeData, franjasData] = await Promise.all([
           canchasApi.getAll(1, 100),
-          usuariosApi.getAll(1, 100),
           sedesApi.getOne(sedeId as string),
           sedesApi.getFranjas(sedeId as string).catch(() => [] as FranjaHoraria[]),
         ]);
+        if (!viva) return;
         const allCanchas = canchasRes.data;
-        // TODO: este buscador solo aplica a la página actual, no al total — filtrar server-side en el futuro.
         setCanchas(allCanchas);
-        setUsuarios(usuariosRes.data);
         setSede(sedeData);
         setFranjas(franjasData);
         const filtradas = allCanchas.filter((c) => c.sede.id === sedeId && c.estado === 'ACTIVA');
-        if (filtradas.length) setCanchaId(filtradas[0].id);
+        setCanchaId(filtradas[0]?.id ?? '');
+        setReservas([]);
       } catch {
-        setCanchas([]);
+        if (viva) setError(true);
       } finally {
-        setLoading(false);
+        if (viva) setLoading(false);
       }
     }
     void init();
+    return () => {
+      viva = false;
+    };
   }, [sedeId]);
 
   useEffect(() => {
@@ -141,11 +160,51 @@ export function GestionReservasCanchas() {
 
   // Stats del día (todas las canchas activas de la sede)
   useEffect(() => {
-    if (!sedeId || canchasDeSede.length === 0) { setReservasHoy([]); return; }
+    if (!sedeId || canchasDeSede.length === 0) {
+      setReservasHoy([]);
+      return;
+    }
     Promise.all(
       canchasDeSede.map((c) => canchasApi.getReservasPorCancha(c.id, hoy).then((r) => r.data).catch(() => [] as ReservaCancha[])),
     ).then((listas) => setReservasHoy(listas.flat().filter((r) => r.estado === 'CONFIRMADA')));
   }, [sedeId, canchasDeSede, refreshKey, hoy]);
+
+  // Búsqueda de cliente en el panel: GET /usuarios/buscar-clientes (mínimo 3 caracteres).
+  useEffect(() => {
+    const q = busqueda.trim();
+    if (slotSel === null || paso !== 1 || q.length < MIN_BUSQUEDA) {
+      setResultados([]);
+      setErrorBusqueda('');
+      return;
+    }
+    let viva = true;
+    setBuscando(true);
+    const t = window.setTimeout(() => {
+      usuariosApi
+        .buscarClientes(q)
+        .then((r) => {
+          if (!viva) return;
+          setResultados(r);
+          setErrorBusqueda('');
+        })
+        .catch(() => viva && setErrorBusqueda('No se pudo buscar. Intentá de nuevo.'))
+        .finally(() => viva && setBuscando(false));
+    }, 300);
+    return () => {
+      viva = false;
+      window.clearTimeout(t);
+      setBuscando(false);
+    };
+  }, [busqueda, slotSel, paso]);
+
+  useEffect(() => {
+    if (slotSel === null) return;
+    function alEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') cerrarPanel();
+    }
+    document.addEventListener('keydown', alEscape);
+    return () => document.removeEventListener('keydown', alEscape);
+  }, [slotSel]);
 
   const stats = useMemo(() => {
     const horasOcupadas = reservasHoy.reduce((acc, r) => acc + duracionHoras(r), 0);
@@ -160,15 +219,14 @@ export function GestionReservasCanchas() {
   function reservaEnSlot(hora: number): ReservaCancha | null {
     const ini = hora * 60;
     const fin = (hora + 1) * 60;
-    return reservas.find((r) =>
-      r.estado === 'CONFIRMADA' && aMinutos(r.horaInicio) < fin && aMinutos(r.horaFin) > ini,
-    ) ?? null;
+    return reservas.find((r) => r.estado === 'CONFIRMADA' && aMinutos(r.horaInicio) < fin && aMinutos(r.horaFin) > ini) ?? null;
   }
 
   const esHoy = fecha === hoy;
   const ahoraMin = useMemo(() => {
     const n = new Date();
     return n.getHours() * 60 + n.getMinutes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fecha]);
   function slotPasado(hora: number) {
     return esHoy && (hora + 1) * 60 <= ahoraMin;
@@ -178,7 +236,7 @@ export function GestionReservasCanchas() {
     setSlotSel(hora);
     setPaso(1);
     setBusqueda('');
-    setUsuarioIdSel('');
+    setClienteSel(null);
     setCotizacion(null);
     setErrorPanel('');
   }
@@ -190,14 +248,14 @@ export function GestionReservasCanchas() {
   }
 
   async function irAPaso2() {
-    if (slotSel === null || !canchaId || !usuarioIdSel) return;
+    if (slotSel === null || !canchaId || !clienteSel) return;
     setCotizando(true);
     setErrorPanel('');
     setCotizacion(null);
     try {
       const cot = await canchasApi.cotizar({
         canchaId,
-        usuarioId: usuarioIdSel,
+        usuarioId: clienteSel.id,
         fecha,
         horaInicio: `${String(slotSel).padStart(2, '0')}:00`,
         horaFin: `${String(slotSel + 1).padStart(2, '0')}:00`,
@@ -205,22 +263,20 @@ export function GestionReservasCanchas() {
       setCotizacion(cot);
       setPaso(2);
     } catch (e: unknown) {
-      const ax = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = ax.response?.data?.message;
-      setErrorPanel(Array.isArray(raw) ? raw.join(', ') : raw ?? 'No se pudo cotizar el turno.');
+      setErrorPanel(mensajeDe(e, 'No se pudo cotizar el turno.'));
     } finally {
       setCotizando(false);
     }
   }
 
   async function handleConfirmar() {
-    if (slotSel === null || !canchaId || !usuarioIdSel) return;
+    if (slotSel === null || !canchaId || !clienteSel) return;
     setConfirmando(true);
     setErrorPanel('');
     try {
       await canchasApi.reservar({
         canchaId,
-        usuarioId: usuarioIdSel,
+        usuarioId: clienteSel.id,
         fecha,
         horaInicio: `${String(slotSel).padStart(2, '0')}:00`,
         horaFin: `${String(slotSel + 1).padStart(2, '0')}:00`,
@@ -229,9 +285,7 @@ export function GestionReservasCanchas() {
       cerrarPanel();
       setRefreshKey((k) => k + 1);
     } catch (e: unknown) {
-      const ax = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = ax.response?.data?.message;
-      setErrorPanel(Array.isArray(raw) ? raw.join(', ') : raw ?? 'No se pudo confirmar la reserva.');
+      setErrorPanel(mensajeDe(e, 'No se pudo confirmar la reserva.'));
     } finally {
       setConfirmando(false);
     }
@@ -245,254 +299,310 @@ export function GestionReservasCanchas() {
       setMsg({ type: 'ok', text: 'Reserva cancelada.' });
       setRefreshKey((k) => k + 1);
     } catch (e: unknown) {
-      const ax = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = ax.response?.data?.message;
-      setMsg({ type: 'err', text: Array.isArray(raw) ? raw.join(', ') : raw ?? 'No se pudo cancelar.' });
+      setMsg({ type: 'err', text: mensajeDe(e, 'No se pudo cancelar.') });
     } finally {
       setAccionId(null);
     }
   }
 
-  // Solo el Recepcionista necesita sede asignada para operar. El Gerente
-  // tiene sedeId null por diseño ("todas las sedes") y no debe bloquearse.
-  if (!sedeId && user?.tipoActor === TipoActor.RECEPCIONISTA) {
+  // Todos necesitan sede asignada para operar salvo el GG, que tiene sedeId
+  // null por diseño ("todas las sedes") y elige la sede con el selector.
+  if (!sedeId && !esGG) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-6">
-        <h1 className="text-xl font-bold text-[#111111]">Reservas de canchas</h1>
-        <div className="mt-4 p-4 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] text-sm text-[#92400E]">Tu usuario no tiene sede asignada.</div>
-      </div>
+      <EmptyState
+        icon={Building2}
+        title="Todavía no tenés una sede asignada"
+        description="Contactá a un gerente para que te asigne una sede."
+      />
     );
   }
 
-  if (loading) return <div className="max-w-lg mx-auto px-4 py-6 text-sm text-[#6B7280]">Cargando canchas...</div>;
+  const confirmadasDelDia = reservas.filter((r) => r.estado === 'CONFIRMADA');
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-[#111111]">{sede?.nombre ?? 'Reservas de canchas'}</h1>
-        <p className="text-sm text-[#6B7280] mt-1">Reservá en nombre de un socio/externo. Solo canchas de tu sede.</p>
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Reservas de canchas</h2>
+          <p>{sede ? `${sede.nombre}. ` : ''}Reservá en nombre de un socio o cliente externo.</p>
+        </div>
       </div>
 
-      {msg && <p className={`rounded-lg border p-3 text-sm ${msg.type === 'ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>{msg.text}</p>}
+      {msg && (
+        <p role="status" className={`notice ${msg.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginBottom: 14 }}>
+          {msg.text}
+        </p>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-      <div className="min-w-0 space-y-6">
-
-      {/* Estadísticas reales del día */}
-      <div className="grid grid-cols-3 gap-2">
-        <StatCard label="Reservas hoy" value={String(stats.count)} icon={CalendarDays} iconColor="#8B2EFF" />
-        <StatCard label="Ocupación hoy" value={`${stats.horasOcupadas}/${stats.horasDisponibles}h`} sub={`${pctOcupacion}%`} icon={Clock3} iconColor="#3B82F6" />
-        <StatCard label="Ingreso est. hoy" value={`$${stats.ingreso.toLocaleString('es-AR')}`} icon={DollarSign} iconColor="#16A34A" />
-      </div>
-      <ProgressBar value={pctOcupacion} color={pctOcupacion >= 90 ? '#DC2626' : pctOcupacion >= 70 ? '#D97706' : '#8B2EFF'} />
-
-      {/* Fecha */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {fechas.map((d, i) => {
-          const f = formatFecha(d);
-          const label = i === 0
-            ? 'Hoy'
-            : d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
-          return <Chip key={f} label={label} active={fecha === f} onClick={() => setFecha(f)} />;
-        })}
-      </div>
-
-      {/* Canchas (tabs, solo activas de la sede) */}
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-[#111111]">Cancha</p>
-        {canchasDeSede.length === 0 ? (
-          <Card className="text-center py-6"><p className="text-sm text-[#6B7280]">No hay canchas activas en tu sede.</p></Card>
-        ) : (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {canchasDeSede.map((c) => (
-              <button key={c.id} onClick={() => setCanchaId(c.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold border whitespace-nowrap ${canchaId === c.id ? 'bg-[#8B2EFF] text-white border-[#8B2EFF]' : 'bg-white text-[#111111] border-[#E5E7EB]'}`} style={{ minHeight: 44 }}>
-                {c.nombre} · {c.tipo.nombre}
-              </button>
-            ))}
+      {esGG && (
+        <div className="filters">
+          <div className="select-field">
+            <span className="field-label">SEDE</span>
+            <Select
+              value={sedeId ?? ''}
+              onChange={(v) => setSearchParams(v ? { sedeId: v } : {})}
+              opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+              placeholder="Seleccionar sede..."
+              ariaLabel="Sede"
+            />
           </div>
-        )}
-      </div>
-
-      {/* Grilla de horarios según franjas reales */}
-      <div className="space-y-2">
-        {slots.length === 0 ? (
-          <Card className="text-center py-6"><p className="text-sm text-[#6B7280]">La sede no tiene franjas horarias cargadas.</p></Card>
-        ) : (
-          slots.map((h) => {
-            const hi = `${String(h).padStart(2, '0')}:00`;
-            const hf = `${String(h + 1).padStart(2, '0')}:00`;
-            const ocupante = reservaEnSlot(h);
-            const pico = esHoraPico(h);
-            const pasado = slotPasado(h);
-            if (ocupante) {
-              return (
-                <div key={hi} className="rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] p-3.5 flex items-center justify-between gap-3" style={{ minHeight: 44 }}>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#111111]">{hi} - {hf}</p>
-                    <p className="text-xs text-[#6B7280] truncate">Ocupado · {ocupante.usuario.nombre} {ocupante.usuario.apellido}</p>
-                  </div>
-                  <Badge variant="gray">Ocupado</Badge>
-                </div>
-              );
-            }
-            if (pasado) {
-              return (
-                <div key={hi} className="rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] opacity-60 p-3.5 flex items-center justify-between gap-3" style={{ minHeight: 44 }}>
-                  <p className="text-sm font-semibold text-[#6B7280]">{hi} - {hf}</p>
-                  <Badge variant="gray">Finalizado</Badge>
-                </div>
-              );
-            }
-            return (
-              <button
-                key={hi}
-                onClick={() => abrirSlot(h)}
-                className="w-full rounded-xl border-2 border-dashed border-[#8B2EFF]/40 bg-white p-3.5 flex items-center justify-between gap-3 hover:border-[#8B2EFF] hover:bg-[#F3E8FF]/40 transition-colors text-left"
-                style={{ minHeight: 44 }}
-              >
-                <div>
-                  <p className="text-sm font-semibold text-[#111111]">{hi} - {hf}</p>
-                  <p className="text-xs text-[#8B2EFF] font-medium inline-flex items-center gap-1">
-                    Libre — reservar
-                    <Tooltip text="Tocá un horario libre para reservarlo a nombre de un cliente">
-                      <HelpCircle size={14} className="text-[#9CA3AF]" />
-                    </Tooltip>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {pico && (
-                    <>
-                      <Badge variant="amber">Pico 19-21</Badge>
-                      <Tooltip text="Este horario tiene recargo del 15% por ser horario pico">
-                        <HelpCircle size={14} className="text-[#9CA3AF]" />
-                      </Tooltip>
-                    </>
-                  )}
-                  <Badge variant="green">Libre</Badge>
-                </div>
-              </button>
-            );
-          })
-        )}
-      </div>
-
-      {/* Cancelación de reservas existentes (secundario) */}
-      {reservas.filter((r) => r.estado === 'CONFIRMADA').length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-[#6B7280]">Reservas para {fecha} (cancelar)</p>
-          {reservas.filter((r) => r.estado === 'CONFIRMADA').map((r) => (
-            <Card key={r.id} className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#111111] truncate">{r.horaInicio.slice(0, 5)} - {r.horaFin.slice(0, 5)} · {r.usuario.nombre} {r.usuario.apellido}</p>
-                <p className="text-xs text-[#6B7280]">${r.precioFinal} · {r.estrategiaPrecio}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => handleCancelar(r.id)} disabled={accionId === r.id}>Cancelar</Button>
-            </Card>
-          ))}
         </div>
       )}
-      </div>
-      <div>
-        <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-          <Button fullWidth onClick={() => navigate('/admin/acceso')}>Control de Acceso</Button>
-          <Button variant="outline" fullWidth onClick={() => navigate('/admin/reservas-clases')}>Reservas de Clases</Button>
-          <Button variant="outline" fullWidth onClick={() => navigate('/admin/cobrar')}>Cobrar</Button>
-        </div>
-      </div>
-      </div>
+
+      {!sedeId ? (
+        <EmptyState icon={Building2} title="Elegí una sede" description="Seleccioná una sede para gestionar sus reservas." />
+      ) : loading ? (
+        <LoadingState rows={4} label="Cargando canchas" />
+      ) : error ? (
+        <ErrorState title="No pudimos cargar las canchas" onRetry={() => window.location.reload()} />
+      ) : (
+        <>
+          <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
+            <MetricCard label="Reservas hoy" value={String(stats.count)} change="confirmadas" icon={CalendarDays} />
+            <MetricCard
+              label="Ocupación hoy"
+              value={`${stats.horasOcupadas}/${stats.horasDisponibles}h`}
+              change={`${pctOcupacion}% de las horas`}
+              icon={Clock3}
+            />
+            <MetricCard label="Ingreso estimado hoy" value={`$${stats.ingreso.toLocaleString('es-AR')}`} change="reservas confirmadas" icon={DollarSign} />
+          </div>
+
+          <div className="segmented" role="tablist" aria-label="Fecha">
+            {fechas.map((d, i) => {
+              const f = formatFecha(d);
+              const label = i === 0 ? 'Hoy' : d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
+              return (
+                <button key={f} type="button" role="tab" aria-selected={fecha === f} className={fecha === f ? 'active' : ''} onClick={() => setFecha(f)}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {canchasDeSede.length === 0 ? (
+            <EmptyState icon={CalendarDays} title="No hay canchas activas" description="Tu sede no tiene canchas activas para reservar." />
+          ) : (
+            <>
+              <div className="segmented" role="tablist" aria-label="Cancha">
+                {canchasDeSede.map((c) => (
+                  <button key={c.id} type="button" role="tab" aria-selected={canchaId === c.id} className={canchaId === c.id ? 'active' : ''} onClick={() => setCanchaId(c.id)}>
+                    {c.nombre} · {c.tipo.nombre}
+                  </button>
+                ))}
+              </div>
+
+              {slots.length === 0 ? (
+                <EmptyState icon={Clock3} title="Sin franjas horarias" description="La sede no tiene franjas horarias cargadas." />
+              ) : (
+                <section className="glass panel" aria-label="Horarios">
+                  <div className="stack-list">
+                    {slots.map((h) => {
+                      const hi = `${String(h).padStart(2, '0')}:00`;
+                      const hf = `${String(h + 1).padStart(2, '0')}:00`;
+                      const ocupante = reservaEnSlot(h);
+                      const pico = esHoraPico(h);
+                      const pasado = slotPasado(h);
+                      return (
+                        <div className="list-row" key={hi} style={pasado && !ocupante ? { opacity: 0.55 } : undefined}>
+                          <div className="row-main">
+                            <strong>
+                              {hi} - {hf}
+                            </strong>
+                            <span>
+                              {ocupante
+                                ? `${ocupante.usuario.nombre} ${ocupante.usuario.apellido}`
+                                : pasado
+                                  ? 'Horario finalizado'
+                                  : pico
+                                    ? 'Horario pico: puede tener recargo'
+                                    : 'Disponible'}
+                            </span>
+                          </div>
+                          {ocupante ? (
+                            <span className="badge badge-neutral">
+                              <i />
+                              Ocupado
+                            </span>
+                          ) : pasado ? (
+                            <span className="badge badge-neutral">
+                              <i />
+                              Finalizado
+                            </span>
+                          ) : (
+                            <>
+                              {pico && (
+                                <span className="badge badge-warning">
+                                  <i />
+                                  Pico 19-21
+                                </span>
+                              )}
+                              <button className="btn btn-primary" onClick={() => abrirSlot(h)}>
+                                Reservar
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {confirmadasDelDia.length > 0 && (
+                <section className="glass panel" style={{ marginTop: 14 }} aria-label="Reservas del día">
+                  <div className="section-header">
+                    <div>
+                      <h2>Reservas del {fecha}</h2>
+                      <p>Podés cancelarlas desde acá.</p>
+                    </div>
+                  </div>
+                  <div className="stack-list">
+                    {confirmadasDelDia.map((r) => (
+                      <div className="list-row" key={r.id}>
+                        <div className="row-main">
+                          <strong>
+                            {r.horaInicio.slice(0, 5)} - {r.horaFin.slice(0, 5)} · {r.usuario.nombre} {r.usuario.apellido}
+                          </strong>
+                          <span>
+                            ${r.precioFinal} · {r.estrategiaPrecio}
+                          </span>
+                        </div>
+                        <button className="btn btn-secondary" onClick={() => void handleCancelar(r.id)} disabled={accionId === r.id}>
+                          {accionId === r.id ? '...' : 'Cancelar'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+        </>
+      )}
 
       {/* Panel superpuesto: reserva en 2 pasos */}
       {slotSel !== null && canchaSel && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center sm:p-4" onClick={cerrarPanel}>
-          <div
-            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3">
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Reservar cancha" onClick={(e) => e.target === e.currentTarget && cerrarPanel()}>
+          <div className="glass panel modal-card">
+            <div className="section-header">
               <div>
-                <h2 className="text-lg font-bold text-[#111111]">
-                  Reservar {canchaSel.nombre} · {String(slotSel).padStart(2, '0')}:00 - {String(slotSel + 1).padStart(2, '0')}:00
+                <h2>
+                  {canchaSel.nombre} · {String(slotSel).padStart(2, '0')}:00 - {String(slotSel + 1).padStart(2, '0')}:00
                 </h2>
-                <p className="text-xs text-[#6B7280] mt-0.5">{fecha} · Paso {paso} de 2</p>
+                <p>
+                  {fecha} · Paso {paso} de 2
+                </p>
               </div>
-              <button onClick={cerrarPanel} aria-label="Cerrar" className="text-[#6B7280] hover:text-[#111111] px-2" style={{ minHeight: 44, minWidth: 44 }}>✕</button>
+              <button className="icon-button" aria-label="Cerrar" onClick={cerrarPanel}>
+                <X size={18} />
+              </button>
             </div>
 
-            {errorPanel && <p className="mt-3 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{errorPanel}</p>}
+            {errorPanel && (
+              <p role="alert" className="notice notice-err" style={{ marginBottom: 14 }}>
+                {errorPanel}
+              </p>
+            )}
 
             {paso === 1 && (
-              <div className="mt-4 space-y-3">
-                <p className="text-sm font-semibold text-[#111111]">1 · Buscar cliente (Socio o Externo)</p>
-                <input
-                  type="text"
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  placeholder="Buscar por nombre, email o DNI"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none"
-                  style={{ minHeight: 44 }}
-                />
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {usuariosFiltrados.length === 0 && (
-                    <p className="text-sm text-[#6B7280] text-center py-4">Sin resultados.</p>
-                  )}
-                  {usuariosFiltrados.map((u) => (
+              <div className="stack-gap">
+                <span className="field-label">BUSCAR CLIENTE (SOCIO O EXTERNO)</span>
+                <label className="search search-wide">
+                  <Search size={15} aria-hidden />
+                  <input
+                    type="search"
+                    autoFocus
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    placeholder="Nombre, apellido o DNI (mínimo 3 letras)"
+                    aria-label="Buscar cliente"
+                  />
+                </label>
+                {buscando && <LoadingState rows={1} label="Buscando" />}
+                {errorBusqueda && (
+                  <p role="alert" className="notice notice-err">
+                    {errorBusqueda}
+                  </p>
+                )}
+                {!buscando && !errorBusqueda && busqueda.trim().length >= MIN_BUSQUEDA && resultados.length === 0 && (
+                  <p style={{ fontSize: 12 }}>No encontramos clientes con esa búsqueda.</p>
+                )}
+                <div className="pick-list">
+                  {resultados.map((u) => (
                     <button
                       key={u.id}
-                      onClick={() => setUsuarioIdSel(u.id)}
-                      className={`w-full text-left rounded-xl border p-3.5 transition-colors ${usuarioIdSel === u.id ? 'border-[#8B2EFF] bg-[#F3E8FF]/60' : 'border-[#E5E7EB] bg-white hover:border-[#8B2EFF]/50'}`}
-                      style={{ minHeight: 44 }}
+                      type="button"
+                      className={`pick-item ${clienteSel?.id === u.id ? 'active' : ''}`}
+                      aria-pressed={clienteSel?.id === u.id}
+                      onClick={() => setClienteSel(u)}
                     >
-                      <p className="text-sm font-semibold text-[#111111]">{u.nombre} {u.apellido}</p>
-                      <p className="text-xs text-[#6B7280]">{u.tipoActor}{u.dni ? ` · DNI ${u.dni}` : ''}</p>
+                      <span>
+                        {u.nombre} {u.apellido}
+                        <br />
+                        <small>DNI {u.dni ?? 'sin DNI'}</small>
+                      </span>
+                      <small>{u.tipoActor === TipoActor.EXTERNO ? 'Externo' : 'Socio'}</small>
                     </button>
                   ))}
                 </div>
-                <Button fullWidth disabled={!usuarioIdSel || cotizando} onClick={irAPaso2}>
+                <button className="btn btn-primary" disabled={!clienteSel || cotizando} onClick={() => void irAPaso2()}>
                   {cotizando ? 'Cotizando...' : 'Continuar'}
-                </Button>
+                </button>
               </div>
             )}
 
-            {paso === 2 && usuarioSel && (
-              <div className="mt-4 space-y-4">
-                <p className="text-sm font-semibold text-[#111111]">2 · Confirmar con cotización</p>
-                <Card className="bg-[#FAFAFA]">
-                  <p className="text-sm text-[#6B7280]">Cancha</p>
-                  <p className="text-sm font-semibold text-[#111111]">{canchaSel.nombre} · {canchaSel.tipo.nombre}</p>
-                  <p className="text-sm text-[#6B7280] mt-2">Turno</p>
-                  <p className="text-sm font-semibold text-[#111111]">{fecha} · {String(slotSel).padStart(2, '0')}:00 - {String(slotSel + 1).padStart(2, '0')}:00</p>
-                  <p className="text-sm text-[#6B7280] mt-2">Cliente</p>
-                  <p className="text-sm font-semibold text-[#111111]">{usuarioSel.nombre} {usuarioSel.apellido} · {usuarioSel.tipoActor}</p>
-                </Card>
-                {cotizacion ? (
-                  <Card>
-                    <div className="space-y-1.5 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-[#6B7280]">Precio base</span>
-                        <span className="font-semibold text-[#111111]">${Number(canchaSel.costoHoraBase).toLocaleString('es-AR')}/h</span>
-                      </div>
-                      <p className="text-xs text-[#6B7280]">{ETIQUETA_ESTRATEGIA[cotizacion.estrategia] ?? cotizacion.estrategia}</p>
-                      <div className="flex justify-between border-t border-[#E5E7EB] pt-2 mt-1">
-                        <span className="font-bold text-[#111111]">Total</span>
-                        <span className="font-bold text-lg text-[#8B2EFF]">${Number(cotizacion.precioFinal).toLocaleString('es-AR')}</span>
+            {paso === 2 && clienteSel && (
+              <div className="stack-gap">
+                <div className="stack-list">
+                  <div className="list-row">
+                    <div className="row-main">
+                      <strong>Cancha</strong>
+                      <span>
+                        {canchaSel.nombre} · {canchaSel.tipo.nombre}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="list-row">
+                    <div className="row-main">
+                      <strong>Turno</strong>
+                      <span>
+                        {fecha} · {String(slotSel).padStart(2, '0')}:00 - {String(slotSel + 1).padStart(2, '0')}:00
+                      </span>
+                    </div>
+                  </div>
+                  <div className="list-row">
+                    <div className="row-main">
+                      <strong>Cliente</strong>
+                      <span>
+                        {clienteSel.nombre} {clienteSel.apellido} · {clienteSel.tipoActor === TipoActor.EXTERNO ? 'Externo' : 'Socio'}
+                      </span>
+                    </div>
+                  </div>
+                  {cotizacion && (
+                    <div className="list-row">
+                      <div className="row-main">
+                        <strong>Total ${Number(cotizacion.precioFinal).toLocaleString('es-AR')}</strong>
+                        <span>
+                          Base ${Number(canchaSel.costoHoraBase).toLocaleString('es-AR')}/h · {ETIQUETA_ESTRATEGIA[cotizacion.estrategia] ?? cotizacion.estrategia}
+                        </span>
                       </div>
                     </div>
-                  </Card>
-                ) : (
-                  <p className="text-sm text-[#6B7280]">Calculando cotización...</p>
-                )}
-                <div className="flex gap-2">
-                  <Button variant="outline" fullWidth onClick={() => setPaso(1)}>Atrás</Button>
-                  <Button fullWidth disabled={!cotizacion || confirmando} onClick={handleConfirmar}>
-                    {confirmando ? 'Confirmando...' : 'Confirmar y cobrar'}
-                  </Button>
+                  )}
+                </div>
+                <div className="inline-actions">
+                  <button className="btn btn-ghost" onClick={() => setPaso(1)}>
+                    ← Atrás
+                  </button>
+                  <button className="btn btn-primary" style={{ flex: 1 }} disabled={!cotizacion || confirmando} onClick={() => void handleConfirmar()}>
+                    {confirmando ? 'Confirmando...' : 'Confirmar reserva'}
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -1,21 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HelpCircle, Users } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Building2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { accesoApi } from '../acceso.api';
 import type { SesionAbierta } from '../acceso.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import { LectorQr } from '../components/LectorQr';
-import { Button, Card, SectionTitle, StatCard, Tooltip } from '../../../shared/components/ui';
+import { Donut } from '../../../shared/components/Donut';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+
+type Modo = 'camara' | 'manual' | 'codigo';
+
 export function ControlAcceso() {
-  useTitulo('Control de Acceso');
+  useTitulo('Control de acceso');
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const sedeId = user?.sedeId ?? null;
 
-  const [tab, setTab] = useState<'camara' | 'manual' | 'codigo'>('codigo');
+  // ?modo= permite llegar directo a la cámara o al código desde el panel.
+  const modoInicial = searchParams.get('modo');
+  const [tab, setTab] = useState<Modo>(modoInicial === 'camara' || modoInicial === 'manual' ? modoInicial : 'codigo');
   const [qrToken, setQrToken] = useState('');
   const [validando, setValidando] = useState(false);
   const [resultado, setResultado] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -174,203 +183,210 @@ export function ControlAcceso() {
     }
   }
 
-  // Solo el Recepcionista necesita sede asignada para operar. El Gerente
-  // tiene sedeId null por diseño ("todas las sedes") y no debe bloquearse
-  // (sus acciones degradan con gracia: aforo/validación y la lista de
-  // quién está dentro requieren sede para cargarse).
-  if (!sedeId && user?.tipoActor === TipoActor.RECEPCIONISTA) {
+  // Recepcionista y Gerente de Sede necesitan sede asignada para operar; el
+  // GG tiene sedeId null por diseño ("todas las sedes") y no debe bloquearse.
+  if (!sedeId && user?.tipoActor !== TipoActor.GERENTE_GENERAL) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-6">
-        <h1 className="text-xl font-bold text-[#111111]">Control de acceso</h1>
-        <div className="mt-4 p-4 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] text-sm text-[#92400E]">
-          Tu usuario no tiene una sede asignada. Contactá a un gerente.
-        </div>
-      </div>
+      <EmptyState
+        icon={Building2}
+        title="Todavía no tenés una sede asignada"
+        description="Contactá a un gerente para que te asigne una sede y poder validar ingresos."
+      />
     );
   }
 
   const pct = aforo && aforo.maximo > 0 ? Math.min(100, Math.round((aforo.actual / aforo.maximo) * 100)) : 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-[#111111] tracking-tight">Control de Acceso</h1>
-        <p className="text-sm text-[#6B7280] mt-1">{sedeNombre ? `Validá ingresos por QR y registrá egresos de ${sedeNombre}.` : 'Validá ingresos por QR y registrá egresos de tu sede.'}</p>
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Control de acceso</h2>
+          <p>
+            {sedeNombre
+              ? `Validá ingresos por QR o código y registrá egresos de ${sedeNombre}.`
+              : 'Validá ingresos por QR o código y registrá egresos de tu sede.'}
+          </p>
+        </div>
       </div>
 
-      {/* Aforo */}
-      {loadingAforo ? (
-        <p className="text-sm text-[#6B7280]">Cargando aforo...</p>
-      ) : aforo ? (
-        <div className="space-y-3">
-          <StatCard label="Aforo actual" value={`${aforo.actual}/${aforo.maximo}`} sub={`${pct}% de ocupación`} icon={Users} iconColor="#8B2EFF" />
-          <Button variant="ghost" size="sm" onClick={() => { setLoadingAforo(true); void cargarAforo(); }}>
-            Actualizar
-          </Button>
-        </div>
-      ) : (
-        <p className="text-sm text-[#6B7280]">No se pudo cargar el aforo.</p>
-      )}
-
-      {/* En desktop la columna de validación queda ancha a propósito:
-          el visor de la cámara necesita espacio real (el lector ocupa
-          todo el ancho disponible, sin tope). A la derecha va la lista
-          de quién está dentro. */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="min-w-0">
-      {/* Validar ingreso */}
-      <Card>
-        <SectionTitle>Validar ingreso</SectionTitle>
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#F3F4F6] p-1 mb-4">
-          {(
-            [
-              { id: 'camara', label: 'Cámara' },
-              { id: 'manual', label: 'Pegado' },
-              { id: 'codigo', label: 'Código' },
-            ] as const
-          ).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`rounded-lg py-2 text-sm font-semibold transition-colors ${
-                tab === t.id ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6B7280]'
-              }`}
-              style={{ minHeight: 44 }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'camara' && (
-          <div className="space-y-3">
-            <LectorQr key={escanKey} onDetectado={(token) => void handleValidar(token)} />
-            {resultado && (
-              <Button
-                variant="outline"
-                fullWidth
-                onClick={() => {
-                  setResultado(null);
-                  setEscanKey((k) => k + 1);
-                }}
-              >
-                Escanear otro código
-              </Button>
-            )}
-          </div>
-        )}
-
-        {tab === 'manual' && (
-          <div className="space-y-3">
-            <label className="block">
-              <span className="text-sm font-medium text-[#374151]">Token QR del socio</span>
-              <input
-                type="text"
-                value={qrToken}
-                onChange={(e) => setQrToken(e.target.value)}
-                placeholder="Pegá el qrToken aquí"
-                className="mt-1.5 w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-sm
-                  focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none"
-                style={{ minHeight: 44 }}
-              />
-            </label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Button onClick={() => handleValidar(qrToken)} disabled={validando} fullWidth>
-                  {validando ? 'Validando...' : 'Validar ingreso'}
-                </Button>
-              </div>
-              <Tooltip text="Escaneá o pegá el código QR que te muestra el socio en su celular">
-                <HelpCircle size={14} className="text-[#9CA3AF]" />
-              </Tooltip>
-            </div>
-          </div>
-        )}
-
-        {tab === 'codigo' && (
-          <div className="space-y-3">
-            <label className="block">
-              <span className="text-sm font-medium text-[#374151]">Código de 6 dígitos</span>
-              <input
-                ref={codigoRef}
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={codigo}
-                onChange={(e) => handleCodigoChange(e.target.value)}
-                placeholder="000000"
-                className="mt-1.5 w-full px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] text-center
-                  text-2xl font-black tracking-[0.3em] text-[#111111]
-                  focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none"
-                style={{ minHeight: 44 }}
-              />
-            </label>
-            <Button onClick={() => handleValidarCodigo(codigo)} disabled={validandoCodigo || codigo.length !== 6} fullWidth>
-              {validandoCodigo ? 'Validando...' : 'Validar código'}
-            </Button>
-          </div>
-        )}
-
-        {resultado && (
-          <p className={`mt-3 rounded-lg border p-3 text-sm ${resultado.type === 'ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>
-            {resultado.text}
-          </p>
-        )}
-      </Card>
-        </div>
-        <div className="min-w-0">
-      {/* Quién está dentro: resumen (la lista completa vive en su pantalla propia) */}
-      <Card>
-        <SectionTitle>Quién está dentro{totalDentro > 0 ? ` (${totalDentro})` : ''}</SectionTitle>
-        {loadingDentro ? (
-          <p className="text-sm text-[#6B7280]">Cargando...</p>
-        ) : dentro.length === 0 ? (
-          <p className="text-sm text-[#6B7280]">No hay nadie registrado dentro en este momento.</p>
-        ) : (
-          <div className="space-y-2">
-            {dentro.map((s) => {
-              const nombre = `${s.usuario.nombre} ${s.usuario.apellido}`;
-              const ocupado = egresandoId === s.usuario.id;
-              return (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] p-3"
+      <div className="ops-grid">
+        <div className="stack-gap" style={{ minWidth: 0 }}>
+          {/* Validar ingreso */}
+          <section className="glass panel" aria-label="Validar ingreso">
+            <SectionHeader title="Validar ingreso" />
+            <div className="segmented" role="tablist" aria-label="Modo de validación">
+              {(
+                [
+                  { id: 'camara', label: 'Cámara' },
+                  { id: 'manual', label: 'Pegado' },
+                  { id: 'codigo', label: 'Código' },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  className={tab === t.id ? 'active' : ''}
+                  onClick={() => setTab(t.id)}
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#111111] truncate">{nombre}</p>
-                    <p className="text-xs text-[#6B7280]">
-                      Ingresó {s.horaIngreso.slice(0, 5)} · {haceCuanto(s.horaIngreso)}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEgresoDirecto(s.usuario.id, nombre)}
-                    disabled={ocupado}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {tab === 'camara' && (
+              <div className="stack-gap">
+                <LectorQr key={escanKey} onDetectado={(token) => void handleValidar(token)} />
+                {resultado && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setResultado(null);
+                      setEscanKey((k) => k + 1);
+                    }}
                   >
-                    {ocupado ? 'Registrando...' : 'Registrar egreso'}
-                  </Button>
-                </div>
-              );
-            })}
-            {totalDentro > dentro.length && (
-              <p className="text-xs text-[#6B7280]">+ {totalDentro - dentro.length} más adentro</p>
+                    Escanear otro código
+                  </button>
+                )}
+              </div>
             )}
-            <Button variant="ghost" fullWidth onClick={() => navigate('/admin/acceso/dentro')}>
-              Ver lista completa
-            </Button>
-          </div>
-        )}
-        {egresoMsg && (
-          <p className={`mt-3 rounded-lg border p-3 text-sm ${egresoMsg.type === 'ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>
-            {egresoMsg.text}
-          </p>
-        )}
-      </Card>
+
+            {tab === 'manual' && (
+              <div className="stack-gap">
+                <label className="auth-field">
+                  <span className="field-label">TOKEN QR DEL SOCIO</span>
+                  <input
+                    type="text"
+                    className="field-input"
+                    value={qrToken}
+                    onChange={(e) => setQrToken(e.target.value)}
+                    placeholder="Pegá el qrToken aquí"
+                    style={{ minHeight: 44 }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void handleValidar(qrToken)}
+                  disabled={validando}
+                >
+                  {validando ? 'Validando...' : 'Validar ingreso'}
+                </button>
+                <p style={{ fontSize: 11 }}>Escaneá o pegá el código QR que te muestra el socio en su celular.</p>
+              </div>
+            )}
+
+            {tab === 'codigo' && (
+              <div className="stack-gap">
+                <label className="auth-field">
+                  <span className="field-label">CÓDIGO DE 6 DÍGITOS</span>
+                  <input
+                    ref={codigoRef}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    className="field-input code-input"
+                    value={codigo}
+                    onChange={(e) => handleCodigoChange(e.target.value)}
+                    placeholder="000000"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void handleValidarCodigo(codigo)}
+                  disabled={validandoCodigo || codigo.length !== 6}
+                >
+                  {validandoCodigo ? 'Validando...' : 'Validar código'}
+                </button>
+              </div>
+            )}
+
+            {resultado && (
+              <p role="status" className={`notice ${resultado.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginTop: 14 }}>
+                {resultado.text}
+              </p>
+            )}
+          </section>
+        </div>
+
+        <div className="stack-gap" style={{ minWidth: 0 }}>
+          {/* Aforo */}
+          <section className="glass panel" aria-label="Aforo actual">
+            <SectionHeader
+              title="Aforo actual"
+              action={
+                <button className="btn btn-ghost" onClick={() => { setLoadingAforo(true); void cargarAforo(); }}>
+                  Actualizar
+                </button>
+              }
+            />
+            {loadingAforo ? (
+              <LoadingState rows={1} label="Cargando aforo" />
+            ) : aforo ? (
+              <>
+                <Donut value={pct} label="ocupado" />
+                <p style={{ textAlign: 'center', fontSize: 12 }}>
+                  {aforo.actual} de {aforo.maximo} personas
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: 12 }}>No se pudo cargar el aforo.</p>
+            )}
+          </section>
+
+          {/* Quién está dentro: resumen (la lista completa vive en su pantalla propia) */}
+          <section className="glass panel" aria-label="Quién está dentro">
+            <SectionHeader title={`Quién está dentro${totalDentro > 0 ? ` (${totalDentro})` : ''}`} />
+            {loadingDentro ? (
+              <LoadingState rows={2} label="Cargando" />
+            ) : dentro.length === 0 ? (
+              <p style={{ fontSize: 12 }}>No hay nadie registrado dentro en este momento.</p>
+            ) : (
+              <div className="stack-list">
+                {dentro.map((s) => {
+                  const nombre = `${s.usuario.nombre} ${s.usuario.apellido}`;
+                  const ocupado = egresandoId === s.usuario.id;
+                  return (
+                    <div className="list-row" key={s.id}>
+                      <div className="row-main">
+                        <strong>{nombre}</strong>
+                        <span>
+                          Ingresó {s.horaIngreso.slice(0, 5)} · {haceCuanto(s.horaIngreso)}
+                        </span>
+                      </div>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => void handleEgresoDirecto(s.usuario.id, nombre)}
+                        disabled={ocupado}
+                      >
+                        {ocupado ? 'Registrando...' : 'Egreso'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {totalDentro > dentro.length && (
+              <p style={{ fontSize: 11, marginTop: 8 }}>+ {totalDentro - dentro.length} más adentro</p>
+            )}
+            {dentro.length > 0 && (
+              <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => navigate('/admin/acceso/dentro')}>
+                Ver lista completa
+              </button>
+            )}
+            {egresoMsg && (
+              <p role="status" className={`notice ${egresoMsg.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginTop: 12 }}>
+                {egresoMsg.text}
+              </p>
+            )}
+          </section>
         </div>
       </div>
-    </div>
+    </>
   );
 }

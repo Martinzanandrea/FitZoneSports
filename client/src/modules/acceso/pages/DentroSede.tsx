@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Building2, Search, UserCheck } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { accesoApi } from '../acceso.api';
 import type { SesionAbierta } from '../acceso.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
-import { Button, Card, PageHeader, Pagination } from '../../../shared/components/ui';
+import { Pagination } from '../../../shared/components/ui';
 import { Select } from '../../../shared/components/Select';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function haceCuanto(horaIngreso: string): string {
@@ -18,9 +23,9 @@ function haceCuanto(horaIngreso: string): string {
 }
 
 export function DentroSede() {
-  useTitulo('Personas en sede');
+  useTitulo('Quién está dentro');
   const { user } = useAuth();
-  const esGerente = user?.tipoActor === TipoActor.GERENTE;
+  const esGerente = user?.tipoActor === TipoActor.GERENTE_GENERAL;
   const [sedeId, setSedeId] = useState<string | null>(user?.sedeId ?? null);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [sesiones, setSesiones] = useState<SesionAbierta[]>([]);
@@ -29,6 +34,8 @@ export function DentroSede() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [recarga, setRecarga] = useState(0);
   const [egresandoId, setEgresandoId] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
@@ -46,28 +53,34 @@ export function DentroSede() {
       setLoading(false);
       return;
     }
+    let viva = true;
     setLoading(true);
+    setError(false);
     accesoApi
       .listarDentro(sedeId, page)
       .then((res) => {
+        if (!viva) return;
         setSesiones(res.data);
         setTotalPages(res.totalPages);
         setTotal(res.total);
       })
       .catch(() => {
+        if (!viva) return;
         setSesiones([]);
         setTotal(0);
+        setError(true);
       })
-      .finally(() => setLoading(false));
-  }, [sedeId, page]);
+      .finally(() => viva && setLoading(false));
+    return () => {
+      viva = false;
+    };
+  }, [sedeId, page, recarga]);
 
-  // TODO: la búsqueda solo aplica a la página actual, no al total — filtrar server-side en el futuro.
+  // La búsqueda filtra la página actual (el endpoint no filtra por texto).
   const filtradas = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
     if (!texto) return sesiones;
-    return sesiones.filter((s) =>
-      `${s.usuario.nombre} ${s.usuario.apellido}`.toLowerCase().includes(texto),
-    );
+    return sesiones.filter((s) => `${s.usuario.nombre} ${s.usuario.apellido}`.toLowerCase().includes(texto));
   }, [sesiones, busqueda]);
 
   async function handleEgreso(usuarioId: string, nombre: string) {
@@ -93,14 +106,19 @@ export function DentroSede() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <PageHeader title={`Quién está dentro${total > 0 ? ` (${total})` : ''}`} onBack={() => window.history.back()} />
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Quién está dentro{total > 0 ? ` (${total})` : ''}</h2>
+          <p>Personas con ingreso sin egreso registrado en la sede.</p>
+        </div>
+      </div>
 
-      {esGerente && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-[#374151]">
-            Sede
-            <div className="mt-1.5">
+      <section className="glass panel" aria-label="Personas dentro de la sede">
+        <div className="filters" style={{ boxShadow: 'none', marginBottom: 14 }}>
+          {esGerente && (
+            <div className="select-field">
+              <span className="field-label">SEDE</span>
               <Select
                 value={sedeId ?? ''}
                 onChange={(v) => {
@@ -111,69 +129,69 @@ export function DentroSede() {
                 opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
               />
             </div>
-          </label>
+          )}
+          <div className="select-field">
+            <span className="field-label">BUSCAR</span>
+            <label className="search search-wide">
+              <Search size={15} aria-hidden />
+              <input
+                type="search"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar por nombre..."
+                aria-label="Buscar por nombre"
+              />
+            </label>
+          </div>
         </div>
-      )}
 
-      {msg && (
-        <p className={`mb-4 rounded-lg border p-3 text-sm ${msg.type === 'ok' ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]' : 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]'}`}>
-          {msg.text}
-        </p>
-      )}
-
-      <div className="mb-4">
-        <input
-          type="text"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre..."
-          className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]"
-          style={{ minHeight: 44 }}
-        />
-      </div>
-
-      {loading ? (
-        <p className="text-sm text-[#6B7280]">Cargando...</p>
-      ) : !sedeId ? (
-        <Card className="text-center py-8">
-          <p className="text-sm text-[#6B7280]">Seleccioná una sede para ver quién está dentro.</p>
-        </Card>
-      ) : filtradas.length === 0 ? (
-        <Card className="text-center py-8">
-          <p className="text-sm text-[#6B7280]">
-            {busqueda ? 'Nadie coincide con la búsqueda.' : 'No hay nadie registrado dentro en este momento.'}
+        {msg && (
+          <p role="status" className={`notice ${msg.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginBottom: 14 }}>
+            {msg.text}
           </p>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {filtradas.map((s) => {
-            const nombre = `${s.usuario.nombre} ${s.usuario.apellido}`;
-            const ocupado = egresandoId === s.usuario.id;
-            return (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white p-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#111111] truncate">{nombre}</p>
-                  <p className="text-xs text-[#6B7280]">
-                    Ingresó {s.horaIngreso.slice(0, 5)} · {haceCuanto(s.horaIngreso)}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEgreso(s.usuario.id, nombre)}
-                  disabled={ocupado}
-                >
-                  {ocupado ? 'Registrando...' : 'Registrar egreso'}
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-    </div>
+        )}
+
+        {loading ? (
+          <LoadingState rows={4} label="Cargando personas" />
+        ) : !sedeId ? (
+          <EmptyState icon={Building2} title="Elegí una sede" description="Seleccioná una sede para ver quién está dentro." />
+        ) : error ? (
+          <ErrorState onRetry={() => setRecarga((n) => n + 1)} />
+        ) : filtradas.length === 0 ? (
+          <EmptyState
+            icon={UserCheck}
+            title={busqueda ? 'Nadie coincide con la búsqueda' : 'No hay nadie adentro'}
+            description={busqueda ? 'Probá con otro nombre.' : 'Cuando se valide un ingreso, la persona aparece acá.'}
+          />
+        ) : (
+          <>
+            <SectionHeader title="Adentro ahora" description="Ordenadas por quien lleva más tiempo." />
+            <div className="stack-list">
+              {filtradas.map((s) => {
+                const nombre = `${s.usuario.nombre} ${s.usuario.apellido}`;
+                const ocupado = egresandoId === s.usuario.id;
+                return (
+                  <div className="list-row" key={s.id}>
+                    <span className="avatar" aria-hidden>
+                      {`${s.usuario.nombre[0] ?? ''}${s.usuario.apellido[0] ?? ''}`.toUpperCase()}
+                    </span>
+                    <div className="row-main">
+                      <strong>{nombre}</strong>
+                      <span>
+                        Ingresó {s.horaIngreso.slice(0, 5)} · {haceCuanto(s.horaIngreso)}
+                      </span>
+                    </div>
+                    <button className="btn btn-secondary" onClick={() => void handleEgreso(s.usuario.id, nombre)} disabled={ocupado}>
+                      {ocupado ? 'Registrando...' : 'Registrar egreso'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      </section>
+    </>
   );
 }

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -32,6 +33,8 @@ import { paginarQueryBuilder } from '../common/helpers/paginate.helper';
 
 @Injectable()
 export class ClasesService {
+  private readonly logger = new Logger(ClasesService.name);
+
   constructor(
     @InjectRepository(Clase)
     private readonly clasesRepo: Repository<Clase>,
@@ -48,7 +51,15 @@ export class ClasesService {
 
   // El array horarios es la propuesta YA confirmada por el Gerente.
   // Igual se revalida todo acá (defensa server-side, no se confía en el frontend).
-  async create(dto: CreateClaseDto): Promise<Clase> {
+  // Scope por exclusión: si NO es GG, solo la sedeId del body == su sede.
+  async create(
+    dto: CreateClaseDto,
+    currentUser?: UsuarioAutenticado,
+  ): Promise<Clase & { ocurrenciasGeneradas: boolean }> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser && currentUser.tipoActor !== TipoActor.GERENTE_GENERAL) {
+      assertSedeScope(currentUser, dto.sedeId);
+    }
     const sede = await this.sedesRepo.findOne({ where: { id: dto.sedeId } });
     if (!sede) throw new NotFoundException(`Sede ${dto.sedeId} no encontrada`);
 
@@ -109,8 +120,43 @@ export class ClasesService {
     });
 
     // Genera las próximas 4 semanas para que se pueda reservar ya mismo.
-    await this.generacion.generarParaClase(claseId);
-    return this.findOne(claseId);
+    // Si la generación falla, la clase YA quedó guardada: se loguea y
+    // se devuelve igual con ocurrenciasGeneradas:false (el cliente NO
+    // debe reintentar el POST, duplicaría la clase; usa el endpoint
+    // POST /clases/:id/generar-ocurrencias para completar).
+    let ocurrenciasGeneradas = true;
+    try {
+      const generadas = await this.generacion.generarParaClase(claseId);
+      if (generadas === 0) {
+        this.logger.warn(
+          `generarParaClase devolvió 0 ocurrencias para la clase ${claseId}`,
+        );
+      }
+    } catch (err) {
+      this.logger.error(
+        `Fallo generarParaClase para la clase ${claseId}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      ocurrenciasGeneradas = false;
+    }
+    const clase = await this.findOne(claseId);
+    return { ...clase, ocurrenciasGeneradas };
+  }
+
+  // Regeneración idempotente (reutiliza generarParaClase, que saltea las
+  // ya existentes): completa una clase cuya generación inicial falló.
+  async generarOcurrencias(
+    id: string,
+    currentUser: UsuarioAutenticado,
+  ): Promise<{ claseId: string; ocurrenciasGeneradas: number }> {
+    const clase = await this.clasesRepo.findOne({
+      where: { id },
+      relations: { sede: true },
+    });
+    if (!clase) throw new NotFoundException(`Clase ${id} no encontrada`);
+    assertSedeScope(currentUser, clase.sede.id);
+    const generadas = await this.generacion.generarParaClase(id);
+    return { claseId: id, ocurrenciasGeneradas: generadas };
   }
 
   // Resumen público para la landing: por cada tipo de clase activa,
@@ -137,9 +183,23 @@ export class ClasesService {
       .sort((a, b) => a.tipoClase.localeCompare(b.tipoClase));
   }
 
-  async findAll(sedeId?: string, query?: PaginationQueryDto): Promise<PaginatedResponse<Clase>> {
+  // El filtro por sede se aplica SOLO cuando quien llama es GERENTE_SEDE
+  // (se fuerza su sede, ignorando el query). Socios, externos,
+  // recepcionistas y GG ven lo mismo que antes. Un GS sin sedeId ve vacío.
+  async findAll(
+    sedeId?: string,
+    query?: PaginationQueryDto,
+    currentUser?: UsuarioAutenticado,
+  ): Promise<PaginatedResponse<Clase>> {
     const page = query?.page ?? 1;
     const limit = query?.limit ?? 20;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser?.tipoActor === TipoActor.GERENTE_SEDE) {
+      if (!currentUser.sedeId) {
+        return { data: [], total: 0, page, limit, totalPages: 1 };
+      }
+      sedeId = currentUser.sedeId;
+    }
     const [data, total] = await this.clasesRepo.findAndCount({
       where: sedeId ? { sede: { id: sedeId } } : {},
       relations: { sede: true, instructor: true, horariosSemanales: true },
@@ -159,8 +219,19 @@ export class ClasesService {
     return clase;
   }
 
-  async update(id: string, dto: UpdateClaseDto): Promise<Clase> {
+  // Scope contra la sede ACTUAL del recurso. UpdateClaseDto NO acepta
+  // sedeId (solo tipoClase/instructorId/capacidad), así que no hay cambio
+  // de sede que bloquear: solo se valida el scope.
+  async update(
+    id: string,
+    dto: UpdateClaseDto,
+    currentUser?: UsuarioAutenticado,
+  ): Promise<Clase> {
     const clase = await this.findOne(id);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser && currentUser.tipoActor !== TipoActor.GERENTE_GENERAL) {
+      assertSedeScope(currentUser, clase.sede.id);
+    }
     if (dto.tipoClase !== undefined) clase.tipoClase = dto.tipoClase;
     if (dto.capacidad !== undefined) clase.capacidad = dto.capacidad;
     if (dto.instructorId !== undefined) {
@@ -178,8 +249,12 @@ export class ClasesService {
 
   // Baja lógica: no borra nada, lo ya generado y reservado queda intacto
   // (mismo criterio que RF-12 con canchas). El cron solo genera para activas.
-  async desactivar(id: string): Promise<Clase> {
+  async desactivar(id: string, currentUser?: UsuarioAutenticado): Promise<Clase> {
     const clase = await this.findOne(id);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (currentUser && currentUser.tipoActor !== TipoActor.GERENTE_GENERAL) {
+      assertSedeScope(currentUser, clase.sede.id);
+    }
     clase.activa = false;
     return this.clasesRepo.save(clase);
   }
@@ -209,9 +284,8 @@ export class ClasesService {
     return paginarQueryBuilder(qb, query?.page ?? 1, query?.limit ?? 20);
   }
 
-  // Acción acotada, distinta de update(): el Recepcionista puede
-  // reasignar el instructor de una clase de SU sede sin poder tocar
-  // capacidad ni tipo (eso sigue siendo exclusivo de Gerente).
+  // Acción acotada, distinta de update(): GG y GS con scope a la sede de
+  // la clase. RECEPCIONISTA ya no accede.
   async asignarInstructor(
     claseId: string,
     instructorId: string,
@@ -224,7 +298,7 @@ export class ClasesService {
     if (!clase) throw new NotFoundException(`Clase ${claseId} no encontrada`);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (currentUser.tipoActor === TipoActor.RECEPCIONISTA) {
+    if (currentUser.tipoActor !== TipoActor.GERENTE_GENERAL) {
       assertSedeScope(currentUser, clase.sede.id);
     }
 

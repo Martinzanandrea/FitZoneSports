@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, ArrowRight, Camera, Eye, EyeOff, Fingerprint, Lock, Mail, Phone, Star, User, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Eye, EyeOff, Fingerprint, Lock, Mail, Phone, Star, User, Users } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { TipoActor } from '../../../shared/types/enums';
 import { AuthInput, AuthLayout } from '../../auth/AuthLayout';
@@ -87,7 +87,7 @@ export function RegistroPage() {
   }
 
   const passStrength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
-  const strengthColors = ['', '#EF4444', '#F59E0B', '#10B981'];
+  const strengthColors = ['', 'var(--coral)', 'var(--warning)', 'var(--success)'];
   const strengthLabels = ['', 'Débil', 'Regular', 'Segura'];
 
   async function handleReenviar() {
@@ -111,41 +111,34 @@ export function RegistroPage() {
         subheadline="Te mandamos un link para confirmar tu cuenta."
       >
         <div className="text-center">
-          <div
-            className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4"
-            style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)' }}
-          >
-            <Mail size={20} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-2">Revisá tu email</h1>
-          <p className="text-sm text-gray-400 font-medium mb-1">
+          <h1>Revisá tu email</h1>
+          <p>
             Te enviamos un link de verificación a
           </p>
-          <p className="text-sm font-bold text-gray-900 mb-4">{registradoEmail}</p>
-          <p className="text-xs text-gray-400 mb-6">
+          <p>
+            <strong>{registradoEmail}</strong>
+          </p>
+          <p>
             Hacé clic en el link para activar tu cuenta y después iniciá sesión.
             Si no lo ves, revisá el spam.
           </p>
           {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-2xl px-4 py-3 mb-4">
-              <AlertCircle size={14} className="text-red-400 shrink-0" />
-              <p className="text-xs text-red-500 font-medium">{error}</p>
-            </div>
+            <span className="badge badge-danger">
+              <i />
+              {error}
+            </span>
           )}
           <button
             type="button"
             onClick={handleReenviar}
             disabled={reenvando || cooldown > 0}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[0.98] disabled:opacity-70"
-            style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)', minHeight: 44 }}
+            className="btn btn-primary full-button"
           >
             {reenvando ? 'Enviando...' : cooldown > 0 ? `Reenviar en ${cooldown}s` : 'Reenviar email'}
           </button>
-          <p className="text-sm text-gray-500 text-center mt-5">
-            <Link to="/login" className="text-[#8B2EFF] font-bold hover:underline">
-              Ir a iniciar sesión
-            </Link>
-          </p>
+          <div className="auth-switch">
+            <Link to="/login">Ir a iniciar sesión</Link>
+          </div>
         </div>
       </AuthLayout>
     );
@@ -157,33 +150,18 @@ export function RegistroPage() {
       headline={'Empezá hoy.\nTu primera clase\nes gratis.'}
       subheadline="Unite a la comunidad FitZone y accedé a clases, canchas y seguimiento personalizado."
     >
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-6"
-        style={{ minHeight: 44 }}
-      >
+      <Link to="/" className="back-link">
         <ArrowLeft size={15} />
         Volver al inicio
       </Link>
-      <div className="flex items-center gap-3 mb-7">
-        <div
-          className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)' }}
-        >
-          <Star size={20} className="text-white" />
-        </div>
-        <div>
-          <p className="text-xl font-black tracking-tight text-gray-900">FitZone</p>
-          <p className="text-xs text-gray-400 font-medium">Nueva cuenta</p>
-        </div>
-      </div>
 
-      <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Creá tu cuenta</h1>
-      <p className="text-sm text-gray-400 font-medium mb-6">Solo toma 2 minutos.</p>
+      <span className="eyebrow">CREÁ TU CUENTA</span>
+      <h1>Creá tu cuenta</h1>
+      <p>Solo toma 2 minutos.</p>
 
-      <div className="mb-5">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tipo de cuenta</p>
-        <div className="grid grid-cols-2 gap-3">
+      <div>
+        <span className="field-label">TIPO DE CUENTA</span>
+        <div className="account-pick">
           {(
             [
               { id: TipoActor.SOCIO, icon: <Star size={16} />, label: 'Socio', desc: 'Membresía activa, acceso completo' },
@@ -194,57 +172,40 @@ export function RegistroPage() {
               key={opt.id}
               type="button"
               onClick={() => setTipoActor(opt.id)}
-              className={`text-left rounded-2xl p-4 border-2 transition-all ${
-                tipoActor === opt.id ? 'border-[#8B2EFF] bg-[#8B2EFF]/5' : 'border-gray-100 bg-gray-50 hover:border-gray-200'
-              }`}
-              style={{ minHeight: 44 }}
+              aria-pressed={tipoActor === opt.id}
             >
-              <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${
-                  tipoActor === opt.id ? 'bg-[#8B2EFF]' : 'bg-gray-200'
-                }`}
-              >
-                <span className={tipoActor === opt.id ? 'text-white' : 'text-gray-500'}>{opt.icon}</span>
-              </div>
-              <p className={`text-sm font-black tracking-tight mb-0.5 ${tipoActor === opt.id ? 'text-[#8B2EFF]' : 'text-gray-700'}`}>
-                {opt.label}
-              </p>
-              <p className="text-xs text-gray-400 leading-tight">{opt.desc}</p>
+              <span className="account-pick-icon">{opt.icon}</span>
+              <strong>{opt.label}</strong>
+              <span>{opt.desc}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="mb-5">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Foto de perfil</p>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div
-              className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer"
-              onClick={() => fileRef.current?.click()}
-            >
-              {fotoPreview ? (
-                <img src={fotoPreview} alt="Vista previa" className="w-full h-full object-cover" />
-              ) : (
-                <Camera size={20} className="text-gray-300" />
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#8B2EFF] flex items-center justify-center shadow"
-              aria-label="Elegir foto"
-            >
-              <Camera size={12} className="text-white" />
-            </button>
-          </div>
+      <div>
+        <span className="field-label">FOTO DE PERFIL</span>
+        <div className="photo-pick">
+          <button
+            type="button"
+            className="photo-circle"
+            onClick={() => fileRef.current?.click()}
+            aria-label="Elegir foto"
+          >
+            {fotoPreview ? (
+              <img src={fotoPreview} alt="Vista previa" />
+            ) : (
+              <Camera size={20} />
+            )}
+          </button>
           <div>
-            <p className="text-sm font-bold text-gray-700">Subí una foto</p>
-            <p className="text-xs text-gray-400">JPG o PNG, máx. 5MB</p>
+            <p>
+              <strong>Subí una foto</strong>
+            </p>
+            <p>JPG o PNG, máx. 5MB</p>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="text-xs text-[#8B2EFF] font-bold mt-1 hover:underline"
+              className="btn btn-ghost"
             >
               Elegir archivo
             </button>
@@ -277,14 +238,13 @@ export function RegistroPage() {
             }
           />
           {password.length > 0 && (
-            <div className="mt-2 flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-300"
+            <div className="strength" aria-live="polite">
+              <div className="strength-track">
+                <i
                   style={{ width: `${(passStrength / 3) * 100}%`, backgroundColor: strengthColors[passStrength] }}
                 />
               </div>
-              <span className="text-xs font-bold" style={{ color: strengthColors[passStrength] }}>
+              <span style={{ color: strengthColors[passStrength] }}>
                 {strengthLabels[passStrength]}
               </span>
             </div>
@@ -300,33 +260,26 @@ export function RegistroPage() {
           autoComplete="new-password"
         />
         {error && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
-            <AlertCircle size={14} className="text-red-400 shrink-0" />
-            <p className="text-xs text-red-500 font-medium">{error}</p>
-          </div>
+          <span className="badge badge-danger">
+            <i />
+            {error}
+          </span>
         )}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[0.98] disabled:opacity-70 mt-2"
-          style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)', minHeight: 44 }}
-        >
+        <button type="submit" disabled={loading} className="btn btn-primary full-button">
           {loading ? (
-            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span className="spinner" aria-hidden="true" />
           ) : (
             <>
-              Crear cuenta <ArrowRight size={18} className="text-white" />
+              Crear cuenta <ArrowRight size={18} />
             </>
           )}
         </button>
       </form>
 
-      <p className="text-sm text-gray-500 text-center mt-5">
-        ¿Ya tenés cuenta?{' '}
-        <Link to="/login" className="text-[#8B2EFF] font-bold hover:underline">
-          Ingresá
-        </Link>
-      </p>
+      <div className="auth-switch">
+        <span>¿Ya tenés cuenta?</span>
+        <Link to="/login">Ingresá</Link>
+      </div>
     </AuthLayout>
   );
 }

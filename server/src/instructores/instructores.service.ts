@@ -1,7 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Instructor } from '../entities';
+import { TipoActor } from '../entities/enums';
+import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
@@ -14,7 +20,23 @@ export class InstructoresService {
     private readonly instructoresRepo: Repository<Instructor>,
   ) {}
 
-  create(dto: CreateInstructorDto): Promise<Instructor> {
+  // Instructor es global (sin sede): un GS editándolo afecta a todas
+  // las sedes. Por eso `activo` es solo GG: un no-GG que lo envíe
+  // recibe 403. Nombre, especialidad y teléfono siguen para GG y GS.
+  create(
+    dto: CreateInstructorDto,
+    currentUser?: UsuarioAutenticado,
+  ): Promise<Instructor> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (
+      currentUser &&
+      currentUser.tipoActor !== TipoActor.GERENTE_GENERAL &&
+      dto.activo !== undefined
+    ) {
+      throw new ForbiddenException(
+        'Solo GERENTE_GENERAL puede activar o desactivar un instructor',
+      );
+    }
     const instructor = this.instructoresRepo.create(dto);
     return this.instructoresRepo.save(instructor);
   }
@@ -45,7 +67,21 @@ export class InstructoresService {
     return instructor;
   }
 
-  async update(id: string, dto: UpdateInstructorDto): Promise<Instructor> {
+  async update(
+    id: string,
+    dto: UpdateInstructorDto,
+    currentUser?: UsuarioAutenticado,
+  ): Promise<Instructor> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (
+      currentUser &&
+      currentUser.tipoActor !== TipoActor.GERENTE_GENERAL &&
+      dto.activo !== undefined
+    ) {
+      throw new ForbiddenException(
+        'Solo GERENTE_GENERAL puede activar o desactivar un instructor',
+      );
+    }
     const instructor = await this.findOne(id);
     Object.assign(instructor, dto);
     return this.instructoresRepo.save(instructor);

@@ -1,8 +1,13 @@
 import { type FormEvent, useEffect, useState } from 'react';
-import { CheckCircle2, LayoutGrid, Pencil, Plus, Power, Trash2, X } from 'lucide-react';
+import { CheckCircle2, LayoutGrid, Pencil, Plus, Power, Trash2 } from 'lucide-react';
 import { tiposCanchaApi } from '../../canchas/canchas.api';
 import type { TipoCanchaCatalogo } from '../../canchas/canchas.types';
-import { Button, Card, PageHeader, StatCard } from '../../../shared/components/ui';
+import { Badge } from '../../../shared/components/ui';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const IMAGEN_FALLBACK = '/images/landing/gimnasio-alt.jpg';
@@ -19,12 +24,21 @@ function validarNombre(valor: string): string | null {
   return null;
 }
 
+function mensajeBackend(e: unknown): string | null {
+  const ax = e as { response?: { data?: { message?: string | string[] } } };
+  const raw = ax.response?.data?.message;
+  if (!raw) return null;
+  return Array.isArray(raw) ? raw.join(', ') : raw;
+}
+
 type Modal = { mode: 'crear' } | { mode: 'editar'; tipo: TipoCanchaCatalogo } | null;
 
 export function ConfiguracionTiposCancha() {
   useTitulo('Tipos de cancha');
   const [tipos, setTipos] = useState<TipoCanchaCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(false);
+  const [recarga, setRecarga] = useState(0);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [modal, setModal] = useState<Modal>(null);
@@ -33,23 +47,28 @@ export function ConfiguracionTiposCancha() {
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [accionId, setAccionId] = useState<string | null>(null);
+  const [aEliminar, setAEliminar] = useState<TipoCanchaCatalogo | null>(null);
 
-  function cargar() {
+  useEffect(() => {
+    let viva = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
+    setErrorCarga(false);
     tiposCanchaApi
       .listarTodos()
-      .then(setTipos)
-      .catch(() => setError('No se pudieron cargar los tipos de cancha.'))
-      .finally(() => setLoading(false));
-  }
-
-  useEffect(() => { cargar(); }, []);
+      .then((r) => viva && setTipos(r))
+      .catch(() => viva && setErrorCarga(true))
+      .finally(() => viva && setLoading(false));
+    return () => {
+      viva = false;
+    };
+  }, [recarga]);
 
   function cerrarModal() {
     setModal(null);
     setNombre('');
     setFoto(null);
-    if (preview) URL.revokeObjectURL(preview);
+    if (preview && preview.startsWith('blob:')) URL.revokeObjectURL(preview);
     setPreview(null);
     setError('');
   }
@@ -84,52 +103,52 @@ export function ConfiguracionTiposCancha() {
       setError(invalido);
       return;
     }
-    setSaving(true); setError(''); setMensaje(null);
+    setSaving(true);
+    setError('');
+    setMensaje(null);
     try {
       if (modal?.mode === 'editar') {
         const actualizado = await tiposCanchaApi.editar(modal.tipo.id, nombre.trim(), foto);
         setTipos((actuales) => actuales.map((t) => (t.id === actualizado.id ? actualizado : t)));
-        setMensaje(`"${actualizado.nombre}" actualizado correctamente`);
+        setMensaje(`"${actualizado.nombre}" actualizado correctamente.`);
       } else {
         const nuevo = await tiposCanchaApi.crear(nombre.trim(), foto);
         setTipos((actuales) => [...actuales, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        setMensaje(`"${nuevo.nombre}" creado correctamente`);
+        setMensaje(`"${nuevo.nombre}" creado correctamente.`);
       }
       cerrarModal();
-    } catch {
-      setError(modal?.mode === 'editar' ? 'No se pudo actualizar el tipo.' : 'No se pudo crear el tipo. Revisá el nombre (máx. 60 caracteres).');
+    } catch (err) {
+      setError(mensajeBackend(err) ?? (modal?.mode === 'editar' ? 'No se pudo actualizar el tipo.' : 'No se pudo crear el tipo. Revisá el nombre (máx. 60 caracteres).'));
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleEstado(tipo: TipoCanchaCatalogo) {
-    setAccionId(tipo.id); setError(''); setMensaje(null);
+    setAccionId(tipo.id);
+    setMensaje(null);
     try {
       const actualizado = await tiposCanchaApi.cambiarEstado(tipo.id, !tipo.activo);
       setTipos((actuales) => actuales.map((t) => (t.id === actualizado.id ? actualizado : t)));
-    } catch {
-      setError('No se pudo cambiar el estado del tipo.');
+    } catch (e) {
+      setMensaje(null);
+      setError(mensajeBackend(e) ?? 'No se pudo cambiar el estado del tipo.');
     } finally {
       setAccionId(null);
     }
   }
 
-  function mensajeBackend(e: unknown): string | null {
-    const ax = e as { response?: { data?: { message?: string | string[] } } };
-    const raw = ax.response?.data?.message;
-    if (!raw) return null;
-    return Array.isArray(raw) ? raw.join(', ') : raw;
-  }
-
-  async function eliminar(tipo: TipoCanchaCatalogo) {
-    if (!window.confirm(`¿Eliminar "${tipo.nombre}" de verdad? Solo se puede si ninguna cancha lo usa.`)) return;
-    setAccionId(tipo.id); setError(''); setMensaje(null);
+  async function confirmarEliminar() {
+    if (!aEliminar) return;
+    setAccionId(aEliminar.id);
+    setError('');
     try {
-      await tiposCanchaApi.eliminar(tipo.id);
-      setTipos((actuales) => actuales.filter((t) => t.id !== tipo.id));
-      setMensaje(`"${tipo.nombre}" eliminado correctamente`);
+      await tiposCanchaApi.eliminar(aEliminar.id);
+      setTipos((actuales) => actuales.filter((t) => t.id !== aEliminar.id));
+      setMensaje(`"${aEliminar.nombre}" eliminado correctamente.`);
+      setAEliminar(null);
     } catch (e) {
+      // El backend responde 400 con el conteo si hay canchas que lo usan.
       setError(mensajeBackend(e) ?? 'No se pudo eliminar el tipo.');
     } finally {
       setAccionId(null);
@@ -137,98 +156,88 @@ export function ConfiguracionTiposCancha() {
   }
 
   const activos = tipos.filter((t) => t.activo).length;
-  // Feedback inmediato: se muestra en cuanto el nombre deja de ser válido
-  // (no reemplaza la validación del backend, solo evita el roundtrip).
   const errorNombre = nombre.trim() === '' ? null : validarNombre(nombre);
+  const sinDatos = loading && tipos.length === 0;
 
   return (
-    <div className="max-w-6xl">
-      <PageHeader
-        title="Tipos de cancha"
-        action={
-          <Button size="sm" onClick={abrirCrear}>
-            <Plus size={16} /> Nuevo tipo
-          </Button>
-        }
-      />
-      <p className="-mt-4 mb-4 text-sm text-[#6B7280]">
-        Catálogo de tipos (Paddle, Fútbol 5, Tenis…). Desactivar un tipo lo oculta sin borrar las canchas que lo usan.
-      </p>
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Tipos de cancha</h2>
+          <p>Catálogo de tipos (Paddle, Fútbol 5, Tenis…). Desactivar un tipo lo oculta sin borrar las canchas que lo usan.</p>
+        </div>
+        <button className="btn btn-primary" onClick={abrirCrear}>
+          <Plus size={16} aria-hidden /> Nuevo tipo
+        </button>
+      </div>
 
       {mensaje && (
-        <p className="mb-4 rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm text-[#15803D]">
+        <p role="status" className="notice notice-ok" style={{ marginBottom: 14 }}>
           {mensaje}
         </p>
       )}
-      {error && (
-        <p className="mb-4 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">
+      {error && !modal && !aEliminar && (
+        <p role="alert" className="notice notice-err" style={{ marginBottom: 14 }}>
           {error}
         </p>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <StatCard label="Tipos totales" value={String(tipos.length)} icon={LayoutGrid} iconColor="#8B2EFF" />
-        <StatCard label="Activos" value={String(activos)} icon={CheckCircle2} iconColor="#16A34A" />
+      <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
+        <MetricCard label="Tipos totales" value={sinDatos ? '—' : String(tipos.length)} change="en el catálogo" icon={LayoutGrid} />
+        <MetricCard label="Activos" value={sinDatos ? '—' : String(activos)} change="visibles al reservar" icon={CheckCircle2} />
       </div>
 
       {loading ? (
-        <p className="text-sm text-[#6B7280]">Cargando tipos…</p>
+        <LoadingState rows={3} label="Cargando tipos" />
+      ) : errorCarga ? (
+        <ErrorState title="No pudimos cargar los tipos de cancha" onRetry={() => setRecarga((n) => n + 1)} />
       ) : tipos.length === 0 ? (
-        <Card className="py-6 text-center text-sm text-[#6B7280]">Sin tipos de cancha.</Card>
+        <EmptyState
+          icon={LayoutGrid}
+          title="Sin tipos de cancha"
+          description="Creá el primer tipo para poder dar de alta canchas."
+          action={
+            <button className="btn btn-primary" onClick={abrirCrear}>
+              <Plus size={16} aria-hidden /> Nuevo tipo
+            </button>
+          }
+        />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
           {tipos.map((tipo) => (
-            <article key={tipo.id} className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-              <div className="flex aspect-[16/7] items-center justify-center overflow-hidden bg-[#F3E8FF]">
-                <img
-                  src={tipo.imagenUrl ?? IMAGEN_FALLBACK}
-                  alt={`Cancha de ${tipo.nombre}`}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
+            <article key={tipo.id} className="glass" style={{ borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ aspectRatio: '16 / 7', background: 'rgba(255,255,255,0.04)' }}>
+                <img src={tipo.imagenUrl ?? IMAGEN_FALLBACK} alt={`Cancha de ${tipo.nombre}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <div className="flex items-center justify-between gap-3 p-4">
-                <div className="min-w-0">
-                  <h2 className="truncate text-sm font-semibold text-[#111111]">{tipo.nombre}</h2>
-                  <span
-                    className={`mt-1 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                      tipo.activo ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-[#F3F4F6] text-[#6B7280]'
-                    }`}
-                  >
-                    {tipo.activo ? 'Activo' : 'Inactivo'}
-                  </span>
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                  <strong style={{ fontSize: 14, color: 'var(--text)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{tipo.nombre}</strong>
+                  <Badge variant={tipo.activo ? 'success' : 'neutral'}>{tipo.activo ? 'Activo' : 'Inactivo'}</Badge>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => abrirEditar(tipo)}
-                    aria-label={`Editar ${tipo.nombre}`}
-                    className="rounded-lg p-2 font-semibold text-[#6B7280] hover:text-[#8B2EFF]"
-                    style={{ minHeight: 44, minWidth: 44 }}
-                  >
-                    <Pencil size={16} />
+                <div className="inline-actions" style={{ marginTop: 'auto' }}>
+                  <button className="btn btn-secondary" onClick={() => abrirEditar(tipo)} aria-label={`Editar ${tipo.nombre}`}>
+                    <Pencil size={14} aria-hidden /> Editar
                   </button>
                   <button
-                    type="button"
+                    className="btn btn-secondary"
                     onClick={() => void toggleEstado(tipo)}
                     disabled={accionId === tipo.id}
                     aria-label={tipo.activo ? `Desactivar ${tipo.nombre}` : `Activar ${tipo.nombre}`}
                     title={tipo.activo ? 'Desactivar (no se borra)' : 'Activar'}
-                    className="rounded-lg p-2 font-semibold text-[#6B7280] hover:text-[#8B2EFF] disabled:opacity-50"
-                    style={{ minHeight: 44, minWidth: 44 }}
                   >
-                    <Power size={16} />
+                    <Power size={14} aria-hidden /> {tipo.activo ? 'Desactivar' : 'Activar'}
                   </button>
                   <button
-                    type="button"
-                    onClick={() => void eliminar(tipo)}
+                    className="btn btn-secondary"
+                    style={{ color: 'var(--coral)' }}
+                    onClick={() => {
+                      setError('');
+                      setAEliminar(tipo);
+                    }}
                     disabled={accionId === tipo.id}
                     aria-label={`Eliminar ${tipo.nombre}`}
-                    title="Eliminar de verdad (solo si ninguna cancha lo usa)"
-                    className="rounded-lg p-2 font-semibold text-[#6B7280] hover:text-[#DC2626] disabled:opacity-50"
-                    style={{ minHeight: 44, minWidth: 44 }}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} aria-hidden />
                   </button>
                 </div>
               </div>
@@ -238,72 +247,68 @@ export function ConfiguracionTiposCancha() {
       )}
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4">
-          <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 md:rounded-2xl md:p-6">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-[#111111]">
-                  {modal.mode === 'editar' ? `Editar ${modal.tipo.nombre}` : 'Nuevo tipo de cancha'}
-                </h2>
-                <p className="mt-0.5 text-xs text-[#6B7280]">
-                  {modal.mode === 'editar' ? 'Cambiá el nombre y/o reemplazá la foto.' : 'Se suma al catálogo sin tocar código.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={cerrarModal}
-                aria-label="Cerrar"
-                className="rounded-lg p-1 text-[#6B7280] hover:text-[#111111]"
-                style={{ minHeight: 44, minWidth: 44 }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={guardar} className="space-y-4">
-              <label className="block">
-                <span className="text-sm font-medium text-[#374151]">Nombre *</span>
-                <input
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  required
-                  maxLength={60}
-                  placeholder="Ej. Tenis"
-                  className="mt-1.5 w-full rounded-lg border border-[#E5E7EB] px-3.5 py-2.5 text-sm outline-none focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20"
-                  style={{ minHeight: 44 }}
-                />
-                {errorNombre && <p className="mt-1 text-xs text-[#DC2626]">{errorNombre}</p>}
+        <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && !saving && cerrarModal()}>
+          <form className="glass panel modal-card" role="dialog" aria-modal="true" aria-label={modal.mode === 'editar' ? 'Editar tipo' : 'Nuevo tipo'} onSubmit={guardar}>
+            <SectionHeader
+              title={modal.mode === 'editar' ? `Editar ${modal.tipo.nombre}` : 'Nuevo tipo de cancha'}
+              description={modal.mode === 'editar' ? 'Cambiá el nombre y/o reemplazá la foto.' : 'Se suma al catálogo sin tocar código.'}
+            />
+            <div className="stack-gap">
+              <label>
+                <span className="field-label">NOMBRE *</span>
+                <input className="field-input" value={nombre} onChange={(e) => setNombre(e.target.value)} required maxLength={60} placeholder="Ej. Tenis" />
+                {errorNombre && <p style={{ marginTop: 6, fontSize: 11, color: 'var(--coral)' }}>{errorNombre}</p>}
               </label>
               <div>
-                <span className="text-sm font-medium text-[#374151]">Foto</span>
-                {preview && (
-                  <img src={preview} alt="Vista previa" className="mt-1.5 aspect-[16/7] w-full rounded-xl object-cover" />
-                )}
-                <label
-                  className="mt-1.5 flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#D1D5DB] px-3 py-2.5 text-sm font-semibold text-[#6B7280] hover:border-[#8B2EFF] hover:text-[#8B2EFF]"
-                >
-                  <Plus size={16} /> {preview ? 'Cambiar foto' : 'Subir foto (jpg, png o webp, máx. 5MB)'}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={(e) => elegirFoto(e.target.files?.[0])}
-                  />
+                <span className="field-label">FOTO</span>
+                {preview && <img src={preview} alt="Vista previa" style={{ aspectRatio: '16 / 7', width: '100%', objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} />}
+                <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+                  <Plus size={15} aria-hidden /> {preview ? 'Cambiar foto' : 'Subir foto (jpg, png o webp, máx. 5MB)'}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={(e) => elegirFoto(e.target.files?.[0])} />
                 </label>
-                {preview && modal.mode === 'crear' && (
-                  <p className="mt-1 text-xs text-[#6B7280]">Vista previa — se guarda al crear.</p>
-                )}
+                {preview && modal.mode === 'crear' && <p style={{ marginTop: 6, fontSize: 11 }}>Vista previa: se guarda al crear.</p>}
               </div>
-              {error && <p className="text-sm text-[#DC2626]">{error}</p>}
-              <div className="flex gap-2">
-                <Button variant="ghost" fullWidth onClick={cerrarModal}>Cancelar</Button>
-                <Button type="submit" fullWidth disabled={saving || !nombre.trim() || errorNombre !== null}>
-                  {saving ? 'Guardando…' : modal.mode === 'editar' ? 'Guardar cambios' : 'Crear tipo'}
-                </Button>
+              {error && (
+                <p role="alert" className="notice notice-err">
+                  {error}
+                </p>
+              )}
+              <div className="inline-actions">
+                <button type="submit" className="btn btn-primary" disabled={saving || !nombre.trim() || errorNombre !== null}>
+                  {saving ? 'Guardando...' : modal.mode === 'editar' ? 'Guardar cambios' : 'Crear tipo'}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={cerrarModal}>
+                  Cancelar
+                </button>
               </div>
-            </form>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {aEliminar && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && accionId === null && setAEliminar(null)}>
+          <div className="glass panel modal-card" role="alertdialog" aria-modal="true" aria-label="Eliminar tipo">
+            <SectionHeader title="Eliminar tipo" />
+            <p style={{ marginBottom: 14, fontSize: 13 }}>
+              ¿Eliminar <strong style={{ color: 'var(--text)' }}>{aEliminar.nombre}</strong>? Solo se puede si ninguna cancha lo usa; si no, desactivalo.
+            </p>
+            {error && (
+              <p role="alert" className="notice notice-err" style={{ marginBottom: 14 }}>
+                {error}
+              </p>
+            )}
+            <div className="inline-actions">
+              <button className="btn btn-danger" disabled={accionId !== null} onClick={() => void confirmarEliminar()}>
+                {accionId ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+              <button className="btn btn-secondary" disabled={accionId !== null} onClick={() => setAEliminar(null)}>
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

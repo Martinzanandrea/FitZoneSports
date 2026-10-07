@@ -3,7 +3,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 // DTO cerrado a propósito: SOLO estos 5 campos pueden editarse por el
 // endpoint general PATCH /usuarios/:id. tipoActor, sedeId y dni NO
-// existen acá: tienen sus endpoints dedicados (solo GERENTE) o no se
+// existen acá: tienen sus endpoints dedicados (solo GERENTE_GENERAL) o no se
 // editan por API. Con el whitelist global, lo no declarado se ignora;
 // con forbidNonWhitelisted en el controller, además se rechaza con 400.
 export class UpdateUsuarioDto {

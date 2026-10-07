@@ -1,5 +1,6 @@
-import { IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TipoPlan } from '../../entities/enums';
 
 export class RegistrarPagoEfectivoDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
@@ -10,6 +11,13 @@ export class RegistrarPagoEfectivoDto {
   @IsUUID()
   @IsOptional()
   membresiaId?: string;
+
+  // Plan a cobrar/renovar. Para membresías el precio siempre sale del
+  // servidor (preciosService); el cliente nunca manda un monto.
+  @ApiPropertyOptional({ enum: TipoPlan, example: TipoPlan.MENSUAL })
+  @IsEnum(TipoPlan)
+  @IsOptional()
+  plan?: TipoPlan;
 
   @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440002' })
   @IsUUID()

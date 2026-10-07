@@ -1,121 +1,184 @@
 import { useEffect, useState } from 'react';
+import { CreditCard, DollarSign, Tag, Users } from 'lucide-react';
 import { preciosApi } from '../precios.api';
 import type { PrecioPlan } from '../precios.types';
 import { adminApi, type PlanPopularidad, type ReporteFinanciero } from '../../admin/admin.api';
-import { Button, Card, PageHeader } from '../../../shared/components/ui';
+import { ProgressBar, formatMoney } from '../../../shared/components/ui';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+
+function nombrePlan(plan: string) {
+  return plan.charAt(0) + plan.slice(1).toLowerCase();
+}
 
 export function EditarPrecios() {
   useTitulo('Precios');
   const [precios, setPrecios] = useState<PrecioPlan[]>([]);
   const [valores, setValores] = useState<Record<string, string>>({});
   const [guardando, setGuardando] = useState<string | null>(null);
-  const [mensajes, setMensajes] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
+  const [mensajes, setMensajes] = useState<Record<string, { ok: boolean; text: string }>>({});
+  const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [recarga, setRecarga] = useState(0);
   const [popularidad, setPopularidad] = useState<PlanPopularidad[] | null>(null);
   const [financiero, setFinanciero] = useState<ReporteFinanciero | null>(null);
 
   useEffect(() => {
-    preciosApi.getMembresiasPublico().then((data) => {
-      setPrecios(data);
-      const init: Record<string, string> = {};
-      data.forEach((p) => init[p.plan] = p.precio);
-      setValores(init);
-    }).catch(() => setError('No se pudieron cargar los precios.')).finally(() => setLoading(false));
-    adminApi.getPopularidadPlanes().then(setPopularidad).catch(() => setPopularidad(null));
-    adminApi.getReporteFinanciero().then(setFinanciero).catch(() => setFinanciero(null));
-  }, []);
+    let viva = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    setError(false);
+    preciosApi
+      .getMembresiasPublico()
+      .then((data) => {
+        if (!viva) return;
+        setPrecios(data);
+        const init: Record<string, string> = {};
+        data.forEach((p) => (init[p.plan] = p.precio));
+        setValores(init);
+      })
+      .catch(() => viva && setError(true))
+      .finally(() => viva && setLoading(false));
+    adminApi.getPopularidadPlanes().then((r) => viva && setPopularidad(r)).catch(() => viva && setPopularidad(null));
+    adminApi.getReporteFinanciero().then((r) => viva && setFinanciero(r)).catch(() => viva && setFinanciero(null));
+    return () => {
+      viva = false;
+    };
+  }, [recarga]);
 
   async function guardar(plan: string) {
     const precio = Number(valores[plan]);
-    if (!precio || precio <= 0) { setMensajes((m) => ({ ...m, [plan]: 'Precio inválido' })); return; }
+    if (!precio || precio <= 0) {
+      setMensajes((m) => ({ ...m, [plan]: { ok: false, text: 'Precio inválido' } }));
+      return;
+    }
     setGuardando(plan);
-    setMensajes((m) => ({ ...m, [plan]: '' }));
+    setMensajes((m) => ({ ...m, [plan]: { ok: true, text: '' } }));
     try {
       const actualizado = await preciosApi.actualizar(plan, precio);
-      setPrecios((prev) => prev.map((p) => p.plan === plan ? actualizado : p));
-      setMensajes((m) => ({ ...m, [plan]: 'Guardado correctamente' }));
+      setPrecios((prev) => prev.map((p) => (p.plan === plan ? actualizado : p)));
+      setMensajes((m) => ({ ...m, [plan]: { ok: true, text: 'Guardado correctamente' } }));
     } catch {
-      setMensajes((m) => ({ ...m, [plan]: 'No se pudo guardar' }));
+      setMensajes((m) => ({ ...m, [plan]: { ok: false, text: 'No se pudo guardar' } }));
     } finally {
       setGuardando(null);
     }
   }
 
-  if (loading) return <div className="max-w-4xl"><p className="text-sm text-[#6B7280]">Cargando precios...</p></div>;
+  const totalSocios = (popularidad ?? []).reduce((acc, p) => acc + p.socios, 0);
+  const metodos = financiero?.porMetodo ?? [];
+  const totalMetodos = metodos.reduce((acc, m) => acc + Number(m.total), 0);
+  const maxMetodo = Math.max(...metodos.map((m) => Number(m.total)), 0);
 
   return (
-    <div className="max-w-6xl">
-      <PageHeader title="Precios de membresías" />
-      <p className="-mt-4 mb-4 text-sm text-[#6B7280]">Editá los precios de los 3 planes. Se aplican a futuros pagos.</p>
-      {error && <p className="mb-4 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{error}</p>}
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <div className="space-y-3">
-        {precios.map((p) => (
-          <Card key={p.plan} className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-[#111111]">{p.plan.charAt(0)+p.plan.slice(1).toLowerCase()}</p>
-              <p className="text-xs text-[#6B7280]">Actual: ${Number(p.precio).toLocaleString('es-AR')}</p>
-              <input type="number" min={1} value={valores[p.plan] ?? ''} onChange={(e) => setValores((v) => ({ ...v, [p.plan]: e.target.value }))} className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm focus:border-[#8B2EFF] focus:ring-2 focus:ring-[#8B2EFF]/20 outline-none" style={{ minHeight: 44 }} />
-              {mensajes[p.plan] && <p className={`mt-1 text-xs ${mensajes[p.plan].includes('correctamente') ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>{mensajes[p.plan]}</p>}
-            </div>
-            <Button onClick={() => guardar(p.plan)} disabled={guardando===p.plan} className="md:w-28">{guardando===p.plan ? 'Guardando...' : 'Guardar'}</Button>
-          </Card>
-        ))}
-        </div>
-
+    <>
+      <div className="welcome-line">
         <div>
-          <h2 className="text-base font-bold text-[#111111] mb-3">Métricas</h2>
-          <div className="grid grid-cols-1 gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-[#111111] mb-2">Membresías por plan</h3>
-            {!popularidad ? <Card className="py-6 text-center text-sm text-[#6B7280]">No hay datos de popularidad (endpoint no disponible).</Card> : (() => {
-              const total = popularidad.reduce((acc, p) => acc + p.socios, 0);
-              if (total === 0) return <Card className="py-6 text-center text-sm text-[#6B7280]">Sin socios activos.</Card>;
-              return (
-              <Card>
-                <p className="text-xs text-[#6B7280] mb-3">Total socios activos: {total}</p>
-                <div className="space-y-3">
-                  {popularidad.map((pl) => {
-                    const pct = total ? (pl.socios / total) * 100 : 0;
-                    return (
-                    <div key={pl.plan}>
-                      <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-[#111111]">{pl.plan}</span><span className="text-[#6B7280]">{pl.socios} · {Math.round(pct)}%</span></div>
-                      <div className="h-2.5 rounded-full bg-[#F3F4F6] overflow-hidden"><div className="h-full bg-[#8B2EFF] rounded-full transition-all" style={{ width: `${Math.min(100, pct)}%` }} /></div>
-                    </div>
-                  );})}
-                </div>
-              </Card>
-            );})()}
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-[#111111] mb-2">Ingresos del mes por método de pago</h3>
-            {!financiero ? <Card className="py-6 text-center text-sm text-[#6B7280]">No hay datos de ingresos (endpoint no disponible).</Card> : (() => {
-              const metodos = financiero.porMetodo ?? [];
-              const total = metodos.reduce((acc, m) => acc + Number(m.total), 0);
-              if (metodos.length === 0 || total === 0) return <Card className="py-6 text-center text-sm text-[#6B7280]">Sin movimientos este mes.</Card>;
-              const max = Math.max(...metodos.map((m) => Number(m.total)));
-              return (
-              <Card>
-                <p className="text-xs text-[#6B7280] mb-3">Total del mes: ${total.toLocaleString('es-AR')}</p>
-                <div className="space-y-3">
-                  {metodos.map((m) => {
-                    const pct = max ? (Number(m.total) / max) * 100 : 0;
-                    return (
-                    <div key={m.metodo}>
-                      <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-[#111111]">{m.metodo}</span><span className="text-[#6B7280]">${Number(m.total).toLocaleString('es-AR')}</span></div>
-                      <div className="h-2.5 rounded-full bg-[#F3F4F6] overflow-hidden"><div className="h-full bg-[#8B2EFF] rounded-full transition-all" style={{ width: `${Math.min(100, pct)}%` }} /></div>
-                    </div>
-                  );})}
-                </div>
-              </Card>
-            );})()}
-          </div>
-        </div>
+          <h2>Precios de membresías</h2>
+          <p>Editá los precios de los 3 planes. Se aplican a los pagos nuevos.</p>
         </div>
       </div>
-    </div>
+
+      <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
+        <MetricCard label="Planes" value={loading ? '—' : String(precios.length)} change="disponibles" icon={Tag} />
+        <MetricCard label="Socios activos" value={popularidad ? String(totalSocios) : '—'} change="en todos los planes" icon={Users} />
+        <MetricCard label="Ingresos del mes" value={financiero ? formatMoney(financiero.ingresosMes) : '—'} change="pagos aprobados" icon={DollarSign} />
+      </div>
+
+      {loading ? (
+        <LoadingState rows={3} label="Cargando precios" />
+      ) : error ? (
+        <ErrorState title="No pudimos cargar los precios" onRetry={() => setRecarga((n) => n + 1)} />
+      ) : precios.length === 0 ? (
+        <EmptyState icon={CreditCard} title="No hay planes cargados" description="Los planes de membresía aparecen acá cuando existen en el sistema." />
+      ) : (
+        <div className="ops-grid">
+          <div className="stack-gap">
+            {precios.map((p) => {
+              const m = mensajes[p.plan];
+              return (
+                <section key={p.plan} className="glass panel" style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'flex-end' }}>
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <strong style={{ fontSize: 15, color: 'var(--text)' }}>{nombrePlan(p.plan)}</strong>
+                    <p style={{ fontSize: 11, margin: '4px 0 10px' }}>Actual: {formatMoney(Number(p.precio))}</p>
+                    <label>
+                      <span className="field-label">NUEVO PRECIO</span>
+                      <input
+                        className="field-input"
+                        type="number"
+                        min={1}
+                        value={valores[p.plan] ?? ''}
+                        onChange={(e) => setValores((v) => ({ ...v, [p.plan]: e.target.value }))}
+                      />
+                    </label>
+                    {m?.text && (
+                      <p role="status" className={`notice ${m.ok ? 'notice-ok' : 'notice-err'}`} style={{ marginTop: 8 }}>
+                        {m.text}
+                      </p>
+                    )}
+                  </div>
+                  <button className="btn btn-primary" onClick={() => void guardar(p.plan)} disabled={guardando === p.plan}>
+                    {guardando === p.plan ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </section>
+              );
+            })}
+          </div>
+
+          <div className="stack-gap">
+            <section className="glass panel">
+              <SectionHeader title="Membresías por plan" />
+              {!popularidad ? (
+                <p style={{ fontSize: 12 }}>Datos de popularidad no disponibles.</p>
+              ) : totalSocios === 0 ? (
+                <p style={{ fontSize: 12 }}>Sin socios activos.</p>
+              ) : (
+                <div className="stack-gap" style={{ gap: 12 }}>
+                  {popularidad.map((pl) => {
+                    const pct = (pl.socios / totalSocios) * 100;
+                    return (
+                      <div key={pl.plan}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 6 }}>
+                          <strong style={{ color: 'var(--text)' }}>{nombrePlan(pl.plan)}</strong>
+                          <span>
+                            {pl.socios} · {Math.round(pct)}%
+                          </span>
+                        </div>
+                        <ProgressBar value={pct} color="#caff3d" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="glass panel">
+              <SectionHeader title="Ingresos por método" description="Del mes en curso." />
+              {!financiero ? (
+                <p style={{ fontSize: 12 }}>Datos de ingresos no disponibles.</p>
+              ) : metodos.length === 0 || totalMetodos === 0 ? (
+                <p style={{ fontSize: 12 }}>Sin movimientos este mes.</p>
+              ) : (
+                <div className="stack-gap" style={{ gap: 12 }}>
+                  {metodos.map((mt) => (
+                    <div key={mt.metodo}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 6 }}>
+                        <strong style={{ color: 'var(--text)' }}>{mt.metodo}</strong>
+                        <span>{formatMoney(Number(mt.total))}</span>
+                      </div>
+                      <ProgressBar value={maxMetodo ? (Number(mt.total) / maxMetodo) * 100 : 0} color="#54e6d8" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

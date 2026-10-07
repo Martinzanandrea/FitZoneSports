@@ -18,37 +18,40 @@ export class AdminController {
 
   @Get('dashboard/resumen')
   @ApiOperation({ summary: 'Obtener resumen del dashboard' })
-  @Roles(TipoActor.GERENTE, TipoActor.RECEPCIONISTA)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE, TipoActor.RECEPCIONISTA)
   obtenerDashboardResumen(@CurrentUser() user: UsuarioAutenticado) {
     return this.adminService.obtenerDashboardResumen(user);
   }
 
   @Get('reservas')
   @ApiOperation({ summary: 'Obtener reservas para administración' })
-  @Roles(TipoActor.GERENTE, TipoActor.RECEPCIONISTA)
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   obtenerReservas(@CurrentUser() user: UsuarioAutenticado, @Query() query: PaginationQueryDto) {
     return this.adminService.obtenerReservas(user, query);
   }
 
   @Get('reportes/financiero')
   @ApiOperation({ summary: 'Obtener reporte financiero' })
-  @Roles(TipoActor.GERENTE)
-  obtenerReporteFinanciero() {
-    return this.adminService.obtenerReporteFinanciero();
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
+  obtenerReporteFinanciero(@CurrentUser() user: UsuarioAutenticado) {
+    return this.adminService.obtenerReporteFinanciero(user);
   }
 
   @Get('reportes/membresias')
   @ApiOperation({ summary: 'Obtener reporte de membresías por sede' })
   @ApiQuery({ name: 'sedeId', required: false, description: 'UUID de la sede' })
-  @Roles(TipoActor.GERENTE)
-  obtenerMembresiasPorSede(@Query('sedeId') sedeId?: string) {
-    return this.adminService.obtenerMembresiasPorSede(sedeId);
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
+  obtenerMembresiasPorSede(
+    @CurrentUser() user: UsuarioAutenticado,
+    @Query('sedeId') sedeId?: string,
+  ) {
+    return this.adminService.obtenerMembresiasPorSede(sedeId, user);
   }
 
   @Get('reportes/precios-popularidad')
   @ApiOperation({ summary: 'Obtener popularidad de planes' })
-  @Roles(TipoActor.GERENTE)
-  obtenerPopularidadPlanes() {
-    return this.adminService.obtenerPopularidadPlanes();
+  @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
+  obtenerPopularidadPlanes(@CurrentUser() user: UsuarioAutenticado) {
+    return this.adminService.obtenerPopularidadPlanes(user);
   }
 }

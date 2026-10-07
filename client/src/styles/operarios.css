@@ -1,0 +1,215 @@
+/* Área de operarios (/admin): avisos, grillas de operación y selección.
+   Usa los tokens de theme.css (lima, aqua, coral). */
+
+.notice {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.notice-ok {
+  color: var(--success);
+  background: rgba(70, 205, 107, 0.12);
+  border-color: rgba(70, 205, 107, 0.3);
+}
+
+.notice-err {
+  color: var(--coral);
+  background: rgba(255, 130, 108, 0.1);
+  border-color: rgba(255, 130, 108, 0.3);
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 14px;
+  align-items: start;
+}
+
+.code-input {
+  height: 56px;
+  text-align: center;
+  font: 700 28px var(--font-title);
+  letter-spacing: 0.3em;
+}
+
+.pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.pick-item {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.pick-item small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.pick-item:hover {
+  border-color: rgba(202, 255, 61, 0.45);
+}
+
+.pick-item.active {
+  border-color: var(--lime);
+  background: rgba(202, 255, 61, 0.07);
+}
+
+.stack-gap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-wide {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .ops-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Panel modal (pasos para anotar a un cliente). */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(3, 12, 14, 0.7);
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--layer);
+}
+
+@media (max-width: 600px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+/* Calendario de sede: grilla en desktop, lista por día en mobile. */
+.cal-mobile {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .cal-desktop {
+    display: none;
+  }
+
+  .cal-mobile {
+    display: block;
+  }
+}
+
+/* Tabla de operarios: grilla en desktop, tarjetas apiladas en mobile (sin
+   scroll horizontal). Las columnas se definen con --cols en cada tabla y cada
+   celda lleva data-label para su rótulo en mobile. */
+.ops-table {
+  overflow: hidden;
+}
+
+.ops-row {
+  display: grid;
+  grid-template-columns: var(--cols, 2fr 1fr 1fr 1fr);
+  align-items: center;
+  gap: 15px;
+  min-height: 62px;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ops-row > * {
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ops-row > [data-label]::before {
+  content: attr(data-label);
+  display: none;
+  color: var(--muted);
+  font: 700 8px var(--font-title);
+  letter-spacing: 0.1em;
+  margin-right: 8px;
+}
+
+.ops-head {
+  min-height: 32px;
+  color: var(--muted);
+  font: 700 8px var(--font-title);
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--line);
+}
+
+.ops-strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.ops-cell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .ops-head {
+    display: none;
+  }
+
+  .ops-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 14px 4px;
+  }
+
+  .ops-row > [data-label]::before {
+    display: inline-block;
+  }
+
+  .ops-cell-actions {
+    justify-content: flex-start;
+  }
+}

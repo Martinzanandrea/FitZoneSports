@@ -6,25 +6,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import {
-  Pago,
-  Usuario,
-  Membresia,
-  ReservaCancha,
-} from '../entities';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { Pago, Usuario, Membresia, ReservaCancha } from '../entities';
 import {
   EstadoPago,
   MetodoPago,
   TipoActor,
+  TipoPlan,
   EstadoResCancha,
+  EstadoMembresia,
 } from '../entities/enums';
-import {
-  PASARELA_PAGO,
-  type PasarelaPago,
-} from './pasarela-pago.interface';
+import { PASARELA_PAGO, type PasarelaPago } from './pasarela-pago.interface';
 import { ComprobantesService } from './comprobantes.service';
 import { PreciosService } from '../precios/precios.service';
+import { MembresiasService } from '../membresias/membresias.service';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { RegistrarPagoEfectivoDto } from './dto/registrar-pago-efectivo.dto';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -48,11 +44,16 @@ export class PagosService {
     private readonly pasarela: PasarelaPago,
     private readonly comprobantes: ComprobantesService,
     private readonly preciosService: PreciosService,
+    private readonly membresiasService: MembresiasService,
+    private readonly dataSource: DataSource,
+    private readonly auditoria: AuditoriaService,
   ) {}
 
   async obtenerOpcionesCobro(currentUser: UsuarioAutenticado) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (currentUser.tipoActor === TipoActor.RECEPCIONISTA && !currentUser.sedeId) {
+    const esGG = currentUser.tipoActor === TipoActor.GERENTE_GENERAL;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (!esGG && !currentUser.sedeId) {
       throw new ForbiddenException('Tu usuario no tiene una sede asignada');
     }
     const sedeId = currentUser.sedeId;
@@ -80,22 +81,65 @@ export class PagosService {
     ]);
 
     return {
-      usuarios: usuarios.filter(
-        (u) =>
-          idsUsuarios.has(u.id) &&
-          (u.tipoActor === TipoActor.SOCIO ||
-            u.tipoActor === TipoActor.EXTERNO),
-      ),
-      membresias: membresiasDeSede,
-      reservasCancha: reservasCanchaDeSede,
+      // Solo SOCIO y EXTERNO, con campos mínimos: sin emails,
+      // teléfonos ni personal.
+      usuarios: usuarios
+        .filter(
+          (u) =>
+            idsUsuarios.has(u.id) &&
+            (u.tipoActor === TipoActor.SOCIO ||
+              u.tipoActor === TipoActor.EXTERNO),
+        )
+        .map((u) => ({
+          id: u.id,
+          nombre: u.nombre,
+          apellido: u.apellido,
+          dni: u.dni ?? null,
+          tipoActor: u.tipoActor,
+        })),
+      membresias: membresiasDeSede.map((m) => ({
+        id: m.id,
+        plan: m.plan,
+        estado: m.estado,
+        fechaInicio: m.fechaInicio,
+        fechaFin: m.fechaFin,
+        usuario: {
+          id: m.usuario.id,
+          nombre: m.usuario.nombre,
+          apellido: m.usuario.apellido,
+          dni: m.usuario.dni ?? null,
+        },
+        sedeAlta: { id: m.sedeAlta.id, nombre: m.sedeAlta.nombre },
+      })),
+      reservasCancha: reservasCanchaDeSede.map((r) => ({
+        id: r.id,
+        estado: r.estado,
+        fecha: r.fecha,
+        horaInicio: r.horaInicio,
+        horaFin: r.horaFin,
+        precioFinal: r.precioFinal,
+        usuario: {
+          id: r.usuario.id,
+          nombre: r.usuario.nombre,
+          apellido: r.usuario.apellido,
+          dni: r.usuario.dni ?? null,
+        },
+        cancha: {
+          nombre: r.cancha.nombre,
+          sede: { id: r.cancha.sede.id, nombre: r.cancha.sede.nombre },
+        },
+      })),
     };
   }
 
   private async resolverReferencia(dto: {
+    usuarioId: string;
+    plan?: TipoPlan;
     membresiaId?: string;
     reservaClaseId?: string;
     reservaCanchaId?: string;
   }): Promise<{
+    plan?: TipoPlan;
     membresia?: Membresia;
     reservaCancha?: ReservaCancha;
   }> {
@@ -107,44 +151,58 @@ export class PagosService {
         'Las reservas de clase no son cobrables de forma independiente: el acceso está incluido en la membresía',
       );
     }
-    const referencias = [dto.membresiaId, dto.reservaCanchaId].filter(
+    const referencias = [dto.plan, dto.membresiaId, dto.reservaCanchaId].filter(
       Boolean,
     );
     if (referencias.length !== 1) {
       throw new BadRequestException(
-        'Debe indicarse exactamente una referencia: membresiaId o reservaCanchaId',
+        'Debe indicarse exactamente una referencia: plan, membresiaId o reservaCanchaId',
       );
     }
 
-    if (dto.membresiaId) {
-      const membresia = await this.membresiasRepo.findOne({
-        where: { id: dto.membresiaId },
+    if (dto.reservaCanchaId) {
+      const reservaCancha = await this.reservasCanchaRepo.findOne({
+        where: { id: dto.reservaCanchaId },
       });
-      if (!membresia)
+      if (!reservaCancha)
+        throw new NotFoundException(
+          `Reserva de cancha ${dto.reservaCanchaId} no encontrada`,
+        );
+      return { reservaCancha };
+    }
+
+    // Flujo membresía: el cliente manda el plan (nunca un monto); por
+    // compatibilidad también se acepta membresiaId y se deriva su plan.
+    if (dto.membresiaId) {
+      const previa = await this.membresiasRepo.findOne({
+        where: { id: dto.membresiaId },
+        relations: { usuario: true },
+      });
+      if (!previa)
         throw new NotFoundException(
           `Membresía ${dto.membresiaId} no encontrada`,
         );
-      return { membresia };
+      if (previa.usuario.id !== dto.usuarioId) {
+        throw new BadRequestException(
+          'La membresía no pertenece al usuario indicado',
+        );
+      }
+      return { plan: previa.plan, membresia: previa };
     }
-    const reservaCancha = await this.reservasCanchaRepo.findOne({
-      where: { id: dto.reservaCanchaId },
-    });
-    if (!reservaCancha)
-      throw new NotFoundException(
-        `Reserva de cancha ${dto.reservaCanchaId} no encontrada`,
-      );
-    return { reservaCancha };
+    return { plan: dto.plan };
   }
 
   private async calcularMonto(
     montoRecibido: number | undefined,
     referencia: {
-      membresia?: Membresia;
+      plan?: TipoPlan;
       reservaCancha?: ReservaCancha;
     },
   ): Promise<number> {
-    if (referencia.membresia) {
-      return this.preciosService.obtenerPrecio(referencia.membresia.plan);
+    // El precio de una membresía sale siempre del servidor
+    // (preciosService); el cliente nunca manda un monto para esto.
+    if (referencia.plan) {
+      return this.preciosService.obtenerPrecio(referencia.plan);
     }
     if (referencia.reservaCancha) {
       return Number(referencia.reservaCancha.precioFinal);
@@ -194,22 +252,86 @@ export class PagosService {
       dto.simularRechazo ?? false,
     );
 
-    const pago = this.pagosRepo.create({
+    const datosPago = {
       usuario,
-      ...referencia,
+      membresia: referencia.membresia,
+      reservaCancha: referencia.reservaCancha,
       metodo: dto.metodo,
       monto: String(monto),
       tokenPasarela: token,
       estado: aprobado ? EstadoPago.APROBADO : EstadoPago.RECHAZADO,
       pagadoEn: aprobado ? new Date() : undefined,
-    });
-    const guardado = await this.pagosRepo.save(pago);
+    };
 
-    if (aprobado) {
-      await this.comprobantes.generar(guardado);
+    // Rechazado: se registra el intento y el rol no cambia.
+    if (!aprobado) {
+      return this.pagosRepo.save(this.pagosRepo.create(datosPago));
     }
 
+    // Aprobado: pago y promoción EXTERNO → SOCIO en la misma transacción.
+    const { guardado, promovidoId } = await this.dataSource.transaction(
+      async (manager) => {
+        const pagosRepoTx = manager.getRepository(Pago);
+        const pago = await pagosRepoTx.save(pagosRepoTx.create(datosPago));
+        const promovido = await this.promoverExternoASocioSiCorresponde(
+          manager,
+          pago,
+        );
+        return { guardado: pago, promovidoId: promovido };
+      },
+    );
+    if (promovidoId) {
+      await this.auditarPromocion(promovidoId, guardado.id, usuario.id);
+    }
+
+    await this.comprobantes.generar(guardado);
     return guardado;
+  }
+
+  // ADR 0011: pagar una membresía convierte al titular EXTERNO en SOCIO.
+  // Es el único punto que cambia ese rol por un pago; lo usan todos los
+  // caminos que dejan un pago de membresía APROBADO. El usuario promovido
+  // es el titular de la membresía, nunca quien ejecuta el cobro. El UPDATE
+  // es condicional (solo si sigue siendo EXTERNO): si ya es SOCIO, o es
+  // cualquier otro rol, no toca nada. Devuelve el id promovido o null.
+  private async promoverExternoASocioSiCorresponde(
+    manager: EntityManager,
+    pago: Pago,
+  ): Promise<string | null> {
+    if (pago.estado !== EstadoPago.APROBADO || !pago.membresia) return null;
+    const membresia = await manager.getRepository(Membresia).findOne({
+      where: { id: pago.membresia.id },
+      relations: { usuario: true },
+    });
+    const titular = membresia?.usuario;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (!titular || titular.tipoActor !== TipoActor.EXTERNO) return null;
+    const res = await manager
+      .getRepository(Usuario)
+      .update(
+        { id: titular.id, tipoActor: TipoActor.EXTERNO },
+        { tipoActor: TipoActor.SOCIO },
+      );
+    return res.affected ? titular.id : null;
+  }
+
+  // Se registra después del commit (AuditoriaService usa su propio
+  // repositorio y no propaga errores).
+  private async auditarPromocion(
+    usuarioId: string,
+    pagoId: string,
+    actorId?: string,
+  ): Promise<void> {
+    await this.auditoria.registrar({
+      actorId,
+      accion: 'PROMOVER_EXTERNO_A_SOCIO',
+      entidad: 'Usuario',
+      entidadId: usuarioId,
+      detalle: {
+        motivo: 'EXTERNO → SOCIO por pago de membresía',
+        pagoId,
+      },
+    });
   }
 
   async registrarPagoEfectivo(
@@ -231,7 +353,8 @@ export class PagosService {
 
     if (
       registradoPor.tipoActor !== TipoActor.RECEPCIONISTA &&
-      registradoPor.tipoActor !== TipoActor.GERENTE
+      registradoPor.tipoActor !== TipoActor.GERENTE_SEDE &&
+      registradoPor.tipoActor !== TipoActor.GERENTE_GENERAL
     ) {
       throw new BadRequestException(
         'Solo un recepcionista o gerente puede registrar un pago en efectivo',
@@ -239,33 +362,117 @@ export class PagosService {
     }
 
     const referencia = await this.resolverReferencia(dto);
-    const monto = await this.calcularMonto(dto.monto, referencia);
 
-    if (registradoPor.tipoActor === TipoActor.RECEPCIONISTA) {
-      const sedeDeLaOperacion = await this.obtenerSedeDeReferencia(referencia);
-      if (sedeDeLaOperacion) {
-        const currentUser: UsuarioAutenticado = {
-          id: registradoPor.id,
-          tipoActor: registradoPor.tipoActor,
-          email: registradoPor.email ?? '',
-          sedeId: registradoPor.sede?.id ?? null,
-        };
-        assertSedeScope(currentUser, sedeDeLaOperacion);
+    // Flujo cancha: igual que antes (sin cambios de membresía).
+    if (referencia.reservaCancha) {
+      const monto = await this.calcularMonto(dto.monto, referencia);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      if (
+        registradoPor.tipoActor === TipoActor.RECEPCIONISTA ||
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+        registradoPor.tipoActor === TipoActor.GERENTE_SEDE
+      ) {
+        const sedeDeLaOperacion =
+          await this.obtenerSedeDeReferencia(referencia);
+        if (sedeDeLaOperacion) {
+          const currentUser: UsuarioAutenticado = {
+            id: registradoPor.id,
+            tipoActor: registradoPor.tipoActor,
+            email: registradoPor.email ?? '',
+            sedeId: registradoPor.sede?.id ?? null,
+          };
+          assertSedeScope(currentUser, sedeDeLaOperacion);
+        }
       }
+
+      return this.dataSource.transaction(async (manager) => {
+        const pagosRepoTx = manager.getRepository(Pago);
+        const pago = pagosRepoTx.create({
+          usuario,
+          registradoPor,
+          reservaCancha: referencia.reservaCancha,
+          metodo: MetodoPago.EFECTIVO,
+          monto: String(monto),
+          estado: EstadoPago.APROBADO,
+          pagadoEn: new Date(),
+        });
+        const guardado = await pagosRepoTx.save(pago);
+        await this.comprobantes.generar(guardado, manager);
+        return guardado;
+      });
     }
 
-    const pago = this.pagosRepo.create({
-      usuario,
-      registradoPor,
-      ...referencia,
-      metodo: MetodoPago.EFECTIVO,
-      monto: String(monto),
-      estado: EstadoPago.APROBADO,
-      pagadoEn: new Date(),
-    });
-    const guardado = await this.pagosRepo.save(pago);
-    await this.comprobantes.generar(guardado);
+    // Flujo membresía: el precio sale del servidor según el plan.
+    const plan = referencia.plan as TipoPlan;
+    const monto = await this.preciosService.obtenerPrecio(plan);
+    const vigente = await this.membresiasService.obtenerMembresiaVigente(
+      dto.usuarioId,
+    );
+    const esRenovacion = vigente?.estado === EstadoMembresia.ACTIVO;
 
+    // Sede de alta de la membresía resultante: la del que cobra; si es
+    // GG (sin sede), la de la membresía anterior. Sin ninguna fuente,
+    // no se puede inventar una sede: se rechaza explícito.
+    const sedeAltaId = esRenovacion
+      ? vigente!.sedeAlta.id
+      : (registradoPor.sede?.id ?? vigente?.sedeAlta.id ?? null);
+    if (!sedeAltaId) {
+      throw new BadRequestException(
+        'No se pudo determinar la sede de alta: indicá una sede para el cobro',
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (
+      registradoPor.tipoActor === TipoActor.RECEPCIONISTA ||
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      registradoPor.tipoActor === TipoActor.GERENTE_SEDE
+    ) {
+      const currentUser: UsuarioAutenticado = {
+        id: registradoPor.id,
+        tipoActor: registradoPor.tipoActor,
+        email: registradoPor.email ?? '',
+        sedeId: registradoPor.sede?.id ?? null,
+      };
+      assertSedeScope(currentUser, sedeAltaId);
+    }
+
+    // Todo en una sola transacción: membresía, Pago APROBADO y
+    // comprobante. Si algo falla, no queda nada a medias.
+    const { guardado, promovidoId } = await this.dataSource.transaction(
+      async (manager) => {
+        const membresiaResultante = esRenovacion
+          ? await this.membresiasService.renovar(
+              { usuarioId: dto.usuarioId, sedeAltaId, plan },
+              manager,
+            )
+          : await this.membresiasService.create(
+              { usuarioId: dto.usuarioId, sedeAltaId, plan },
+              manager,
+            );
+        const pagosRepoTx = manager.getRepository(Pago);
+        const pago = pagosRepoTx.create({
+          usuario,
+          registradoPor,
+          membresia: membresiaResultante,
+          metodo: MetodoPago.EFECTIVO,
+          monto: String(monto),
+          estado: EstadoPago.APROBADO,
+          pagadoEn: new Date(),
+        });
+        const guardado = await pagosRepoTx.save(pago);
+        const promovidoId = await this.promoverExternoASocioSiCorresponde(
+          manager,
+          guardado,
+        );
+        await this.comprobantes.generar(guardado, manager);
+        return { guardado, promovidoId };
+      },
+    );
+    if (promovidoId) {
+      await this.auditarPromocion(promovidoId, guardado.id, registradoPor.id);
+    }
     return guardado;
   }
 
@@ -282,7 +489,13 @@ export class PagosService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
   async findOne(id: string, currentUser: UsuarioAutenticado): Promise<Pago> {

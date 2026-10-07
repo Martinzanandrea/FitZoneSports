@@ -1,153 +1,168 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Building2, ScanLine, BookOpen, CreditCard, TrendingUp, CalendarDays, Clock3, RefreshCw, GraduationCap, Tag, DollarSign, Activity } from 'lucide-react';
-import { adminApi, type DashboardResumen, type AuditoriaRegistro } from '../admin.api';
+import { Banknote, Building2, CalendarDays, Clock3, DoorOpen, UserCheck, Users, Wallet } from 'lucide-react';
+import { useAuth } from '../../auth/AuthContext';
+import {
+  adminApi,
+  type AuditoriaRegistro,
+  type DashboardResumen,
+  type MembresiaPorSedeItem,
+  type ReporteFinanciero,
+} from '../admin.api';
+import { accesoApi } from '../../acceso/acceso.api';
+import type { ResumenAccesos } from '../../acceso/acceso.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import { usuariosApi } from '../../usuarios/usuarios.api';
-import { StatCard, formatMoney, Badge, Card } from '../../../shared/components/ui';
+import { formatMoney } from '../../../shared/components/ui';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { MiniChart } from '../../../shared/components/MiniChart';
+import { Ranking } from '../../../shared/components/Ranking';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
+import { ActividadReciente } from '../components/ActividadReciente';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
-const CARDS = [
-  { to: '/admin/personal', icon: Users, title: 'Personal', description: 'Dar de alta recepcionistas y gerentes' },
-  { to: '/admin/sedes', icon: Building2, title: 'Sedes', description: 'Crear y administrar sucursales' },
-  { to: '/admin/canchas', icon: ScanLine, title: 'Canchas', description: 'Alta, precios y mantenimiento (todas las sedes)' },
-  { to: '/admin/clases', icon: BookOpen, title: 'Clases', description: 'Crear clases y asignar instructores (todas las sedes)' },
-  { to: '/admin/instructores', icon: GraduationCap, title: 'Instructores', description: 'Dar de alta instructores para clases' },
-  { to: '/admin/membresias', icon: CreditCard, title: 'Membresías', description: 'Ver y gestionar membresías de socios' },
-  { to: '/admin/reportes', icon: TrendingUp, title: 'Reportes', description: 'Vista consolidada de pagos y ocupación' },
-  { to: '/admin/reservas', icon: CalendarDays, title: 'Reservas', description: 'Consultar reservas de clases y canchas' },
-  { to: '/admin/precios', icon: Tag, title: 'Precios', description: 'Editar precios de planes de membresía' },
-];
+// Mismo patrón para cada bloque: dato, carga y error propios, así un endpoint
+// caído no apaga el resto del panel.
+interface Bloque<T> {
+  data: T | null;
+  cargando: boolean;
+  error: boolean;
+}
 
-function accionVariant(accion: string) {
-  const a = accion.toLowerCase();
-  if (a.includes('crear')) return 'green' as const;
-  if (a.includes('actualizar') || a.includes('asignar') || a.includes('reasignar')) return 'violet' as const;
-  if (a.includes('cancelar') || a.includes('desactivar') || a.includes('bloquear')) return 'red' as const;
-  if (a.includes('cobrar')) return 'amber' as const;
-  return 'gray' as const;
+function inicial<T>(): Bloque<T> {
+  return { data: null, cargando: true, error: false };
+}
+
+function variacion(actual: number, anterior: number): string {
+  if (anterior <= 0) return 'sin ingresos el mes anterior';
+  const pct = Math.round(((actual - anterior) / anterior) * 100);
+  return `${pct >= 0 ? '+' : ''}${pct}% vs mes anterior`;
+}
+
+function valor<T>(b: Bloque<T>, fmt: (d: T) => string): string {
+  return b.data !== null ? fmt(b.data) : '—';
 }
 
 export function GerenteDashboard() {
-  useTitulo('Panel del Gerente');
-  const [resumen, setResumen] = useState<DashboardResumen | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(false);
-  const [horaActual, setHoraActual] = useState(() => new Date());
-  const [sedesActivas, setSedesActivas] = useState<number | null>(null);
-  const [totalUsuarios, setTotalUsuarios] = useState<number | null>(null);
-  const [ingresosMes, setIngresosMes] = useState<number | null>(null);
-  const [actividad, setActividad] = useState<AuditoriaRegistro[]>([]);
-  const [actError, setActError] = useState(false);
+  useTitulo('Panel general');
+  const { user } = useAuth();
+  const [resumen, setResumen] = useState<Bloque<DashboardResumen>>(inicial);
+  const [fin, setFin] = useState<Bloque<ReporteFinanciero>>(inicial);
+  const [accesos, setAccesos] = useState<Bloque<ResumenAccesos>>(inicial);
+  const [membresias, setMembresias] = useState<Bloque<MembresiaPorSedeItem[]>>(inicial);
+  const [sedesActivas, setSedesActivas] = useState<Bloque<number>>(inicial);
+  const [usuarios, setUsuarios] = useState<Bloque<number>>(inicial);
+  const [actividad, setActividad] = useState<Bloque<AuditoriaRegistro[]>>(inicial);
 
-  function cargarResumen() {
-    setCargando(true);
-    setError(false);
-    adminApi.getDashboardResumen()
-      .then(setResumen)
-      .catch(() => setError(true))
-      .finally(() => setCargando(false));
-  }
-
-  useEffect(() => {
-    cargarResumen();
-    sedesApi.getAll(1, 100).then((res) => setSedesActivas(res.data.filter((x) => x.activa).length)).catch(() => setSedesActivas(null));
-    usuariosApi.getAll().then((res) => setTotalUsuarios(res.total)).catch(() => setTotalUsuarios(null));
-    adminApi.getReporteFinanciero().then((r) => setIngresosMes(r.ingresosMes)).catch(() => setIngresosMes(null));
-    adminApi.getAuditoria(undefined, 1, 8).then((res) => setActividad(res.data)).catch(() => setActError(true));
+  const cargarActividad = useCallback(() => {
+    setActividad(inicial());
+    adminApi
+      .getAuditoria(undefined, 1, 8)
+      .then((r) => setActividad({ data: r.data, cargando: false, error: false }))
+      .catch(() => setActividad({ data: null, cargando: false, error: true }));
   }, []);
 
+  const cargar = useCallback(() => {
+    function bloque<T>(promesa: Promise<T>, set: (b: Bloque<T>) => void) {
+      set(inicial());
+      promesa
+        .then((data) => set({ data, cargando: false, error: false }))
+        .catch(() => set({ data: null, cargando: false, error: true }));
+    }
+    bloque(adminApi.getDashboardResumen(), setResumen);
+    bloque(adminApi.getReporteFinanciero(), setFin);
+    bloque(accesoApi.getResumenAccesos(), setAccesos);
+    bloque(adminApi.getMembresiasPorSede(), setMembresias);
+    bloque(sedesApi.getAll(1, 100).then((r) => r.data.filter((s) => s.activa).length), setSedesActivas);
+    bloque(usuariosApi.getAll(1, 1).then((r) => r.total), setUsuarios);
+    cargarActividad();
+  }, [cargarActividad]);
+
   useEffect(() => {
-    const intervalo = window.setInterval(() => setHoraActual(new Date()), 1000);
-    return () => window.clearInterval(intervalo);
-  }, []);
+    cargar();
+  }, [cargar]);
+
+  const sociosActivos = membresias.data ? membresias.data.reduce((acc, s) => acc + s.activas, 0) : null;
+  const porSede = fin.data?.porSede ?? [];
+  const hayIngresosPorSede = porSede.some((s) => s.total > 0);
+  const ocupacion = (accesos.data?.porSede ?? []).map((s) => ({
+    name: s.sede,
+    value: s.aforoMaximo > 0 ? Math.min(100, Math.round((s.aforoActual / s.aforoMaximo) * 100)) : 0,
+  }));
 
   return (
-    <div>
-      <div className="mb-6 flex items-start justify-between gap-4">
+    <>
+      <div className="welcome-line">
         <div>
-          <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Panel del Gerente</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">Acceso completo a todas las sedes de la cadena</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#374151]">
-          <Clock3 size={16} className="text-[#8B2EFF]" />
-          <time dateTime={horaActual.toISOString()}>
-            {horaActual.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-          </time>
+          <h2>Panel general</h2>
+          <p>Hola, {user?.nombre}. Así está toda la red hoy.</p>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-sm text-[#B91C1C]">
-          <span>No se pudo cargar el resumen del día.</span>
-          <button type="button" onClick={cargarResumen} className="inline-flex items-center gap-2 rounded-lg border border-[#FECACA] px-3 py-2 font-semibold hover:bg-[#FEE2E2]">
-            <RefreshCw size={15} /> Reintentar
-          </button>
-        </div>
-      )}
-
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard label="Clases de hoy" value={cargando ? '...' : String(resumen?.clasesHoy ?? 0)} icon={CalendarDays} iconColor="#8B2EFF" />
-        <StatCard label="Horas de cancha reservadas hoy" value={cargando ? '...' : `${resumen?.horasCanchasAgendadasHoy ?? 0} h`} icon={Clock3} iconColor="#8B2EFF" />
-        <StatCard label="Ingresos del mes" value={ingresosMes !== null ? formatMoney(ingresosMes) : cargando ? '...' : '—'} icon={DollarSign} iconColor="#16A34A" sub={ingresosMes === null && !cargando ? 'No disponible' : undefined} />
+      <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+        <MetricCard
+          label="Ingresos del mes"
+          value={valor(fin, (f) => formatMoney(f.ingresosMes))}
+          change={fin.data ? variacion(fin.data.ingresosMes, fin.data.ingresosMesAnterior) : fin.cargando ? 'cargando' : 'no disponible'}
+          icon={Wallet}
+        />
+        <MetricCard label="Ingresos de hoy" value={valor(fin, (f) => formatMoney(f.ingresosHoy))} change="pagos aprobados" icon={Banknote} />
+        <MetricCard label="Clases hoy" value={valor(resumen, (r) => String(r.clasesHoy))} change="en toda la red" icon={CalendarDays} />
+        <MetricCard label="Horas de cancha hoy" value={valor(resumen, (r) => `${r.horasCanchasAgendadasHoy} h`)} change="agendadas" icon={Clock3} />
+        <MetricCard label="Sedes activas" value={valor(sedesActivas, String)} change="en operación" icon={Building2} />
+        <MetricCard label="Socios con membresía activa" value={sociosActivos === null ? '—' : String(sociosActivos)} change="suma de todas las sedes" icon={UserCheck} />
+        <MetricCard label="Usuarios registrados" value={valor(usuarios, String)} change="socios, externos y personal" icon={Users} />
+        <MetricCard label="Entradas a sedes hoy" value={valor(accesos, (a) => String(a.totalIngresosHoy))} change="ingresos validados" icon={DoorOpen} />
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard label="Sedes activas" value={sedesActivas !== null ? String(sedesActivas) : '—'} icon={Building2} iconColor="#8B2EFF" />
-        <StatCard label="Total usuarios" value={totalUsuarios !== null ? String(totalUsuarios) : '—'} icon={Users} iconColor="#3B82F6" />
-        <div className="rounded-xl p-4 bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-between">
-          <div>
-            <p className="text-[13px] font-medium text-[#15803D]">Estado operativo</p>
-            <p className="text-sm font-bold text-[#15803D] mt-1">Todo al día</p>
-          </div>
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#16A34A]/15">
-            <Activity size={18} className="text-[#16A34A] animate-pulse" />
-          </span>
-        </div>
+      <div className="content-grid">
+        <section className="glass panel" aria-label="Ingresos por sede">
+          <SectionHeader title="Ingresos del mes por sede" description="Pagos aprobados desde el 1° del mes." />
+          {fin.cargando ? (
+            <LoadingState rows={1} label="Cargando ingresos" />
+          ) : fin.error ? (
+            <ErrorState title="No pudimos cargar los ingresos" onRetry={cargar} />
+          ) : !hayIngresosPorSede ? (
+            <EmptyState icon={Wallet} title="Sin ingresos este mes" description="Todavía no hay pagos aprobados en el mes actual." />
+          ) : (
+            <MiniChart
+              values={porSede.map((s) => s.total)}
+              labels={porSede.map((s) => s.sede)}
+              ariaLabel="Ingresos del mes por sede"
+            />
+          )}
+        </section>
+
+        <section className="glass panel" aria-label="Ocupación por sede">
+          <SectionHeader title="Ocupación ahora" description="Personas adentro sobre el aforo de cada sede." />
+          {accesos.cargando ? (
+            <LoadingState rows={2} label="Cargando ocupación" />
+          ) : accesos.error ? (
+            <ErrorState title="No pudimos cargar la ocupación" onRetry={cargar} />
+          ) : ocupacion.length === 0 ? (
+            <EmptyState icon={Building2} title="No hay sedes activas" description="Cuando haya sedes activas, mostramos su ocupación." />
+          ) : (
+            <Ranking items={[...ocupacion].sort((a, b) => b.value - a.value)} />
+          )}
+        </section>
       </div>
 
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-bold text-[#111111] flex items-center gap-2"><Activity size={16} className="text-[#8B2EFF]" /> Actividad reciente</h2>
-          <Link to="/admin/reportes" className="text-sm font-semibold text-[#8B2EFF] hover:underline" style={{ minHeight: 44 }}>Ver todo</Link>
-        </div>
-        {actError ? (
-          <Card className="py-6 text-center text-sm text-[#6B7280]">No se pudo cargar la actividad.</Card>
-        ) : actividad.length === 0 ? (
-          <Card className="py-6 text-center text-sm text-[#6B7280]">Sin actividad reciente.</Card>
-        ) : (
-          <div className="space-y-2">
-            {actividad.map((r) => (
-              <Card key={r.id} className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#111111] flex items-center gap-2 flex-wrap">
-                    <Badge variant={accionVariant(r.accion)}>{r.accion}</Badge>
-                    <span className="text-xs text-[#6B7280]">{r.entidad}</span>
-                  </p>
-                  <p className="text-xs text-[#6B7280] mt-1 truncate">{r.actor ? `${r.actor.nombre} ${r.actor.apellido}` : 'Sistema'} · {new Date(r.creadoEn).toLocaleString('es-AR')}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+      <div style={{ marginTop: 14 }}>
+        <ActividadReciente
+          registros={actividad.data}
+          cargando={actividad.cargando}
+          error={actividad.error}
+          onRetry={cargarActividad}
+          description="Últimos movimientos del equipo."
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {CARDS.map((card) => (
-          <Link key={card.to} to={card.to} className="group w-full text-left bg-white rounded-2xl p-5 border border-[#E5E7EB] hover:border-[#8B2EFF] hover:shadow-md hover:shadow-[#8B2EFF]/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8B2EFF]/30">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#F3E8FF] flex items-center justify-center shrink-0 group-hover:bg-[#8B2EFF] transition-colors duration-200">
-                <card.icon size={18} className="text-[#8B2EFF] group-hover:text-white transition-colors duration-200" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#111111] group-hover:text-[#8B2EFF] transition-colors duration-200">{card.title}</p>
-                <p className="mt-0.5 text-xs text-[#6B7280] leading-relaxed">{card.description}</p>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
+      <p style={{ marginTop: 14, fontSize: 12 }}>
+        Más detalle en <Link to="/admin/reportes" style={{ color: 'var(--lime)' }}>Reportes</Link>.
+      </p>
+    </>
   );
 }
-

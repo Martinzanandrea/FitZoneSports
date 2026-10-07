@@ -1,72 +1,130 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, GraduationCap, Pencil, UserPlus, Users, X } from 'lucide-react';
+import { Building2, Pencil, Search, UserMinus, UserPlus, Users } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Usuario } from '../usuarios.types';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
-import { Avatar, Button, Card, PageHeader, Pagination, StatCard } from '../../../shared/components/ui';
+import { useAuth } from '../../auth/AuthContext';
+import { Avatar, Badge, Pagination } from '../../../shared/components/ui';
 import { Select } from '../../../shared/components/Select';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+
+const ROL_LABEL: Record<string, string> = {
+  RECEPCIONISTA: 'Recepcionista',
+  GERENTE_SEDE: 'Gerente de sede',
+  GERENTE_GENERAL: 'Gerente general',
+};
+
+function mensajeDe(e: unknown, porDefecto: string): string {
+  const ax = e as { response?: { data?: { message?: string | string[] } } };
+  const raw = ax.response?.data?.message;
+  return Array.isArray(raw) ? raw.join(', ') : raw ?? porDefecto;
+}
 
 export function PersonalPage() {
   useTitulo('Personal');
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const esGG = user?.tipoActor === TipoActor.GERENTE_GENERAL;
+
   const [staff, setStaff] = useState<Usuario[]>([]);
   const [sedes, setSedes] = useState<Sede[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalStaff, setTotalStaff] = useState(0);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
+  const [recarga, setRecarga] = useState(0);
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroSede, setFiltroSede] = useState('');
+  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
   const [cambiando, setCambiando] = useState<string | null>(null);
   const [editando, setEditando] = useState<Usuario | null>(null);
   const [formulario, setFormulario] = useState({ nombre: '', apellido: '', email: '', telefono: '', dni: '' });
   const [guardando, setGuardando] = useState(false);
   const [errorEdicion, setErrorEdicion] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalStaff, setTotalStaff] = useState(0);
-  const [mostrarSinRecep, setMostrarSinRecep] = useState(false);
+  const [aBaja, setABaja] = useState<Usuario | null>(null);
+  const [dandoBaja, setDandoBaja] = useState(false);
+  const [errorBaja, setErrorBaja] = useState('');
 
   useEffect(() => {
-    cargar(page);
-    sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+    let viva = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCargando(true);
+    setError(false);
+    usuariosApi
+      .getStaff(page)
+      .then((res) => {
+        if (!viva) return;
+        setStaff(res.data);
+        setTotalPages(res.totalPages);
+        setTotalStaff(res.total);
+      })
+      .catch(() => viva && setError(true))
+      .finally(() => viva && setCargando(false));
+    return () => {
+      viva = false;
+    };
+  }, [page, recarga]);
 
-  function cargar(pagina: number) {
-    usuariosApi.getStaff(pagina).then((res) => { setStaff(res.data); setTotalPages(res.totalPages); setTotalStaff(res.total); }).catch(() => setStaff([]));
-  }
+  useEffect(() => {
+    // Solo el GG reasigna sedes; el GS no necesita el catálogo.
+    if (!esGG) return;
+    sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
+  }, [esGG]);
 
   const recepcionistas = useMemo(() => staff.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA), [staff]);
-  const sedesSinRecepcionista = useMemo(() => {
-    const sedeIdsConRecep = new Set(recepcionistas.filter((r) => r.sede?.id).map((r) => r.sede!.id));
-    return sedes.filter((s) => !sedeIdsConRecep.has(s.id));
+  const gerentes = staff.length - recepcionistas.length;
+  const sedesSinRecep = useMemo(() => {
+    const conRecep = new Set(recepcionistas.filter((r) => r.activo && r.sede?.id).map((r) => r.sede!.id));
+    return sedes.filter((s) => !conRecep.has(s.id));
   }, [sedes, recepcionistas]);
+
+  const filtrados = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+    return staff.filter((u) => {
+      if (esGG && filtroSede && u.sede?.id !== filtroSede) return false;
+      if (!texto) return true;
+      return `${u.nombre} ${u.apellido} ${u.email}`.toLowerCase().includes(texto);
+    });
+  }, [staff, busqueda, filtroSede, esGG]);
+
+  // Baja: el GG sobre cualquiera menos sí mismo; el GS solo recepcionistas (su lista ya es solo su sede).
+  function puedeDarDeBaja(u: Usuario) {
+    if (!u.activo || u.id === user?.id) return false;
+    return esGG || u.tipoActor === TipoActor.RECEPCIONISTA;
+  }
 
   async function handleCambiarSede(usuarioId: string, sedeId: string) {
     if (!sedeId) return;
     setCambiando(usuarioId);
+    setMsg(null);
     try {
       await usuariosApi.asignarSede(usuarioId, sedeId);
-      cargar(page);
-    } catch {
-      alert('No se pudo reasignar la sede.');
+      setMsg({ type: 'ok', text: 'Sede reasignada.' });
+      setRecarga((n) => n + 1);
+    } catch (e) {
+      setMsg({ type: 'err', text: mensajeDe(e, 'No se pudo reasignar la sede.') });
     } finally {
       setCambiando(null);
     }
   }
 
-  function abrirEdicion(usuario: Usuario) {
-    setEditando(usuario);
+  function abrirEdicion(u: Usuario) {
+    setEditando(u);
     setErrorEdicion('');
-    setFormulario({
-      nombre: usuario.nombre,
-      apellido: usuario.apellido,
-      email: usuario.email,
-      telefono: usuario.telefono ?? '',
-      dni: usuario.dni ?? '',
-    });
+    setFormulario({ nombre: u.nombre, apellido: u.apellido, email: u.email, telefono: u.telefono ?? '', dni: u.dni ?? '' });
   }
 
-  async function guardarEdicion(event: React.FormEvent) {
+  async function guardarEdicion(event: FormEvent) {
     event.preventDefault();
     if (!editando) return;
     setGuardando(true);
@@ -83,139 +141,213 @@ export function PersonalPage() {
         await usuariosApi.actualizarDni(editando.id, formulario.dni);
       }
       setEditando(null);
-      cargar(page);
-    } catch {
-      setErrorEdicion('No se pudieron guardar los cambios. Revisá los datos.');
+      setMsg({ type: 'ok', text: 'Datos actualizados.' });
+      setRecarga((n) => n + 1);
+    } catch (e) {
+      setErrorEdicion(mensajeDe(e, 'No se pudieron guardar los cambios. Revisá los datos.'));
     } finally {
       setGuardando(false);
     }
   }
 
+  async function confirmarBaja() {
+    if (!aBaja) return;
+    setDandoBaja(true);
+    setErrorBaja('');
+    try {
+      await usuariosApi.desactivar(aBaja.id);
+      setMsg({ type: 'ok', text: `${aBaja.nombre} ${aBaja.apellido} fue dado de baja.` });
+      setABaja(null);
+      setRecarga((n) => n + 1);
+    } catch (e) {
+      setErrorBaja(mensajeDe(e, 'No se pudo dar de baja.'));
+    } finally {
+      setDandoBaja(false);
+    }
+  }
+
+  const sinDatos = cargando && staff.length === 0;
+  const cols = esGG ? '2fr 1fr 1.4fr 0.8fr 1.2fr' : '2fr 1fr 0.8fr 1.2fr';
+
   return (
-    <div className="max-w-6xl">
-      <PageHeader
-        title="Personal"
-        action={
-          <Button size="sm" onClick={() => navigate('/admin/personal/nuevo')}>
-            <UserPlus size={16} /> Nuevo integrante
-          </Button>
-        }
-      />
-      <p className="-mt-4 mb-4 text-sm text-[#6B7280]">
-        Recepcionistas y gerentes de la cadena
-      </p>
-
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard label="Total personal" value={String(totalStaff)} icon={Users} iconColor="#8B2EFF" />
-        <StatCard label="Recepcionistas" value={String(recepcionistas.length)} icon={UserPlus} iconColor="#3B82F6" />
-        <div className={`rounded-xl p-4 border ${sedesSinRecepcionista.length > 0 ? 'bg-[#FFFBEB] border-[#FDE68A]' : 'bg-white border-[#E5E7EB]'}`}>
-          <p className="text-[13px] font-medium text-[#6B7280]">Sedes sin recepcionista</p>
-          <p className={`text-[28px] font-bold tracking-tight mt-2 ${sedesSinRecepcionista.length > 0 ? 'text-[#92400E]' : 'text-[#111111]'}`}>{sedesSinRecepcionista.length}</p>
-          {sedesSinRecepcionista.length > 0 && <p className="text-xs text-[#92400E] mt-1">{sedesSinRecepcionista.map((s) => s.nombre).join(', ')}</p>}
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Personal</h2>
+          <p>{esGG ? 'Recepcionistas y gerentes de la cadena.' : 'Recepcionistas de tu sede.'}</p>
         </div>
+        <button className="btn btn-primary" onClick={() => navigate('/admin/personal/nuevo')}>
+          <UserPlus size={16} aria-hidden /> {esGG ? 'Nuevo integrante' : 'Nuevo recepcionista'}
+        </button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <div>
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#E5E7EB] text-left text-xs text-[#6B7280] uppercase tracking-wide">
-              <th className="px-5 py-3 font-medium">Nombre</th>
-              <th className="px-5 py-3 font-medium">Rol</th>
-              <th className="px-5 py-3 font-medium">Sede</th>
-              <th className="px-5 py-3 font-medium">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {staff.map((u) => (
-              <tr key={u.id} className="border-b border-[#E5E7EB] last:border-0">
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={`${u.nombre} ${u.apellido}`} size={36} />
-                    <div>
-                      <p className="font-medium text-[#111111]">{u.nombre} {u.apellido}</p>
-                      <p className="text-xs text-[#6B7280]">{u.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5">
-                  <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${u.tipoActor === TipoActor.GERENTE ? 'bg-[#F3E8FF] text-[#8B2EFF]' : 'bg-[#F3F4F6] text-[#374151]'}`}>{u.tipoActor}</span>
-                </td>
-                <td className="px-5 py-3.5">
-                  {u.tipoActor === TipoActor.GERENTE ? <span className="text-xs text-[#6B7280]">Todas las sedes</span> : (
-                    <Select value={u.sede?.id ?? ''} disabled={cambiando === u.id} onChange={(v) => handleCambiarSede(u.id, v)} placeholder="Sin asignar" opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))} />
-                  )}
-                </td>
-                <td className="px-5 py-3.5">
-                  <button type="button" onClick={() => abrirEdicion(u)} className="inline-flex items-center gap-1.5 rounded-md border border-[#E5E7EB] px-2.5 py-1.5 text-xs font-semibold text-[#374151] hover:border-[#8B2EFF] hover:text-[#8B2EFF]" style={{ minHeight: 44 }}>
-                    <Pencil size={14} /> Editar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {staff.length === 0 && <p className="p-8 text-center text-sm text-[#6B7280]">Todavía no hay personal cargado.</p>}
-      </div>
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-        </div>
+      {msg && (
+        <p role="status" className={`notice ${msg.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginBottom: 14 }}>
+          {msg.text}
+        </p>
+      )}
 
-        <div>
-          <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <Button variant="outline" fullWidth onClick={() => setMostrarSinRecep((v) => !v)}>
-              <Building2 size={16} /> {mostrarSinRecep ? 'Ocultar sedes sin recepcionista' : 'Ver sedes sin recepcionista'}
-            </Button>
-            <Button variant="outline" fullWidth onClick={() => navigate('/admin/instructores')}>
-              <GraduationCap size={16} /> Ir a Instructores
-            </Button>
-          </div>
-          {mostrarSinRecep && (
-            <Card className="mt-3">
-              {sedesSinRecepcionista.length === 0 ? (
-                <p className="text-xs text-[#6B7280]">Todas las sedes tienen recepcionista asignado.</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {sedesSinRecepcionista.map((s) => (
-                    <li key={s.id} className="text-sm text-[#111111]">· {s.nombre}</li>
-                  ))}
-                </ul>
-              )}
-            </Card>
+      <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
+        <MetricCard label="Total de personal" value={sinDatos ? '—' : String(totalStaff)} change={esGG ? 'en la cadena' : 'en tu sede'} icon={Users} />
+        <MetricCard label="Recepcionistas" value={sinDatos ? '—' : String(recepcionistas.length)} change="en esta página" icon={UserPlus} />
+        {esGG && (
+          <>
+            <MetricCard label="Gerentes" value={sinDatos ? '—' : String(gerentes)} change="en esta página" icon={Users} />
+            <MetricCard
+              label="Sedes sin recepcionista"
+              value={sinDatos || sedes.length === 0 ? '—' : String(sedesSinRecep.length)}
+              change={sedesSinRecep.length ? sedesSinRecep.map((s) => s.nombre).join(', ') : 'todas cubiertas'}
+              icon={Building2}
+            />
+          </>
+        )}
+      </div>
+
+      <section className="glass panel" aria-label="Listado de personal">
+        <div className="filters" style={{ boxShadow: 'none', marginBottom: 14 }}>
+          {esGG && (
+            <div className="select-field">
+              <span className="field-label">SEDE</span>
+              <Select
+                value={filtroSede}
+                onChange={setFiltroSede}
+                placeholder="Todas las sedes"
+                ariaLabel="Filtrar por sede"
+                opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+              />
+            </div>
           )}
+          <div className="select-field">
+            <span className="field-label">BUSCAR</span>
+            <label className="search search-wide">
+              <Search size={15} aria-hidden />
+              <input type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Nombre o email..." aria-label="Buscar personal" />
+            </label>
+          </div>
         </div>
-      </div>
+
+        {cargando ? (
+          <LoadingState rows={4} label="Cargando personal" />
+        ) : error ? (
+          <ErrorState title="No pudimos cargar el personal" onRetry={() => setRecarga((n) => n + 1)} />
+        ) : filtrados.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title={staff.length === 0 ? 'Todavía no hay personal cargado' : 'Nadie coincide con el filtro'}
+            description={staff.length === 0 ? 'Dá de alta al primer integrante.' : 'Probá con otra sede o búsqueda.'}
+          />
+        ) : (
+          <div className="ops-table" style={{ ['--cols' as string]: cols }}>
+            <div className="ops-row ops-head">
+              <span>NOMBRE</span>
+              <span>ROL</span>
+              {esGG && <span>SEDE</span>}
+              <span>ESTADO</span>
+              <span />
+            </div>
+            {filtrados.map((u) => (
+              <div className="ops-row" key={u.id}>
+                <div className="person-cell">
+                  <Avatar name={`${u.nombre} ${u.apellido}`} size={34} />
+                  <span>
+                    <strong>{u.nombre} {u.apellido}</strong>
+                    <small>{u.email}</small>
+                  </span>
+                </div>
+                <span data-label="ROL">{ROL_LABEL[u.tipoActor] ?? u.tipoActor}</span>
+                {esGG && (
+                  <span data-label="SEDE">
+                    {u.tipoActor === TipoActor.GERENTE_GENERAL ? (
+                      'Todas las sedes'
+                    ) : (
+                      <Select
+                        value={u.sede?.id ?? ''}
+                        disabled={cambiando === u.id || !u.activo}
+                        onChange={(v) => void handleCambiarSede(u.id, v)}
+                        placeholder="Sin asignar"
+                        ariaLabel={`Sede de ${u.nombre} ${u.apellido}`}
+                        opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+                      />
+                    )}
+                  </span>
+                )}
+                <span>
+                  <Badge variant={u.activo ? 'success' : 'neutral'}>{u.activo ? 'Activo' : 'De baja'}</Badge>
+                </span>
+                <span className="ops-cell-actions">
+                  <button className="btn btn-secondary" onClick={() => abrirEdicion(u)}>
+                    <Pencil size={14} aria-hidden /> Editar
+                  </button>
+                  {puedeDarDeBaja(u) && (
+                    <button
+                      className="btn btn-secondary"
+                      style={{ color: 'var(--coral)' }}
+                      onClick={() => {
+                        setErrorBaja('');
+                        setABaja(u);
+                      }}
+                    >
+                      <UserMinus size={14} aria-hidden /> Baja
+                    </button>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      </section>
 
       {editando && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-[#111111]">Editar personal</h2>
-                <p className="mt-1 text-xs text-[#6B7280]">Actualizá los datos de la cuenta.</p>
+        <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && setEditando(null)}>
+          <form className="glass panel modal-card" role="dialog" aria-modal="true" aria-label="Editar personal" onSubmit={guardarEdicion}>
+            <SectionHeader title="Editar personal" description="Actualizá los datos de la cuenta." />
+            <div className="stack-gap">
+              <label>
+                <span className="field-label">NOMBRE</span>
+                <input className="field-input" required value={formulario.nombre} onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })} />
+              </label>
+              <label>
+                <span className="field-label">APELLIDO</span>
+                <input className="field-input" required value={formulario.apellido} onChange={(e) => setFormulario({ ...formulario, apellido: e.target.value })} />
+              </label>
+              <label>
+                <span className="field-label">EMAIL</span>
+                <input className="field-input" type="email" required value={formulario.email} onChange={(e) => setFormulario({ ...formulario, email: e.target.value })} />
+              </label>
+              <label>
+                <span className="field-label">DNI</span>
+                <input className="field-input" value={formulario.dni} onChange={(e) => setFormulario({ ...formulario, dni: e.target.value })} />
+              </label>
+              <label>
+                <span className="field-label">TELÉFONO</span>
+                <input className="field-input" value={formulario.telefono} onChange={(e) => setFormulario({ ...formulario, telefono: e.target.value })} />
+              </label>
+              {errorEdicion && <p role="alert" className="notice notice-err">{errorEdicion}</p>}
+              <div className="inline-actions">
+                <button type="submit" className="btn btn-primary" disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar cambios'}</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditando(null)}>Cancelar</button>
               </div>
-              <button type="button" onClick={() => setEditando(null)} className="rounded-lg p-2 text-[#6B7280] hover:bg-[#F3F4F6]" aria-label="Cerrar edición"><X size={18} /></button>
             </div>
-            <form onSubmit={guardarEdicion} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <label className="space-y-1.5"><span className="text-sm font-medium text-[#374151]">Nombre</span><input required value={formulario.nombre} onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label>
-                <label className="space-y-1.5"><span className="text-sm font-medium text-[#374151]">Apellido</span><input required value={formulario.apellido} onChange={(e) => setFormulario({ ...formulario, apellido: e.target.value })} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label>
-              </div>
-              <label className="block space-y-1.5"><span className="text-sm font-medium text-[#374151]">Email</span><input type="email" required value={formulario.email} onChange={(e) => setFormulario({ ...formulario, email: e.target.value })} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="space-y-1.5"><span className="text-sm font-medium text-[#374151]">DNI</span><input value={formulario.dni} onChange={(e) => setFormulario({ ...formulario, dni: e.target.value })} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label>
-                <label className="space-y-1.5"><span className="text-sm font-medium text-[#374151]">Teléfono</span><input value={formulario.telefono} onChange={(e) => setFormulario({ ...formulario, telefono: e.target.value })} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} /></label>
-              </div>
-              {errorEdicion && <p className="text-sm text-[#DC2626]">{errorEdicion}</p>}
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setEditando(null)} className="rounded-lg border border-[#E5E7EB] px-4 py-2.5 text-sm font-semibold text-[#374151]" style={{ minHeight: 44 }}>Cancelar</button>
-                <button type="submit" disabled={guardando} className="rounded-lg bg-[#8B2EFF] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60" style={{ minHeight: 44 }}>{guardando ? 'Guardando...' : 'Guardar cambios'}</button>
-              </div>
-            </form>
+          </form>
+        </div>
+      )}
+
+      {aBaja && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && !dandoBaja && setABaja(null)}>
+          <div className="glass panel modal-card" role="alertdialog" aria-modal="true" aria-label="Dar de baja">
+            <SectionHeader title="Dar de baja" />
+            <p style={{ marginBottom: 14, fontSize: 13 }}>
+              ¿Dar de baja a <strong style={{ color: 'var(--text)' }}>{aBaja.nombre} {aBaja.apellido}</strong>? Va a dejar de poder ingresar al sistema.
+            </p>
+            {errorBaja && <p role="alert" className="notice notice-err" style={{ marginBottom: 14 }}>{errorBaja}</p>}
+            <div className="inline-actions">
+              <button className="btn btn-danger" disabled={dandoBaja} onClick={() => void confirmarBaja()}>{dandoBaja ? 'Procesando...' : 'Sí, dar de baja'}</button>
+              <button className="btn btn-secondary" disabled={dandoBaja} onClick={() => setABaja(null)}>Cancelar</button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

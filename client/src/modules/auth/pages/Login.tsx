@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { usuariosApi } from '../../usuarios/usuarios.api';
 import { TipoActor } from '../../../shared/types/enums';
@@ -7,15 +7,13 @@ import { membresiasApi } from '../../membresias/membresias.api';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthInput, AuthLayout } from '../AuthLayout';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { ROLES_CLIENTE, ROLES_STAFF } from '../../../shared/types/roles';
 
 interface LoginProps {
   // 'cliente' = Socio/Externo, 'staff' = Recepcionista/Gerente
   audience: 'cliente' | 'staff';
   redirectTo: string;
 }
-
-const ROLES_STAFF: TipoActor[] = [TipoActor.RECEPCIONISTA, TipoActor.GERENTE];
-const ROLES_CLIENTE: TipoActor[] = [TipoActor.SOCIO, TipoActor.EXTERNO];
 
 export function Login({ audience, redirectTo }: LoginProps) {
   useTitulo('Iniciar sesión');
@@ -67,16 +65,20 @@ export function Login({ audience, redirectTo }: LoginProps) {
         }
       }
 
-      navigate(redirectTo);
+      // El Gerente de Sede tiene su propio panel; el resto va a redirectTo.
+      navigate(esStaff && usuario.tipoActor === TipoActor.GERENTE_SEDE ? '/admin/sede' : redirectTo);
     } catch (err: unknown) {
       // Error distinguible del backend cuando las credenciales están bien
       // pero el email todavía no fue verificado (ver auth.service.ts).
-      const ax = err as { response?: { data?: { message?: string | string[] } } };
+      const ax = err as { response?: { status?: number; data?: { message?: string | string[] } } };
       const raw = ax.response?.data?.message;
       const msg = Array.isArray(raw) ? raw[0] : raw;
       if (msg === 'EMAIL_NO_VERIFICADO') {
         setEmailSinVerificar(true);
         setError('Todavía no verificaste tu email');
+      } else if (ax.response?.status === 429) {
+        // El backend limita el login por IP; no es un error de credenciales.
+        setError('Demasiados intentos. Esperá un minuto y volvé a probar.');
       } else {
         setError('Email o contraseña incorrectos.');
       }
@@ -105,33 +107,14 @@ export function Login({ audience, redirectTo }: LoginProps) {
       subheadline={esStaff ? 'Gestioná socios, turnos y métricas en tiempo real.' : 'Tu gimnasio favorito, en la palma de tu mano.'}
       tag={esStaff ? 'Acceso operarios' : undefined}
     >
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-6"
-        style={{ minHeight: 44 }}
-      >
+      <Link to="/" className="back-link">
         <ArrowLeft size={15} />
         Volver al inicio
       </Link>
-      <div className="flex items-center gap-3 mb-8">
-        <div
-          className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)' }}
-        >
-          <Zap size={20} className="text-white" fill="white" />
-        </div>
-        <div>
-          <p className="text-xl font-black tracking-tight text-gray-900">FitZone</p>
-          <p className="text-xs text-gray-400 font-medium">
-            {esStaff ? 'Panel de gestión' : 'App de socios'}
-          </p>
-        </div>
-      </div>
 
-      <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">
-        {esStaff ? 'Acceso restringido' : 'Bienvenido de nuevo'}
-      </h1>
-      <p className="text-sm text-gray-400 font-medium mb-7">
+      <span className="eyebrow">{esStaff ? 'ACCESO OPERARIOS' : 'BIENVENIDO DE NUEVO'}</span>
+      <h1>{esStaff ? 'Acceso restringido' : 'Bienvenido de nuevo'}</h1>
+      <p>
         {esStaff ? 'Ingresá con tus credenciales de operario.' : 'Ingresá para ver tus clases, reservas y más.'}
       </p>
 
@@ -164,60 +147,46 @@ export function Login({ audience, redirectTo }: LoginProps) {
           }
         />
         {error && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
-            <AlertCircle size={14} className="text-red-400 shrink-0" />
-            <div>
-              <p className="text-xs text-red-500 font-medium">{error}</p>
-              {emailSinVerificar && (
+          <div>
+            <span className="badge badge-danger">
+              <i />
+              {error}
+            </span>
+            {emailSinVerificar && (
+              <div>
                 <button
                   type="button"
                   onClick={handleReenviar}
                   disabled={reenvando}
-                  className="text-xs text-[#8B2EFF] font-bold hover:underline mt-1 disabled:opacity-60"
+                  className="btn btn-ghost"
                 >
                   {reenvando ? 'Enviando...' : 'Reenviar email de verificación'}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
-        {reMensaje && <p className="text-xs text-gray-500 font-medium">{reMensaje}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[0.98] disabled:opacity-70"
-          style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)', minHeight: 44 }}
-        >
+        {reMensaje && <p>{reMensaje}</p>}
+        <button type="submit" disabled={loading} className="btn btn-primary full-button">
           {loading ? (
-            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span className="spinner" aria-hidden="true" />
           ) : (
             <>
-              Ingresar <ArrowRight size={18} className="text-white" />
+              Ingresar <ArrowRight size={18} />
             </>
           )}
         </button>
       </form>
 
       {!esStaff ? (
-        <div className="text-center space-y-3 mt-6">
-          <p className="text-sm text-gray-500">
-            ¿No tenés cuenta?{' '}
-            <Link to="/registro" className="text-[#8B2EFF] font-bold hover:underline">
-              Registrate
-            </Link>
-          </p>
-          <Link
-            to="/admin/login"
-            className="inline-block text-xs text-gray-400 hover:text-gray-600 transition-colors font-medium"
-          >
-            Operarios y administradores →
-          </Link>
+        <div className="auth-switch">
+          <span>¿No tenés cuenta?</span>
+          <Link to="/registro">Registrate</Link>
+          <Link to="/admin/login">Operarios y administradores →</Link>
         </div>
       ) : (
-        <div className="text-center mt-6">
-          <Link to="/login" className="text-sm text-[#8B2EFF] font-bold hover:underline">
-            ← Volver al acceso de socios
-          </Link>
+        <div className="auth-switch">
+          <Link to="/login">← Volver al acceso de socios</Link>
         </div>
       )}
     </AuthLayout>

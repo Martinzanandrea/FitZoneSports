@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, Mail } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { AuthLayout } from '../../auth/AuthLayout';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
@@ -53,27 +52,21 @@ export function VerificarEmail() {
       subheadline="Un clic y tu cuenta queda activada."
     >
       {estado === 'cargando' && (
-        <div className="text-center py-8">
-          <span className="inline-block w-8 h-8 border-2 border-[#8B2EFF]/30 border-t-[#8B2EFF] rounded-full animate-spin" />
-          <p className="text-sm text-gray-400 font-medium mt-4">Verificando tu email...</p>
+        <div className="text-center">
+          <span className="spinner spinner--big" role="status" aria-label="Verificando tu email" />
+          <p>Verificando tu email...</p>
         </div>
       )}
 
       {estado === 'ok' && (
         <div className="text-center">
-          <div
-            className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4"
-            style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)' }}
-          >
-            <CheckCircle2 size={20} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-2">¡Email verificado!</h1>
-          <p className="text-sm text-gray-400 font-medium mb-6">Tu cuenta ya está activa. Iniciá sesión para entrar.</p>
-          <Link
-            to="/login"
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)', minHeight: 44 }}
-          >
+          <span className="badge badge-success">
+            <i />
+            Email verificado
+          </span>
+          <h1>¡Email verificado!</h1>
+          <p>Tu cuenta ya está activa. Iniciá sesión para entrar.</p>
+          <Link to="/login" className="btn btn-primary full-button">
             Ir a iniciar sesión
           </Link>
         </div>
@@ -81,42 +74,37 @@ export function VerificarEmail() {
 
       {estado === 'error' && (
         <div className="text-center">
-          <div className="w-11 h-11 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-4">
-            <AlertCircle size={20} className="text-red-400" />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-2">No se pudo verificar</h1>
-          <p className="text-sm text-gray-400 font-medium mb-6">{mensajeError}</p>
+          <span className="badge badge-danger">
+            <i />
+            No se pudo verificar
+          </span>
+          <h1>No se pudo verificar</h1>
+          <p>{mensajeError}</p>
           {reenviado ? (
-            <p className="text-sm text-gray-500">Si el email existe, te enviamos un nuevo link.</p>
+            <p>Si el email existe, te enviamos un nuevo link.</p>
           ) : (
-            <form onSubmit={handleReenviar} className="space-y-3">
-              <div className="flex items-center gap-2 rounded-2xl border-2 border-gray-100 bg-gray-50 px-4 focus-within:border-[#8B2EFF] focus-within:bg-white transition-all">
-                <Mail size={16} className="text-gray-400 shrink-0" />
+            <form onSubmit={handleReenviar}>
+              <label className="mail-row">
+                <span className="field-label" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+                  Email
+                </span>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full py-3.5 bg-transparent text-sm font-medium outline-none placeholder:text-gray-300"
-                  style={{ minHeight: 44 }}
+                  autoComplete="email"
                 />
-              </div>
-              <button
-                type="submit"
-                disabled={reenvando}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[0.98] disabled:opacity-70"
-                style={{ background: 'linear-gradient(135deg, #8B2EFF, #A855F7)', minHeight: 44 }}
-              >
+              </label>
+              <button type="submit" disabled={reenvando} className="btn btn-primary full-button">
                 {reenvando ? 'Enviando...' : 'Reenviar link'}
               </button>
             </form>
           )}
-          <p className="text-sm text-gray-500 text-center mt-5">
-            <Link to="/login" className="text-[#8B2EFF] font-bold hover:underline">
-              Volver al login
-            </Link>
-          </p>
+          <div className="auth-switch">
+            <Link to="/login">Volver al login</Link>
+          </div>
         </div>
       )}
     </AuthLayout>

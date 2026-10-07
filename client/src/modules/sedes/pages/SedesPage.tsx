@@ -1,193 +1,230 @@
 import { type FormEvent, useEffect, useState } from 'react';
-import { Building2, Check, Pencil, Plus, Power, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Activity, Building2, MapPin, Pencil, Plus, Power, Tag, Users } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { sedesApi } from '../sedes.api';
 import type { CreateSedePayload, Sede } from '../sedes.types';
-import { Pagination } from '../../../shared/components/ui';
+import { Badge, Pagination } from '../../../shared/components/ui';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
-const EMPTY_FORM: CreateSedePayload = {
-  nombre: '',
-  direccion: '',
-  aforoMaximo: 100,
-};
+const EMPTY_FORM: CreateSedePayload = { nombre: '', direccion: '', aforoMaximo: 100 };
+
+function mensajeDe(e: unknown, porDefecto: string): string {
+  const ax = e as { response?: { data?: { message?: string | string[] } } };
+  const raw = ax.response?.data?.message;
+  return Array.isArray(raw) ? raw.join(', ') : raw ?? porDefecto;
+}
 
 export function SedesPage() {
   useTitulo('Sedes');
+  const navigate = useNavigate();
+  // Desde el detalle de una sede se llega con state.nueva para abrir el alta directo.
+  const abrirAlEntrar = Boolean((useLocation().state as { nueva?: boolean } | null)?.nueva);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [form, setForm] = useState<CreateSedePayload>(EMPTY_FORM);
-  const [showForm, setShowForm] = useState(false);
-  const [editingSedeId, setEditingSedeId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formAbierto, setFormAbierto] = useState(abrirAlEntrar);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
+  const [recarga, setRecarga] = useState(0);
+  const [guardando, setGuardando] = useState(false);
+  const [errorForm, setErrorForm] = useState('');
+  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadSedes() {
-      try {
-        const res = await sedesApi.getAll(page);
-        if (!cancelled) {
-          setSedes(res.data);
-          setTotalPages(res.totalPages);
-          setError(null);
-          setLoading(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setError('No se pudieron cargar las sedes.');
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadSedes();
+    let viva = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCargando(true);
+    setError(false);
+    sedesApi
+      .getAll(page)
+      .then((res) => {
+        if (!viva) return;
+        setSedes(res.data);
+        setTotalPages(res.totalPages);
+        setTotal(res.total);
+      })
+      .catch(() => viva && setError(true))
+      .finally(() => viva && setCargando(false));
     return () => {
-      cancelled = true;
+      viva = false;
     };
-  }, [page]);
+  }, [page, recarga]);
+
+  function abrirNueva() {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setErrorForm('');
+    setFormAbierto(true);
+  }
+
+  function abrirEditar(sede: Sede) {
+    setForm({ nombre: sede.nombre, direccion: sede.direccion, aforoMaximo: sede.aforoMaximo });
+    setEditingId(sede.id);
+    setErrorForm('');
+    setFormAbierto(true);
+  }
+
+  function cerrarForm() {
+    setFormAbierto(false);
+    setEditingId(null);
+    setErrorForm('');
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setSaving(true);//Marca la operacion como en curso para deshabilitar el boton de guardar y mostrar un mensaje de guardando
-    setError(null);//Limpia cualquier error previo
+    setGuardando(true);
+    setErrorForm('');
     try {
-      const payload = {
-        ...form,
-        aforoMaximo: Number(form.aforoMaximo),
-      };
-
-      if (editingSedeId) {
-        const sedeActualizada = await sedesApi.update(editingSedeId, payload);
-        setSedes((current) => current.map((sede) => sede.id === editingSedeId ? sedeActualizada : sede));
+      const payload = { ...form, aforoMaximo: Number(form.aforoMaximo) };
+      if (editingId) {
+        await sedesApi.update(editingId, payload);
+        setMsg({ type: 'ok', text: 'Sede actualizada.' });
       } else {
-        const nuevaSede = await sedesApi.create(payload);
-        setSedes((current) => [...current, nuevaSede]);
+        await sedesApi.create(payload);
+        setMsg({ type: 'ok', text: 'Sede creada.' });
       }
-
-      setForm(EMPTY_FORM);
-      setShowForm(false);
-      setEditingSedeId(null);
-    } catch {
-      setError(editingSedeId ? 'No se pudo actualizar la sede. Revisá los datos.' : 'No se pudo crear la sede. Revisá los datos.');
+      cerrarForm();
+      setRecarga((n) => n + 1);
+    } catch (e) {
+      setErrorForm(mensajeDe(e, editingId ? 'No se pudo actualizar la sede. Revisá los datos.' : 'No se pudo crear la sede. Revisá los datos.'));
     } finally {
-      setSaving(false);
+      setGuardando(false);
     }
   }
 
-  function editSede(sede: Sede) {
-    setForm({
-      nombre: sede.nombre,
-      direccion: sede.direccion,
-      aforoMaximo: sede.aforoMaximo,
-    });
-    setEditingSedeId(sede.id);
-    setShowForm(true);
-    setError(null);
-  }
-
-  function closeForm() {
-    setForm(EMPTY_FORM);
-    setEditingSedeId(null);
-    setShowForm(false);
-    setError(null);
-  }
-
-  //activa o desactiva una sede, actualizando su estado en la API y en el estado local
   async function toggleSede(sede: Sede) {
+    setMsg(null);
     try {
       const actualizada = await sedesApi.update(sede.id, { activa: !sede.activa });
-      setSedes((current) => current.map((item) => item.id === sede.id ? actualizada : item));
-    } catch {
-      setError('No se pudo actualizar el estado de la sede.');
+      setSedes((actuales) => actuales.map((s) => (s.id === sede.id ? actualizada : s)));
+    } catch (e) {
+      setMsg({ type: 'err', text: mensajeDe(e, 'No se pudo cambiar el estado de la sede.') });
     }
   }
 
+  const sinDatos = cargando && sedes.length === 0;
+  const activas = sedes.filter((s) => s.activa).length;
+  const aforo = sedes.reduce((acc, s) => acc + s.aforoMaximo, 0);
+
   return (
-    <div className="max-w-5xl">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+    <>
+      <div className="welcome-line">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#111111]">Sedes</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">Administrá las sucursales de FitZone.</p>
+          <h2>Sedes</h2>
+          <p>Administrá las sucursales de FitZone.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => showForm ? closeForm() : setShowForm(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#8B2EFF] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7620df] focus:outline-none focus:ring-2 focus:ring-[#8B2EFF]/30"
-        >
-          {showForm ? <X size={16} /> : <Plus size={16} />}
-          {showForm ? 'Cerrar' : 'Nueva sede'}
-        </button>
+        <div className="inline-actions">
+          <button className="btn btn-secondary" onClick={() => navigate('/admin/precios')}>
+            <Tag size={15} aria-hidden /> Configurar precios
+          </button>
+          <button className="btn btn-primary" onClick={abrirNueva}>
+            <Plus size={16} aria-hidden /> Nueva sede
+          </button>
+        </div>
       </div>
 
-      {error && <p className="mb-4 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{error}</p>}
-
-      {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 grid gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5 md:grid-cols-2">
-          <label className="text-sm font-medium text-[#374151]">
-            Nombre
-            <input required value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" />
-          </label>
-          <label className="text-sm font-medium text-[#374151]">
-            Dirección
-            <input required value={form.direccion} onChange={(event) => setForm({ ...form, direccion: event.target.value })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" />
-          </label>
-          <label className="text-sm font-medium text-[#374151]">
-            Aforo máximo
-            <input required min={1} type="number" value={form.aforoMaximo} onChange={(event) => setForm({ ...form, aforoMaximo: Number(event.target.value) })} className="mt-1.5 w-full rounded-lg border border-[#D1D5DB] px-3 py-2.5 font-normal outline-none focus:border-[#8B2EFF]" />
-          </label>
-          <div className="flex items-end md:justify-end">
-            <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
-              <Check size={16} />
-              {saving ? 'Guardando...' : editingSedeId ? 'Guardar cambios' : 'Guardar sede'}
-            </button>
-          </div>
-        </form>
+      {msg && (
+        <p role="status" className={`notice ${msg.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginBottom: 14 }}>
+          {msg.text}
+        </p>
       )}
 
-      {loading ? (
-        <p className="text-sm text-[#6B7280]">Cargando sedes...</p>
+      <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
+        <MetricCard label="Total de sedes" value={sinDatos ? '—' : String(total)} change="en la red" icon={Building2} />
+        <MetricCard label="Sedes activas" value={sinDatos ? '—' : String(activas)} change="en esta página" icon={Activity} />
+        <MetricCard label="Aforo máximo" value={sinDatos ? '—' : String(aforo)} change="suma de esta página" icon={Users} />
+      </div>
+
+      {cargando ? (
+        <LoadingState rows={3} label="Cargando sedes" />
+      ) : error ? (
+        <ErrorState title="No pudimos cargar las sedes" onRetry={() => setRecarga((n) => n + 1)} />
       ) : sedes.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#D1D5DB] bg-white p-10 text-center">
-          <Building2 className="mx-auto text-[#8B2EFF]" size={28} />
-          <p className="mt-3 text-sm font-semibold text-[#111111]">Todavía no hay sedes</p>
-          <p className="mt-1 text-sm text-[#6B7280]">Creá la primera sucursal para comenzar.</p>
-        </div>
+        <EmptyState
+          icon={Building2}
+          title="Todavía no hay sedes"
+          description="Creá la primera sucursal para comenzar."
+          action={
+            <button className="btn btn-primary" onClick={abrirNueva}>
+              <Plus size={16} aria-hidden /> Nueva sede
+            </button>
+          }
+        />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
           {sedes.map((sede) => (
-            <Link key={sede.id} to={`/admin/sedes/${sede.id}`} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 block hover:border-[#8B2EFF] hover:shadow-md transition-colors">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F3E8FF] text-[#8B2EFF]"><Building2 size={18} /></div>
-                  <div>
-                    <h2 className="text-sm font-semibold text-[#111111]">{sede.nombre}</h2>
-                    <p className="mt-1 text-xs text-[#6B7280]">{sede.direccion}</p>
-                  </div>
+            <article key={sede.id} className="glass panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{ minWidth: 0 }}>
+                  <strong style={{ fontSize: 15, color: 'var(--text)' }}>{sede.nombre}</strong>
+                  <p style={{ marginTop: 4, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <MapPin size={12} aria-hidden /> {sede.direccion}
+                  </p>
                 </div>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${sede.activa ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-[#F3F4F6] text-[#6B7280]'}`}>
-                  {sede.activa ? 'Activa' : 'Inactiva'}
-                </span>
+                <Badge variant={sede.activa ? 'success' : 'neutral'}>{sede.activa ? 'Activa' : 'Inactiva'}</Badge>
               </div>
-              <div className="mt-5 flex items-center justify-between border-t border-[#F3F4F6] pt-3 text-xs text-[#6B7280]">
-                <span>Aforo máximo: <strong className="text-[#111111]">{sede.aforoMaximo}</strong></span>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={(e) => { e.preventDefault(); editSede(sede); }} className="inline-flex items-center gap-1.5 font-semibold text-[#6B7280] hover:text-[#8B2EFF]">
-                    <Pencil size={14} /> Editar
-                  </button>
-                  <button type="button" onClick={(e) => { e.preventDefault(); void toggleSede(sede); }} className="inline-flex items-center gap-1.5 font-semibold text-[#6B7280] hover:text-[#8B2EFF]">
-                    <Power size={14} /> {sede.activa ? 'Desactivar' : 'Activar'}
-                  </button>
-                </div>
+              <p style={{ fontSize: 12 }}>
+                Aforo máximo: <strong style={{ color: 'var(--text)' }}>{sede.aforoMaximo}</strong>
+              </p>
+              <div className="inline-actions" style={{ marginTop: 'auto' }}>
+                <Link to={`/admin/sedes/${sede.id}`} className="btn btn-primary">
+                  Ver detalle
+                </Link>
+                <button className="btn btn-secondary" onClick={() => abrirEditar(sede)}>
+                  <Pencil size={14} aria-hidden /> Editar
+                </button>
+                <button className="btn btn-secondary" onClick={() => void toggleSede(sede)}>
+                  <Power size={14} aria-hidden /> {sede.activa ? 'Desactivar' : 'Activar'}
+                </button>
               </div>
-            </Link>
+            </article>
           ))}
         </div>
       )}
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-    </div>
+
+      {formAbierto && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && cerrarForm()}>
+          <form className="glass panel modal-card" role="dialog" aria-modal="true" aria-label={editingId ? 'Editar sede' : 'Nueva sede'} onSubmit={handleSubmit}>
+            <SectionHeader title={editingId ? 'Editar sede' : 'Nueva sede'} />
+            <div className="stack-gap">
+              <label>
+                <span className="field-label">NOMBRE</span>
+                <input className="field-input" required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+              </label>
+              <label>
+                <span className="field-label">DIRECCIÓN</span>
+                <input className="field-input" required value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} />
+              </label>
+              <label>
+                <span className="field-label">AFORO MÁXIMO</span>
+                <input className="field-input" required min={1} type="number" value={form.aforoMaximo} onChange={(e) => setForm({ ...form, aforoMaximo: Number(e.target.value) })} />
+              </label>
+              {errorForm && (
+                <p role="alert" className="notice notice-err">
+                  {errorForm}
+                </p>
+              )}
+              <div className="inline-actions">
+                <button type="submit" className="btn btn-primary" disabled={guardando}>
+                  {guardando ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Crear sede'}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={cerrarForm}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
   );
 }

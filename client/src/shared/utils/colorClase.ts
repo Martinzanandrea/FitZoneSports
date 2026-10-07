@@ -1,16 +1,14 @@
-// Paleta pastel fija para distinguir tipos de clase en calendarios.
-// La asignación es determinística por NOMBRE del tipo (no por id):
-// todas las clases de "Spinning" comparten color en todas las pantallas.
+// Paleta fija para distinguir tipos de clase en calendarios (fondo translúcido
+// sobre el fondo oscuro + borde de acento). Sin tonos púrpura: lima, aqua, coral y
+// sus vecinos de la paleta. La asignación es determinística por NOMBRE del tipo
+// (no por id): todas las clases de "Spinning" comparten color en todas las pantallas.
 export const PALETA_CLASES = [
-  { fondo: '#EDE9FE', borde: '#8B5CF6' }, // lavanda
-  { fondo: '#E0F2FE', borde: '#0284C7' }, // celeste
-  { fondo: '#D1FAE5', borde: '#059669' }, // verde menta
-  { fondo: '#FFEDD5', borde: '#EA580C' }, // durazno
-  { fondo: '#FCE7F3', borde: '#DB2777' }, // rosa
-  { fondo: '#FEF9C3', borde: '#CA8A04' }, // amarillo pálido
-  { fondo: '#FFE4E6', borde: '#E11D48' }, // salmón
-  { fondo: '#CCFBF1', borde: '#0D9488' }, // turquesa
-  { fondo: '#ECFCCB', borde: '#65A30D' }, // lima pálido
+  { fondo: 'rgba(202, 255, 61, 0.12)', borde: '#caff3d' }, // lima
+  { fondo: 'rgba(84, 230, 216, 0.12)', borde: '#54e6d8' }, // aqua
+  { fondo: 'rgba(255, 130, 108, 0.12)', borde: '#ff826c' }, // coral
+  { fondo: 'rgba(255, 208, 113, 0.12)', borde: '#ffd071' }, // ámbar
+  { fondo: 'rgba(140, 242, 166, 0.12)', borde: '#8cf2a6' }, // verde menta
+  { fondo: 'rgba(243, 246, 235, 0.08)', borde: '#a9bab6' }, // neutro
 ];
 
 export function colorPorTipo(tipoClase: string) {

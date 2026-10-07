@@ -31,9 +31,12 @@ export class TypeOrmBookingClaseRepository
       // dos reservas de ocurrencias distintas de la misma clase no
       // deben bloquearse entre sí). Serializa a quien lea/escriba
       // ESTA ocurrencia mientras la transacción siga abierta.
+      // El lock va solo sobre 'oc' (FOR UPDATE OF oc): PostgreSQL rechaza
+      // FOR UPDATE sobre el lado anulable de un LEFT JOIN (error 0A000),
+      // y de paso la fila de la clase no se bloquea.
       const ocurrencia = await manager
         .createQueryBuilder(ClaseOcurrencia, 'oc')
-        .setLock('pessimistic_write') // FOR UPDATE
+        .setLock('pessimistic_write', undefined, ['oc'])
         .leftJoinAndSelect('oc.clase', 'clase')
         .where('oc.id = :id', { id: datos.ocurrenciaId })
         .getOne();

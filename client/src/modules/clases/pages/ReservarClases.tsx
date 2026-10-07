@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { TipoActor } from '../../../shared/types/enums';
 import { clasesApi, fetchMapaReservasClase } from '../clases.api';
 import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
-import { Badge, Card } from '../../../shared/components/ui';
-import { colorPorTipo } from '../../../shared/utils/colorClase';
+import { Badge } from '../../../shared/components/ui';
+import { Select } from '../../../shared/components/Select';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { LoadingState } from '../../../shared/components/LoadingState';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const DIAS_A_FUTURO = 14;
@@ -16,8 +19,27 @@ function formatearFecha(fechaYMD: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function etiquetaDia(fechaYMD: string): string {
+  const [y, m, d] = fechaYMD.split('-').map(Number);
+  const fecha = new Date(y, m - 1, d);
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const diff = Math.round((fecha.getTime() - hoy.getTime()) / (24 * 60 * 60 * 1000));
+  const nombre = fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'short' });
+  if (diff === 0) return `Hoy, ${nombre}`;
+  if (diff === 1) return `Mañana, ${nombre}`;
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+}
+
 function inicioOcurrencia(o: ClaseOcurrencia): number {
   return new Date(`${o.fecha}T${o.horaInicio}`).getTime();
+}
+
+function fechaLocalYMD(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export function ReservarClases() {
@@ -27,15 +49,31 @@ export function ReservarClases() {
   const [ocurrenciasPorClase, setOcurrenciasPorClase] = useState<Record<string, ClaseOcurrencia[]>>({});
   const [reservasPorOcurrencia, setReservasPorOcurrencia] = useState<Record<string, ReservaClase[]>>({});
   const [misReservas, setMisReservas] = useState<ReservaClase[]>([]);
-  const [tipoFiltro, setTipoFiltro] = useState<string>('TODOS');
+  const [sedeFiltro, setSedeFiltro] = useState<string>('');
+  const [tipoFiltro, setTipoFiltro] = useState<string>('');
+  const [diaFiltro, setDiaFiltro] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accionId, setAccionId] = useState<string | null>(null);
 
-  const tipos = useMemo(() => {
-    const set = new Set(clases.map((c) => c.tipoClase));
-    return ['TODOS', ...Array.from(set)];
+  const sedes = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const c of clases) mapa.set(c.sede.id, c.sede.nombre);
+    return Array.from(mapa.entries()).map(([id, nombre]) => ({ id, nombre }));
   }, [clases]);
+
+  const tipos = useMemo(() => Array.from(new Set(clases.map((c) => c.tipoClase))), [clases]);
+
+  const dias = useMemo(() => {
+    const out: string[] = [];
+    const hoy = new Date();
+    for (let i = 0; i < DIAS_A_FUTURO; i++) {
+      const d = new Date(hoy);
+      d.setDate(d.getDate() + i);
+      out.push(fechaLocalYMD(d));
+    }
+    return out;
+  }, []);
 
   async function cargar() {
     setLoading(true);
@@ -62,7 +100,11 @@ export function ReservarClases() {
   }, []);
 
   const limiteReserva = Date.now() + 48 * 60 * 60 * 1000;
-  const filtradas = clases.filter((c) => tipoFiltro === 'TODOS' || c.tipoClase === tipoFiltro);
+  const filtradas = clases.filter(
+    (c) =>
+      (sedeFiltro === '' || c.sede.id === sedeFiltro) &&
+      (tipoFiltro === '' || c.tipoClase === tipoFiltro),
+  );
 
   async function handleReservar(ocurrenciaId: string) {
     if (!user) return;
@@ -102,138 +144,164 @@ export function ReservarClases() {
     }
   }
 
-  if (loading) return <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-sm text-[#6B7280]">Cargando clases...</div>;
+  function limpiarFiltros() {
+    setSedeFiltro('');
+    setTipoFiltro('');
+    setDiaFiltro('');
+  }
 
   // Los Externos no tienen ni pueden tener membresía: no se les muestra
   // el catálogo (el backend igual lo rechaza si se fuerza la petición).
   if (user?.tipoActor === TipoActor.EXTERNO) {
     return (
-      <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <h2 className="text-2xl font-black tracking-tight text-gray-900">Reservar clase</h2>
-        <div className="mt-6 bg-white rounded-[1.75rem] border border-gray-100 shadow-sm p-8 text-center">
-          <p className="text-sm font-semibold text-gray-900 mb-1">Las clases grupales son exclusivas para socios</p>
-          <p className="text-sm text-gray-400 mb-4">Como Cliente Externo, podés alquilar canchas.</p>
-          <Link to="/reservar-canchas" className="text-sm font-bold text-[#8B2EFF] hover:underline">
-            Alquilar una cancha →
-          </Link>
+      <>
+        <div className="welcome-line">
+          <div>
+            <h2>Reservar clase</h2>
+            <p>Las clases grupales son exclusivas para socios.</p>
+          </div>
         </div>
-      </div>
+        <EmptyState
+          title="Solo para socios"
+          description="Como Cliente Externo, podés alquilar canchas."
+          icon={CalendarDays}
+          action={
+            <Link to="/reservar-canchas" className="btn btn-secondary">
+              Alquilar una cancha
+            </Link>
+          }
+        />
+      </>
     );
   }
 
   return (
-    <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <h2 className="text-2xl font-black tracking-tight text-gray-900">Reservar clase</h2>
-
-      {error && <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-500 font-medium">{error}</p>}
-
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-5">
-        {tipos.map((t) => {
-          const color = t === 'TODOS' ? '#8B2EFF' : colorPorTipo(t).borde;
-          const activo = tipoFiltro === t;
-          return (
-            <button
-              key={t}
-              onClick={() => setTipoFiltro(t)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all ${activo ? 'text-white border-transparent' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
-              style={activo ? { backgroundColor: color } : {}}
-            >
-              {t === 'TODOS' ? 'Todas' : t}
-            </button>
-          );
-        })}
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Reservar clase</h2>
+          <p>Elegí sede, actividad y día. El cupo se actualiza en tiempo real.</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-        {filtradas.length === 0 ? (
-          <Card className="text-center py-8">
-            <p className="text-sm text-[#6B7280]">No hay clases para ese filtro.</p>
-          </Card>
-        ) : (
-          filtradas.map((clase) => {
-            const proximas = (ocurrenciasPorClase[clase.id] ?? [])
-              .filter((o) => o.estado === 'PROGRAMADA' && inicioOcurrencia(o) >= limiteReserva)
-              .sort((a, b) => inicioOcurrencia(a) - inicioOcurrencia(b));
-            const color = colorPorTipo(clase.tipoClase);
-            return (
-              <div key={clase.id} className="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-5 pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full" style={{ backgroundColor: color.borde + '15', color: color.borde }}>{clase.tipoClase}</span>
-                      <h4 className="text-base font-black tracking-tight text-gray-900 mt-1.5">{clase.tipoClase}</h4>
-                      <p className="text-xs text-gray-400 mt-0.5">con {clase.instructor.nombre} · {clase.sede.nombre}</p>
-                    </div>
-                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color.borde + '15' }}>
-                      <CalendarDays size={20} style={{ color: color.borde }} />
-                    </div>
-                  </div>
-                </div>
-                <div className="px-5 pb-5 space-y-2">
-                  {proximas.length === 0 ? (
-                    <p className="text-xs text-[#6B7280]">Sin fechas próximas por ahora.</p>
-                  ) : (
-                    proximas.map((o) => {
-                      const reservas = reservasPorOcurrencia[o.id] ?? [];
-                      const ocupadas = reservas.filter((r) => r.estado === 'RESERVADA').length;
-                      const llena = ocupadas >= clase.capacidad;
-                      const pctOcupacion = clase.capacidad > 0 ? ocupadas / clase.capacidad : 0;
-                      const colorCupo = llena ? '#DC2626' : pctOcupacion >= 0.8 ? '#D97706' : '#16A34A';
-                      const yaReservada = misReservas.some((r) => r.ocurrencia.id === o.id);
-                      return (
-                        <div key={o.id} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border transition-all ${yaReservada ? 'bg-[#F3EAFF] border-[#8B2EFF]/20' : 'bg-gray-50 border-gray-100'}`}>
-                          <div className="flex-1">
-                            <p className="text-xs font-bold text-gray-900">{formatearFecha(o.fecha)} · {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colorCupo }} />
-                              <p className="text-xs text-gray-400">{ocupadas}/{clase.capacidad} lugares</p>
-                            </div>
-                          </div>
-                          {yaReservada ? (
-                            <Badge variant="violet">Ya reservada</Badge>
-                          ) : (
-                            <button
-                              onClick={() => handleReservar(o.id)}
-                              disabled={accionId === o.id}
-                              className="text-xs font-bold px-3.5 py-1.5 rounded-full border transition-all text-white border-transparent disabled:opacity-60"
-                              style={{ backgroundColor: color.borde }}
-                            >
-                              {accionId === o.id ? '...' : llena ? 'Espera' : 'Reservar'}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+      {error && (
+        <p role="alert" style={{ borderRadius: 12, border: '1px solid rgba(255,130,108,.3)', background: 'rgba(255,130,108,.08)', padding: '12px 16px', fontSize: 12, marginBottom: 13 }}>
+          {error}
+        </p>
+      )}
 
-      <div>
-        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Mis reservas</h2>
+      {loading ? (
+        <LoadingState rows={4} label="Cargando clases" />
+      ) : (
+        <section aria-label="Clases disponibles">
+          <div className="filters glass">
+            <div className="select-field">
+              <span id="filtro-sede-clases">SEDE</span>
+              <Select
+                value={sedeFiltro}
+                onChange={setSedeFiltro}
+                ariaLabel="Filtrar por sede"
+                opciones={sedes.map((s) => ({ value: s.id, label: s.nombre }))}
+                placeholder="Todas las sedes"
+              />
+            </div>
+            <div className="select-field">
+              <span id="filtro-tipo-clases">ACTIVIDAD</span>
+              <Select
+                value={tipoFiltro}
+                onChange={setTipoFiltro}
+                ariaLabel="Filtrar por actividad"
+                opciones={tipos.map((t) => ({ value: t, label: t }))}
+                placeholder="Todas las clases"
+              />
+            </div>
+            <div className="select-field">
+              <span id="filtro-dia-clases">DÍA</span>
+              <Select
+                value={diaFiltro}
+                onChange={setDiaFiltro}
+                ariaLabel="Filtrar por día"
+                opciones={dias.map((d) => ({ value: d, label: etiquetaDia(d) }))}
+                placeholder="Próximos 14 días"
+              />
+            </div>
+          </div>
+
+          {filtradas.length === 0 ? (
+            <EmptyState
+              title="No hay clases para estos filtros"
+              description="Probá cambiando de día, actividad o sede para encontrar más opciones."
+              icon={CalendarDays}
+              action={
+                <button className="btn btn-secondary" onClick={limpiarFiltros}>
+                  Limpiar filtros
+                </button>
+              }
+            />
+          ) : (
+            <div className="class-list">
+              {filtradas.map((clase) => {
+                const proximas = (ocurrenciasPorClase[clase.id] ?? [])
+                  .filter((o) => o.estado === 'PROGRAMADA' && inicioOcurrencia(o) >= limiteReserva)
+                  .filter((o) => diaFiltro === '' || o.fecha === diaFiltro)
+                  .sort((a, b) => inicioOcurrencia(a) - inicioOcurrencia(b));
+                if (proximas.length === 0) return null;
+                return (
+                  <article className="glass class-card" key={clase.id}>
+                    <div className="class-time">
+                      <strong>{proximas[0].horaInicio.slice(0, 5)}</strong>
+                      <span>
+                        {formatearFecha(proximas[0].fecha)}
+                        {proximas.length > 1 && ` · +${proximas.length - 1} turnos`}
+                      </span>
+                    </div>
+                    <div className="class-info">
+                      <span className="eyebrow">{clase.sede.nombre}</span>
+                      <h3>{clase.tipoClase}</h3>
+                      <p>Con {clase.instructor.nombre}</p>
+                    </div>
+                    <TurnoBoton
+                      clase={clase}
+                      ocurrencias={proximas}
+                      reservasPorOcurrencia={reservasPorOcurrencia}
+                      misReservas={misReservas}
+                      accionId={accionId}
+                      onReservar={handleReservar}
+                    />
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      <section className="glass panel" style={{ marginTop: 14 }} aria-label="Mis reservas de clases">
+        <SectionHeader title="Mis reservas" description="Cancelá sin cargo hasta 6 h antes." />
         {misReservas.length === 0 ? (
-          <Card className="text-center py-6">
-            <p className="text-sm text-[#6B7280]">Todavía no tenés reservas.</p>
-          </Card>
+          <EmptyState
+            title="Todavía no tenés reservas"
+            description="Elegí un turno de la lista para empezar."
+            icon={CalendarDays}
+          />
         ) : (
-          <div className="space-y-2">
+          <div className="stack-list">
             {misReservas.map((r) => (
-              <div key={r.id} className="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: colorPorTipo(r.ocurrencia.clase.tipoClase).borde + '15' }}>
-                  <Clock size={18} style={{ color: colorPorTipo(r.ocurrencia.clase.tipoClase).borde }} />
+              <div className="list-row" key={r.id}>
+                <div className="row-main">
+                  <strong>{r.ocurrencia.clase.tipoClase}</strong>
+                  <span>
+                    {formatearFecha(r.ocurrencia.fecha)} · {r.ocurrencia.horaInicio.slice(0, 5)}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-900 truncate">{r.ocurrencia.clase.tipoClase}</p>
-                  <p className="text-xs text-gray-400">{formatearFecha(r.ocurrencia.fecha)} · {r.ocurrencia.horaInicio.slice(0, 5)}</p>
-                  <div className="mt-1"><Badge variant={r.estado === 'LISTA_ESPERA' ? 'amber' : 'green'}>{r.estado}</Badge></div>
-                </div>
+                <Badge variant={r.estado === "LISTA_ESPERA" ? "warning" : "success"}>
+                  {r.estado === 'LISTA_ESPERA' ? 'En espera' : 'Confirmada'}
+                </Badge>
                 <button
-                  onClick={() => handleCancelar(r.id)}
+                  className="btn btn-secondary"
+                  onClick={() => void handleCancelar(r.id)}
                   disabled={accionId === r.id}
-                  className="text-xs text-red-500 font-bold bg-red-50 border border-red-100 px-3 py-1.5 rounded-full hover:bg-red-100 transition-colors disabled:opacity-60"
+                  style={{ minHeight: 44 }}
                 >
                   {accionId === r.id ? '...' : 'Cancelar'}
                 </button>
@@ -241,7 +309,54 @@ export function ReservarClases() {
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </>
+  );
+}
+
+function TurnoBoton({
+  clase,
+  ocurrencias,
+  reservasPorOcurrencia,
+  misReservas,
+  accionId,
+  onReservar,
+}: {
+  clase: Clase;
+  ocurrencias: ClaseOcurrencia[];
+  reservasPorOcurrencia: Record<string, ReservaClase[]>;
+  misReservas: ReservaClase[];
+  accionId: string | null;
+  onReservar: (ocurrenciaId: string) => void;
+}) {
+  // Muestra el primer turno con lugar (o el primero si todos están llenos).
+  const conLugar =
+    ocurrencias.find((o) => {
+      const ocupadas = (reservasPorOcurrencia[o.id] ?? []).filter((r) => r.estado === 'RESERVADA').length;
+      return ocupadas < clase.capacidad;
+    }) ?? ocurrencias[0];
+  const reservas = reservasPorOcurrencia[conLugar.id] ?? [];
+  const ocupadas = reservas.filter((r) => r.estado === 'RESERVADA').length;
+  const llena = ocupadas >= clase.capacidad;
+  const yaReservada = misReservas.some((r) => r.ocurrencia.id === conLugar.id);
+  const lugares = llena
+    ? 'Completa'
+    : ocupadas + 1 >= clase.capacidad
+      ? 'Último lugar'
+      : `${clase.capacidad - ocupadas} lugares`;
+
+  if (yaReservada) return <Badge variant="success">Ya reservada</Badge>;
+  return (
+    <>
+      <Badge variant={llena ? "danger" : ocupadas + 1 >= clase.capacidad ? "warning" : "success"}>{lugares}</Badge>
+      <button
+        className="btn btn-primary"
+        disabled={llena || accionId === conLugar.id}
+        onClick={() => onReservar(conLugar.id)}
+        aria-label={llena ? `Sin cupo en ${clase.tipoClase}` : `Reservar ${clase.tipoClase} el ${formatearFecha(conLugar.fecha)} a las ${conLugar.horaInicio.slice(0, 5)}`}
+      >
+        {accionId === conLugar.id ? '...' : llena ? 'Sin cupo' : 'Reservar'}
+      </button>
+    </>
   );
 }

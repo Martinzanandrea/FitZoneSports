@@ -1,16 +1,38 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Clock3, Search, AlertTriangle, Users } from 'lucide-react';
-import { Badge, Button, Card, Chip, Pagination, StatCard } from '../../../shared/components/ui';
+import { AlertTriangle, CalendarDays, ClipboardList, Clock3, Search, Users } from 'lucide-react';
+import { useAuth } from '../../auth/AuthContext';
+import { Badge, Pagination } from '../../../shared/components/ui';
 import { Select } from '../../../shared/components/Select';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { adminApi, type ReservaCanchaAdminItem, type ReservaClaseAdminItem, type ReservasAdminPaginadas } from '../admin.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
+import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+
+const ESTADOS = [
+  { value: 'TODOS', label: 'Todos los estados' },
+  { value: 'CONFIRMADA', label: 'Confirmada' },
+  { value: 'RESERVADA', label: 'Reservada' },
+  { value: 'LISTA_ESPERA', label: 'Lista de espera' },
+  { value: 'CANCELADA', label: 'Cancelada' },
+];
+
+function tonoEstado(estado: string): 'success' | 'warning' | 'danger' {
+  return estado === 'LISTA_ESPERA' ? 'warning' : estado === 'CANCELADA' ? 'danger' : 'success';
+}
 
 export function ReservasPage() {
   useTitulo('Reservas');
   const navigate = useNavigate();
+  const { user } = useAuth();
+  // El GS ve solo su sede (el backend ya acota /admin/reservas): sin selector.
+  const esGG = user?.tipoActor === TipoActor.GERENTE_GENERAL;
   const [reservas, setReservas] = useState<ReservasAdminPaginadas | null>(null);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [sedeFiltro, setSedeFiltro] = useState('TODAS');
@@ -20,39 +42,60 @@ export function ReservasPage() {
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
+  const [recarga, setRecarga] = useState(0);
   // Un solo page/limit compartido: el backend pagina ambos sub-listados juntos.
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    adminApi.getReservas(page).then((res) => { setReservas(res); setTotalPages(Math.max(res.clases.totalPages, res.canchas.totalPages)); }).catch(() => setError(true)).finally(() => setCargando(false));
+    if (!esGG) return;
     sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
-  }, [page]);
+  }, [esGG]);
 
-  // TODO: estos filtros solo aplican a la página actual, no al total — filtrar server-side en el futuro.
-  const clases: ReservaClaseAdminItem[] = useMemo(() => (reservas?.clases.data ?? []).filter((reserva) => {
-    const coincideSede = sedeFiltro === 'TODAS' || reserva.sede === sedes.find((s) => s.id === sedeFiltro)?.nombre;
-    const coincideFecha = !fecha || reserva.fecha === fecha;
-    const coincideEstado = estado === 'TODOS' || reserva.estado === estado;
-    const texto = `${reserva.clase} ${reserva.sede} ${reserva.usuario}`.toLowerCase();
-    return coincideSede && coincideFecha && coincideEstado && texto.includes(busqueda.toLowerCase());
-  }), [reservas, fecha, estado, busqueda, sedeFiltro, sedes]);
+  useEffect(() => {
+    let viva = true;
+    setCargando(true);
+    setError(false);
+    adminApi
+      .getReservas(page)
+      .then((res) => {
+        if (!viva) return;
+        setReservas(res);
+        setTotalPages(Math.max(res.clases.totalPages, res.canchas.totalPages));
+      })
+      .catch(() => viva && setError(true))
+      .finally(() => viva && setCargando(false));
+    return () => {
+      viva = false;
+    };
+  }, [page, recarga]);
 
-  const canchas: ReservaCanchaAdminItem[] = useMemo(() => (reservas?.canchas.data ?? []).filter((reserva) => {
-    const coincideSede = sedeFiltro === 'TODAS' || reserva.sede === sedes.find((s) => s.id === sedeFiltro)?.nombre;
-    const coincideFecha = !fecha || reserva.fecha === fecha;
-    const coincideEstado = estado === 'TODOS' || reserva.estado === estado;
-    const texto = `${reserva.cancha} ${reserva.sede} ${reserva.usuario}`.toLowerCase();
-    return coincideSede && coincideFecha && coincideEstado && texto.includes(busqueda.toLowerCase());
-  }), [reservas, fecha, estado, busqueda, sedeFiltro, sedes]);
+  // Estos filtros aplican a la página actual, no al total.
+  const nombreSede = useMemo(() => sedes.find((s) => s.id === sedeFiltro)?.nombre, [sedes, sedeFiltro]);
+  const pasa = useCallback(
+    (r: { sede: string; fecha: string; estado: string }, texto: string) =>
+      (!esGG || sedeFiltro === 'TODAS' || r.sede === nombreSede) &&
+      (!fecha || r.fecha === fecha) &&
+      (estado === 'TODOS' || r.estado === estado) &&
+      texto.toLowerCase().includes(busqueda.trim().toLowerCase()),
+    [esGG, sedeFiltro, nombreSede, fecha, estado, busqueda],
+  );
+
+  const clases: ReservaClaseAdminItem[] = useMemo(
+    () => (reservas?.clases.data ?? []).filter((r) => pasa(r, `${r.clase} ${r.sede} ${r.usuario}`)),
+    [reservas, pasa],
+  );
+  const canchas: ReservaCanchaAdminItem[] = useMemo(
+    () => (reservas?.canchas.data ?? []).filter((r) => pasa(r, `${r.cancha} ${r.sede} ${r.usuario}`)),
+    [reservas, pasa],
+  );
 
   const mostrarClases = tipo === 'TODOS' || tipo === 'CLASE';
   const mostrarCanchas = tipo === 'TODOS' || tipo === 'CANCHA';
-  const alertaOcupacion = (reservas?.resumen.clasesConOcupacionAlta ?? 0) > 0;
+  const ocupacionAlta = reservas?.resumen.clasesConOcupacionAlta ?? 0;
 
-  // "Canceladas hoy" no es derivable (las filas no traen fecha de cancelación),
-  // así que se omiten; lista de espera sí se puede contar.
-  const statsReservas = useMemo(() => {
+  // Lista de espera sí se puede contar; "canceladas hoy" no (las filas no traen fecha de cancelación).
+  const stats = useMemo(() => {
     const cl = reservas?.clases.data ?? [];
     const ca = reservas?.canchas.data ?? [];
     return {
@@ -63,85 +106,127 @@ export function ReservasPage() {
   }, [reservas]);
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#111111]">Reservas</h1>
-        <p className="mt-1 text-sm text-[#6B7280]">Consultá las reservas de todas las sedes.</p>
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>Reservas</h2>
+          <p>{esGG ? 'Consultá las reservas de todas las sedes.' : 'Consultá las reservas de tu sede.'}</p>
+        </div>
+        <div className="inline-actions">
+          <button className="btn btn-secondary" onClick={() => navigate('/admin/clases')}>
+            <CalendarDays size={15} aria-hidden /> Calendario de clases
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/admin/canchas')}>
+            <ClipboardList size={15} aria-hidden /> Canchas
+          </button>
+        </div>
       </div>
 
-      {alertaOcupacion && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-4 text-sm text-[#92400E]">
-          <AlertTriangle size={18} /> Atención: {reservas?.resumen.clasesConOcupacionAlta} clase(s) con ocupación &gt;80% hoy. Revisá la capacidad.
-        </div>
+      {ocupacionAlta > 0 && (
+        <p role="status" className="notice notice-err" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={16} aria-hidden /> Atención: {ocupacionAlta} clase(s) con ocupación mayor al 80% hoy. Revisá la capacidad.
+        </p>
       )}
 
-      {error && <p className="mb-6 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">No se pudieron cargar las reservas.</p>}
-
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard label="Clases activas" value={cargando ? '...' : String(statsReservas.clasesActivas)} icon={CalendarDays} />
-        <StatCard label="Canchas activas" value={cargando ? '...' : String(statsReservas.canchasActivas)} icon={Clock3} iconColor="#16A34A" />
-        <StatCard label="En lista de espera" value={cargando ? '...' : String(statsReservas.enEspera)} icon={Users} iconColor="#D97706" />
+      <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
+        <MetricCard label="Clases reservadas" value={cargando ? '—' : String(stats.clasesActivas)} change="en esta página" icon={CalendarDays} />
+        <MetricCard label="Canchas confirmadas" value={cargando ? '—' : String(stats.canchasActivas)} change="en esta página" icon={Clock3} />
+        <MetricCard label="En lista de espera" value={cargando ? '—' : String(stats.enEspera)} change="en esta página" icon={Users} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-      <div>
-      <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-        <Chip label="Todas las sedes" active={sedeFiltro === 'TODAS'} onClick={() => setSedeFiltro('TODAS')} />
-        {sedes.map((s) => <Chip key={s.id} label={s.nombre} active={sedeFiltro === s.id} onClick={() => setSedeFiltro(s.id)} />)}
-      </div>
-
-      <div className="mb-6 rounded-xl border border-[#E5E7EB] bg-white p-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <label className="relative md:col-span-2">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-            <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar por sede, usuario o actividad" className="w-full rounded-lg border border-[#E5E7EB] py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} />
-          </label>
-          <label>
-            <span className="sr-only">Fecha</span>
-            <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-sm outline-none focus:border-[#8B2EFF]" style={{ minHeight: 44 }} />
-          </label>
-          <label>
-            <span className="sr-only">Estado</span>
-            <Select
-              value={estado}
-              onChange={(v) => setEstado(v)}
-              opciones={[
-                { value: 'TODOS', label: 'Todos los estados' },
-                { value: 'CONFIRMADA', label: 'Confirmada' },
-                { value: 'RESERVADA', label: 'Reservada' },
-                { value: 'LISTA_ESPERA', label: 'Lista de espera' },
-                { value: 'CANCELADA', label: 'Cancelada' },
-              ]}
-              ariaLabel="Estado"
-            />
-          </label>
+      <section className="glass panel" aria-label="Reservas">
+        <div className="filters" style={{ boxShadow: 'none', marginBottom: 14 }}>
+          {esGG && (
+            <div className="select-field">
+              <span className="field-label">SEDE</span>
+              <Select
+                value={sedeFiltro}
+                onChange={setSedeFiltro}
+                ariaLabel="Sede"
+                opciones={[{ value: 'TODAS', label: 'Todas las sedes' }, ...sedes.map((s) => ({ value: s.id, label: s.nombre }))]}
+              />
+            </div>
+          )}
+          <div className="select-field">
+            <span className="field-label">BUSCAR</span>
+            <label className="search search-wide">
+              <Search size={15} aria-hidden />
+              <input type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Usuario o actividad" aria-label="Buscar por usuario o actividad" />
+            </label>
+          </div>
+          <div className="select-field">
+            <span className="field-label">FECHA</span>
+            <input className="field-input" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} aria-label="Fecha" />
+          </div>
+          <div className="select-field">
+            <span className="field-label">ESTADO</span>
+            <Select value={estado} onChange={setEstado} opciones={ESTADOS} ariaLabel="Estado" />
+          </div>
         </div>
-        <div className="mt-3 flex gap-2">
+
+        <div className="segmented" role="tablist" aria-label="Tipo de reserva">
           {(['TODOS', 'CLASE', 'CANCHA'] as const).map((opcion) => (
-            <button key={opcion} type="button" onClick={() => setTipo(opcion)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${tipo === opcion ? 'bg-[#8B2EFF] text-white' : 'border border-[#E5E7EB] text-[#6B7280]'}`} style={{ minHeight: 44 }}>
+            <button key={opcion} role="tab" aria-selected={tipo === opcion} className={tipo === opcion ? 'active' : ''} onClick={() => setTipo(opcion)}>
               {opcion === 'TODOS' ? 'Todas' : opcion === 'CLASE' ? 'Clases' : 'Canchas'}
             </button>
           ))}
         </div>
-      </div>
 
-      {mostrarClases && <section className="mb-6"><h2 className="mb-3 text-base font-bold text-[#111111]">Clases reservadas</h2>{clases.length === 0 ? <Empty text="No hay clases que coincidan con los filtros." /> : <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-[#E5E7EB] text-left text-xs text-[#6B7280] uppercase tracking-wide"><th className="px-5 py-3 font-medium">Socio</th><th className="px-5 py-3 font-medium">Clase</th><th className="px-5 py-3 font-medium">Fecha/Hora</th><th className="px-5 py-3 font-medium">Estado</th><th className="px-5 py-3 font-medium">Acciones</th></tr></thead><tbody>{clases.map((reserva) => (<tr key={reserva.id} className="border-b border-[#E5E7EB] last:border-0"><td className="px-5 py-3.5 font-medium text-[#111111]">{reserva.usuario}</td><td className="px-5 py-3.5 text-[#374151]">{reserva.clase}<span className="block text-xs text-[#6B7280]">{reserva.sede}</span></td><td className="px-5 py-3.5 text-[#374151] whitespace-nowrap">{reserva.fecha} · {reserva.horario}</td><td className="px-5 py-3.5"><Badge variant={reserva.estado === 'LISTA_ESPERA' ? 'amber' : reserva.estado === 'CANCELADA' ? 'red' : 'green'}>{reserva.estado}</Badge></td><td className="px-5 py-3.5 text-xs text-[#6B7280] whitespace-nowrap">Cupo {reserva.ocupadas}/{reserva.capacidad}</td></tr>))}</tbody></table></div></div>}</section>}
+        {cargando ? (
+          <LoadingState rows={4} label="Cargando reservas" />
+        ) : error ? (
+          <ErrorState title="No pudimos cargar las reservas" onRetry={() => setRecarga((n) => n + 1)} />
+        ) : (
+          <>
+            {mostrarClases && (
+              <div style={{ marginBottom: 22 }}>
+                <SectionHeader title="Clases reservadas" />
+                {clases.length === 0 ? (
+                  <EmptyState icon={CalendarDays} title="No hay clases para mostrar" description="Ninguna reserva de clase coincide con los filtros." />
+                ) : (
+                  <div className="stack-list">
+                    {clases.map((r) => (
+                      <div className="list-row" key={r.id}>
+                        <div className="row-main">
+                          <strong>{r.usuario}</strong>
+                          <span>
+                            {r.clase} · {r.sede} · {r.fecha} · {r.horario} · cupo {r.ocupadas}/{r.capacidad}
+                          </span>
+                        </div>
+                        <Badge variant={tonoEstado(r.estado)}>{r.estado}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-      {mostrarCanchas && <section><h2 className="mb-3 text-base font-bold text-[#111111]">Canchas reservadas</h2>{canchas.length === 0 ? <Empty text="No hay canchas que coincidan con los filtros." /> : <div className="space-y-2">{canchas.map((reserva) => <Card key={reserva.id} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-semibold text-[#111111]">{reserva.cancha}</p><p className="mt-1 text-xs text-[#6B7280]">{reserva.sede} · {reserva.usuario}</p><p className="mt-1 flex items-center gap-1 text-xs text-[#6B7280]"><CalendarDays size={13} />{reserva.fecha} · <Clock3 size={13} />{reserva.horario}</p></div><div className="flex items-center gap-3"><span className="text-sm font-bold text-[#111111]">${reserva.precioFinal}</span><Badge variant={reserva.estado === 'CANCELADA' ? 'red' : 'green'}>{reserva.estado}</Badge></div></Card>)}</div>}</section>}
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-      </div>
-      <div>
-        <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-          <Button fullWidth onClick={() => navigate('/admin/clases')}>Ver calendario de clases</Button>
-          <Button variant="outline" fullWidth onClick={() => navigate('/admin/canchas')}>Ver canchas</Button>
-        </div>
-      </div>
-      </div>
-    </div>
+            {mostrarCanchas && (
+              <div>
+                <SectionHeader title="Canchas reservadas" />
+                {canchas.length === 0 ? (
+                  <EmptyState icon={Clock3} title="No hay canchas para mostrar" description="Ninguna reserva de cancha coincide con los filtros." />
+                ) : (
+                  <div className="stack-list">
+                    {canchas.map((r) => (
+                      <div className="list-row" key={r.id}>
+                        <div className="row-main">
+                          <strong>{r.cancha}</strong>
+                          <span>
+                            {r.usuario} · {r.sede} · {r.fecha} · {r.horario} · ${r.precioFinal}
+                          </span>
+                        </div>
+                        <Badge variant={tonoEstado(r.estado)}>{r.estado}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      </section>
+    </>
   );
-}
-
-function Empty({ text }: { text: string }) {
-  return <Card className="py-6 text-center text-sm text-[#6B7280]">{text}</Card>;
 }

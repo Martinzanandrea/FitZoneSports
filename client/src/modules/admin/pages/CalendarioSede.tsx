@@ -1,9 +1,10 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   CalendarDays,
   CalendarRange,
   ClipboardList,
+  Clock3,
   Plus,
   Settings,
   Users,
@@ -13,7 +14,14 @@ import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede, FranjaHoraria } from '../../sedes/sedes.types';
 import { clasesApi } from '../../clases/clases.api';
 import type { Clase, ClaseOcurrencia, ReservaClase } from '../../clases/clases.types';
-import { Badge, Button, Card, Chip, PageHeader, StatCard } from '../../../shared/components/ui';
+import { useAuth } from '../../auth/AuthContext';
+import { Badge, Chip } from '../../../shared/components/ui';
+import { MetricCard } from '../../../shared/components/MetricCard';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { ErrorState } from '../../../shared/components/ErrorState';
+import { LoadingState } from '../../../shared/components/LoadingState';
+import { TipoActor } from '../../../shared/types/enums';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
 import { NuevaClasePanel, nombreDia } from './NuevaClasePanel';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
@@ -46,6 +54,8 @@ export function CalendarioSede() {
   useTitulo('Calendario de sede');
   const { sedeId } = useParams<{ sedeId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const esGG = user?.tipoActor === TipoActor.GERENTE_GENERAL;
   const [sede, setSede] = useState<Sede | null>(null);
   const [franjas, setFranjas] = useState<FranjaHoraria[]>([]);
   const [clases, setClases] = useState<Clase[]>([]);
@@ -251,196 +261,167 @@ export function CalendarioSede() {
     return out.sort((a, b) => (a.horaInicio < b.horaInicio ? -1 : 1));
   }, [clasesFiltradas, diaMovil]);
 
-  if (loading) return <p className="text-sm text-[#6B7280]">Cargando calendario...</p>;
+  // El Gerente de Sede solo ve el calendario de SU sede (el backend responde 403 si no).
+  if (!esGG && user?.sedeId && sedeId !== user.sedeId) {
+    return <Navigate to={`/admin/clases/${user.sedeId}`} replace />;
+  }
+
+  if (loading) return <LoadingState rows={4} label="Cargando calendario" />;
+  if (error && !sede) return <ErrorState title="No pudimos cargar el calendario" description={error} onRetry={() => void cargar()} />;
 
   return (
-    <div className="max-w-6xl">
-      <PageHeader
-        title={sede?.nombre ?? 'Calendario'}
-        onBack={() => navigate('/admin/clases')}
-        action={
-          <div className="flex gap-2">
+    <>
+      <div className="welcome-line">
+        <div>
+          <h2>{sede?.nombre ?? 'Calendario'}</h2>
+          {sede && (
+            <p>
+              {sede.direccion} · {clases.length} clase(s) activa(s)
+            </p>
+          )}
+        </div>
+        <div className="inline-actions">
+          {esGG && (
+            <button className="btn btn-secondary" onClick={() => navigate('/admin/clases')}>
+              Todas las sedes
+            </button>
+          )}
+          <button className="btn btn-secondary" onClick={() => setVista(vista === 'resumen' ? 'calendario' : 'resumen')}>
             {vista === 'resumen' ? (
-              <Button size="sm" variant="outline" onClick={() => setVista('calendario')}>
-                <CalendarDays size={16} /> Ver Calendario
-              </Button>
+              <>
+                <CalendarDays size={15} aria-hidden /> Ver calendario
+              </>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => setVista('resumen')}>
-                Ver resumen
-              </Button>
+              'Ver resumen'
             )}
-            <Button size="sm" onClick={() => abrirPanel()}>
-              <Plus size={16} /> Nueva clase
-            </Button>
-          </div>
-        }
-      />
-      {sede && (
-        <p className="-mt-4 mb-4 text-sm text-[#6B7280]">
-          {sede.direccion} · {clases.length} clase(s) activa(s)
-        </p>
-      )}
+          </button>
+          <button className="btn btn-primary" onClick={() => abrirPanel()}>
+            <Plus size={16} aria-hidden /> Nueva clase
+          </button>
+        </div>
+      </div>
 
       {error && (
-        <p className="mb-4 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">
+        <p role="alert" className="notice notice-err" style={{ marginBottom: 14 }}>
           {error}
         </p>
       )}
 
       {vista === 'resumen' ? (
         <>
-          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Clases hoy" value={String(stats.clasesHoy)} icon={CalendarDays} iconColor="#8B2EFF" />
-            <StatCard label="Reservas activas" value={String(stats.reservasActivas)} icon={Users} iconColor="#16A34A" />
-            <StatCard label="Esta semana" value={String(stats.estaSemana)} icon={CalendarRange} iconColor="#D97706" />
-            <StatCard label="Canceladas" value={String(stats.canceladas)} icon={XCircle} iconColor="#DC2626" />
+          <div className="metrics" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
+            <MetricCard label="Clases hoy" value={String(stats.clasesHoy)} change="programadas" icon={CalendarDays} />
+            <MetricCard label="Reservas activas" value={String(stats.reservasActivas)} change="próximos 14 días" icon={Users} />
+            <MetricCard label="Esta semana" value={String(stats.estaSemana)} change="clases programadas" icon={CalendarRange} />
+            <MetricCard label="Canceladas" value={String(stats.canceladas)} change="próximos 14 días" icon={XCircle} />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-bold text-[#111111]">Próximas Clases</h2>
-                <button
-                  type="button"
-                  onClick={() => setVista('calendario')}
-                  className="text-sm font-semibold text-[#8B2EFF] hover:underline"
-                  style={{ minHeight: 44 }}
-                >
-                  Ver todas
-                </button>
-              </div>
+          <div className="content-grid">
+            <section className="glass panel" aria-label="Próximas clases">
+              <SectionHeader
+                title="Próximas clases"
+                action={
+                  <button className="btn btn-ghost" onClick={() => setVista('calendario')}>
+                    Ver todas
+                  </button>
+                }
+              />
               {proximas.length === 0 ? (
-                <Card className="text-center py-8">
-                  <p className="text-sm text-[#6B7280]">Sin próximas clases programadas.</p>
-                </Card>
+                <EmptyState icon={CalendarDays} title="Sin próximas clases" description="No hay clases programadas en los próximos días." />
               ) : (
-                <div className="space-y-2">
+                <div className="stack-list">
                   {proximas.map((o) => {
                     const clase = clasePorId.get(o.claseId);
                     if (!clase) return null;
                     const color = colorPorTipo(clase.tipoClase);
                     const ocupadas = ocupadasDe(o.id);
                     return (
-                      <Card
-                        key={o.id}
-                        className="border-l-4"
-                        style={{ backgroundColor: color.fondo, borderLeftColor: color.borde }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-[#111111]">{clase.tipoClase}</p>
-                            <p className="mt-0.5 text-xs text-[#6B7280]">
-                              {clase.instructor.nombre} · {formatearFecha(o.fecha)} · {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)}
-                            </p>
-                          </div>
-                          <Badge variant={ocupadas >= clase.capacidad ? 'amber' : 'green'}>
-                            {ocupadas}/{clase.capacidad}
-                          </Badge>
+                      <div className="list-row" key={o.id} style={{ borderLeft: `3px solid ${color.borde}`, paddingLeft: 12, background: color.fondo }}>
+                        <div className="row-main">
+                          <strong>{clase.tipoClase}</strong>
+                          <span>
+                            {clase.instructor.nombre} · {formatearFecha(o.fecha)} · {o.horaInicio.slice(0, 5)} - {o.horaFin.slice(0, 5)}
+                          </span>
                         </div>
-                      </Card>
+                        <Badge variant={ocupadas >= clase.capacidad ? 'warning' : 'success'}>
+                          {ocupadas}/{clase.capacidad}
+                        </Badge>
+                      </div>
                     );
                   })}
                 </div>
               )}
-            </div>
+            </section>
 
-            <div className="space-y-6">
-              <div>
-                <h2 className="mb-3 text-base font-bold text-[#111111]">Acciones Rápidas</h2>
-                <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-                  <Button variant="outline" fullWidth onClick={() => setVista('calendario')}>
-                    <CalendarDays size={16} /> Ver Calendario
-                  </Button>
-                  <Button
-                    variant="outline"
-                    fullWidth
-                    onClick={() => navigate(`/admin/reservas-clases?sedeId=${sedeId}`)}
-                  >
-                    <ClipboardList size={16} /> Gestionar Reservas
-                  </Button>
-                  <Button variant="outline" fullWidth onClick={() => navigate('/admin/clases/configuracion')}>
-                    <Settings size={16} /> Configuración
-                  </Button>
-                </div>
-              </div>
+            <div className="stack-gap">
+              <section className="glass panel quick-panel" aria-label="Accesos rápidos">
+                <SectionHeader title="Accesos rápidos" />
+                <button className="btn btn-secondary" onClick={() => setVista('calendario')}>
+                  <CalendarDays size={15} aria-hidden /> Ver calendario
+                </button>
+                <button className="btn btn-secondary" onClick={() => navigate(esGG ? `/admin/reservas-clases?sedeId=${sedeId}` : '/admin/reservas-clases')}>
+                  <ClipboardList size={15} aria-hidden /> Gestionar reservas
+                </button>
+                <button className="btn btn-secondary" onClick={() => navigate('/admin/clases/configuracion')}>
+                  <Settings size={15} aria-hidden /> Configuración
+                </button>
+              </section>
 
-              <div>
-                <h2 className="mb-3 text-base font-bold text-[#111111]">Actividades Populares</h2>
+              <section className="glass panel" aria-label="Actividades populares">
+                <SectionHeader title="Actividades populares" />
                 {populares.length === 0 ? (
-                  <Card className="text-center py-6">
-                    <p className="text-xs text-[#6B7280]">Todavía sin reservas.</p>
-                  </Card>
+                  <EmptyState icon={Users} title="Todavía sin reservas" />
                 ) : (
-                  <Card className="space-y-2">
+                  <div className="stack-list">
                     {populares.map(([tipo, cantidad]) => (
-                      <div key={tipo} className="flex items-center justify-between gap-2">
-                        <span className="text-sm text-[#111111]">{tipo}</span>
-                        <Badge variant="violet">{cantidad} reserva(s)</Badge>
+                      <div className="list-row" key={tipo}>
+                        <div className="row-main">
+                          <strong>{tipo}</strong>
+                        </div>
+                        <Badge variant="info">{cantidad} reserva(s)</Badge>
                       </div>
                     ))}
-                  </Card>
+                  </div>
                 )}
-              </div>
+              </section>
             </div>
           </div>
         </>
       ) : (
         <>
           {clases.length > 0 && (
-            <Card className="mb-4 space-y-3">
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Por tipo de clase
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {tiposUnicos.map((tipo) => (
-                    <Chip
-                      key={tipo}
-                      label={tipo}
-                      active={tiposSel.includes(tipo)}
-                      onClick={() => setTiposSel((prev) => toggleEn(prev, tipo))}
-                    />
-                  ))}
-                </div>
+            <section className="glass panel" aria-label="Filtros" style={{ marginBottom: 14 }}>
+              <span className="field-label">POR TIPO DE CLASE</span>
+              <div className="inline-actions" style={{ marginBottom: 14 }}>
+                {tiposUnicos.map((tipo) => (
+                  <Chip key={tipo} label={tipo} active={tiposSel.includes(tipo)} onClick={() => setTiposSel((prev) => toggleEn(prev, tipo))} />
+                ))}
               </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Por instructor
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {instructoresUnicos.map(([id, nombre]) => (
-                    <Chip
-                      key={id}
-                      label={nombre}
-                      active={instructoresSel.includes(id)}
-                      onClick={() => setInstructoresSel((prev) => toggleEn(prev, id))}
-                    />
-                  ))}
-                </div>
+              <span className="field-label">POR INSTRUCTOR</span>
+              <div className="inline-actions">
+                {instructoresUnicos.map(([id, nombre]) => (
+                  <Chip key={id} label={nombre} active={instructoresSel.includes(id)} onClick={() => setInstructoresSel((prev) => toggleEn(prev, id))} />
+                ))}
               </div>
-            </Card>
+            </section>
           )}
 
           {franjas.length === 0 ? (
-            <Card className="text-center py-8">
-              <p className="text-sm text-[#6B7280]">
-                Esta sede no tiene franjas horarias cargadas. Cargá al menos una franja para poder
-                programar clases.
-              </p>
-            </Card>
+            <EmptyState
+              icon={Clock3}
+              title="Esta sede no tiene franjas horarias"
+              description="Cargá al menos una franja de apertura para poder programar clases."
+            />
           ) : (
             <>
               {/* Desktop: grilla semanal */}
-              <div className="hidden overflow-x-auto rounded-2xl border border-[#E5E7EB] bg-white md:block">
-                <div
-                  className="grid min-w-[760px]"
-                  style={{ gridTemplateColumns: `56px repeat(7, minmax(0, 1fr))` }}
-                >
-                  <div className="border-b border-[#E5E7EB] bg-[#FAFAFA] p-2" />
+              <div className="glass cal-desktop" style={{ overflowX: 'auto', borderRadius: 18 }}>
+                <div style={{ display: 'grid', minWidth: 760, gridTemplateColumns: '56px repeat(7, minmax(0, 1fr))' }}>
+                  <div style={{ borderBottom: '1px solid var(--line)', padding: 8 }} />
                   {DIAS_COLUMNAS.map((d) => (
                     <div
                       key={d}
-                      className="border-b border-l border-[#E5E7EB] bg-[#FAFAFA] p-2 text-center text-xs font-bold text-[#111111]"
+                      style={{ borderBottom: '1px solid var(--line)', borderLeft: '1px solid var(--line)', padding: 8, textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text)' }}
                     >
                       {nombreDia(d)}
                     </div>
@@ -448,52 +429,47 @@ export function CalendarioSede() {
 
                   {filas.map((slot) => (
                     <Fragment key={`fila-${slot}`}>
-                      <div
-                        key={`h-${slot}`}
-                        className="border-b border-[#E5E7EB] p-2 text-right text-[11px] font-medium text-[#6B7280]"
-                      >
-                        {aHora(slot)}
-                      </div>
+                      <div style={{ borderBottom: '1px solid var(--line)', padding: 8, textAlign: 'right', fontSize: 10 }}>{aHora(slot)}</div>
                       {DIAS_COLUMNAS.map((dia) => {
                         const fin = slot + 60;
                         const abierto = dentroDeFranja(slot, fin);
                         const bloques = abierto ? bloquesEn(dia, slot, fin) : [];
                         const libre = abierto && bloques.length === 0;
-                        return (
-                          <div
-                            key={`${dia}-${slot}`}
-                            onClick={() => {
-                              if (libre) abrirPanel(dia, aHora(slot));
-                            }}
-                            className={`min-h-[52px] border-b border-l border-[#E5E7EB] p-1 ${
-                              !abierto
-                                ? 'bg-[#F3F4F6]'
-                                : libre
-                                  ? 'cursor-pointer hover:bg-[#F3E8FF]/50'
-                                  : 'bg-white'
-                            }`}
-                            title={libre ? 'Clic para crear una clase acá' : undefined}
-                          >
+                        const celda = (
+                          <>
                             {bloques.map(({ clase, horaInicio, horaFin }, i) => {
                               const color = colorPorTipo(clase.tipoClase);
                               return (
-                              <div
-                                key={`${clase.id}-${i}`}
-                                className="mb-1 rounded-lg border-l-4 p-1.5"
-                                style={{ backgroundColor: color.fondo, borderLeftColor: color.borde }}
-                              >
-                                <p className="text-[11px] font-bold leading-tight text-[#111111]">
-                                  {clase.tipoClase}
-                                </p>
-                                <p className="text-[10px] leading-tight text-[#6B7280]">
-                                  {horaInicio}–{horaFin}
-                                </p>
-                                <p className="truncate text-[10px] leading-tight text-[#6B7280]">
-                                  {clase.instructor.nombre} · cupo {clase.capacidad}
-                                </p>
-                              </div>
+                                <div
+                                  key={`${clase.id}-${i}`}
+                                  style={{ marginBottom: 4, borderRadius: 8, borderLeft: `3px solid ${color.borde}`, background: color.fondo, padding: 6 }}
+                                >
+                                  <p style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, color: 'var(--text)' }}>{clase.tipoClase}</p>
+                                  <p style={{ fontSize: 10, lineHeight: 1.2 }}>
+                                    {horaInicio}–{horaFin}
+                                  </p>
+                                  <p style={{ fontSize: 10, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {clase.instructor.nombre} · cupo {clase.capacidad}
+                                  </p>
+                                </div>
                               );
                             })}
+                          </>
+                        );
+                        const base = { minHeight: 52, borderBottom: '1px solid var(--line)', borderLeft: '1px solid var(--line)', padding: 4 } as const;
+                        // Una celda libre es un botón real (teclado y lector de pantalla).
+                        return libre ? (
+                          <button
+                            key={`${dia}-${slot}`}
+                            type="button"
+                            onClick={() => abrirPanel(dia, aHora(slot))}
+                            aria-label={`Crear clase el ${nombreDia(dia)} a las ${aHora(slot)}`}
+                            title="Crear una clase acá"
+                            style={{ ...base, background: 'transparent', cursor: 'pointer' }}
+                          />
+                        ) : (
+                          <div key={`${dia}-${slot}`} style={{ ...base, background: abierto ? 'transparent' : 'rgba(255,255,255,0.04)' }}>
+                            {celda}
                           </div>
                         );
                       })}
@@ -503,59 +479,40 @@ export function CalendarioSede() {
               </div>
 
               {/* Mobile: selector de día + lista vertical */}
-              <div className="md:hidden">
-                <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+              <div className="cal-mobile">
+                <div className="inline-actions" style={{ marginBottom: 14, flexWrap: 'nowrap', overflowX: 'auto' }}>
                   {DIAS_COLUMNAS.map((d) => (
-                    <Chip
-                      key={d}
-                      label={nombreDia(d)}
-                      active={diaMovil === d}
-                      onClick={() => setDiaMovil(d)}
-                    />
+                    <Chip key={d} label={nombreDia(d)} active={diaMovil === d} onClick={() => setDiaMovil(d)} />
                   ))}
                 </div>
                 {bloquesDiaMovil.length === 0 ? (
-                  <Card className="text-center py-8">
-                    <p className="text-sm text-[#6B7280]">Sin clases el {nombreDia(diaMovil)}.</p>
-                    <div className="mt-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => abrirPanel(diaMovil, filas.length ? aHora(filas[0]) : '08:00')}
-                      >
-                        <Plus size={16} /> Crear acá
-                      </Button>
-                    </div>
-                  </Card>
+                  <EmptyState
+                    icon={CalendarDays}
+                    title={`Sin clases el ${nombreDia(diaMovil)}`}
+                    action={
+                      <button className="btn btn-secondary" onClick={() => abrirPanel(diaMovil, filas.length ? aHora(filas[0]) : '08:00')}>
+                        <Plus size={15} aria-hidden /> Crear acá
+                      </button>
+                    }
+                  />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="stack-list">
                     {bloquesDiaMovil.map(({ clase, horaInicio, horaFin }, i) => {
                       const color = colorPorTipo(clase.tipoClase);
                       return (
-                      <Card
-                        key={`${clase.id}-${i}`}
-                        className="border-l-4"
-                        style={{ backgroundColor: color.fondo, borderLeftColor: color.borde }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-bold text-[#111111]">{clase.tipoClase}</p>
-                            <p className="mt-0.5 text-xs text-[#6B7280]">
-                              {horaInicio}–{horaFin} · {clase.instructor.nombre}
-                            </p>
-                            <p className="text-xs text-[#6B7280]">Cupo {clase.capacidad}</p>
+                        <div className="list-row" key={`${clase.id}-${i}`} style={{ borderLeft: `3px solid ${color.borde}`, paddingLeft: 12, background: color.fondo }}>
+                          <div className="row-main">
+                            <strong>{clase.tipoClase}</strong>
+                            <span>
+                              {horaInicio}–{horaFin} · {clase.instructor.nombre} · cupo {clase.capacidad}
+                            </span>
                           </div>
-                          <Badge variant="violet">Activa</Badge>
+                          <Badge variant="success">Activa</Badge>
                         </div>
-                      </Card>
                       );
                     })}
                   </div>
                 )}
-                <div className="mt-4">
-                  <Button fullWidth onClick={() => abrirPanel()}>
-                    <Plus size={16} /> Nueva clase
-                  </Button>
-                </div>
               </div>
             </>
           )}
@@ -573,6 +530,6 @@ export function CalendarioSede() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
