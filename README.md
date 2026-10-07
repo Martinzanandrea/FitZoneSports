@@ -45,4 +45,4 @@ Monorepo con dos aplicaciones independientes: `server/` (API NestJS) y `client/`
 
 ## Licencia
 
-Proyecto desarrollado con fines educativos en el marco de una cátedra universitaria.
+
