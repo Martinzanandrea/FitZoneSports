@@ -1,5 +1,6 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
+import { leerAvisoSesionVencida, limpiarAvisoSesionVencida } from '../../../api/axios';
 import { useAuth } from '../AuthContext';
 import { usuariosApi } from '../../usuarios/usuarios.api';
 import { TipoActor } from '../../../shared/types/enums';
@@ -22,7 +23,10 @@ export function Login({ audience, redirectTo }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(leerAvisoSesionVencida);
+
+  // El aviso de sesión vencida se muestra una sola vez.
+  useEffect(() => limpiarAvisoSesionVencida, []);
   const [emailSinVerificar, setEmailSinVerificar] = useState(false);
   const [reenvando, setReenvando] = useState(false);
   const [reMensaje, setReMensaje] = useState('');

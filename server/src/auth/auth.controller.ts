@@ -6,6 +6,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import { parsearExpiracionMs } from './helpers/jwt-expiracion.helper';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Autenticación')
@@ -48,7 +49,8 @@ export class AuthController {
 
     res.cookie('token', token, {
       ...this.opcionesCookie(),
-      maxAge: 8 * 60 * 60 * 1000,
+      // La cookie vence junto con el JWT.
+      maxAge: parsearExpiracionMs(this.config.get('JWT_EXPIRATION')),
     });
 
     return {
