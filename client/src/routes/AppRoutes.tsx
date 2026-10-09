@@ -11,6 +11,7 @@ import { CrearStaff } from '../modules/usuarios/pages/CrearStaff';
 import { TipoActor } from '../shared/types/enums';
 import { SedesPage } from '../modules/sedes/pages/SedesPage';
 import { PersonalPage } from '../modules/usuarios/pages/PersonalPage';
+import { ClientesPage } from '../modules/usuarios/pages/ClientesPage';
 import { RegistroPage } from '../modules/usuarios/pages/RegistroPage';
 import { VerificarEmail } from '../modules/usuarios/pages/VerificarEmail';
 import { Configuracion } from '../modules/usuarios/pages/Configuracion';
@@ -184,6 +185,14 @@ export function AppRoutes() {
           }
         />
         <Route
+          path="personal/clientes"
+          element={
+            <ProtectedRoute allowedRoles={[TipoActor.GERENTE_GENERAL]} loginPath="/admin/login">
+              <ClientesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="personal/nuevo"
           element={
             <ProtectedRoute allowedRoles={ROLES_GERENTES} loginPath="/admin/login">
@@ -211,7 +220,7 @@ export function AppRoutes() {
         <Route path="accesos" element={<ProtectedRoute allowedRoles={ROLES_GERENTES} loginPath="/admin/login"><MetricasAccesos /></ProtectedRoute>} />
         <Route path="reservas-clases" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><GestionReservasClases /></ProtectedRoute>} />
         <Route path="reservas-canchas" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><GestionReservasCanchas /></ProtectedRoute>} />
-        <Route path="cobrar" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><CobrarEfectivo /></ProtectedRoute>} />
+        <Route path="cobrar" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><CobrarEfectivo /></ProtectedRoute>} />
         <Route path="reportes" element={<ProtectedRoute allowedRoles={ROLES_GERENTES} loginPath="/admin/login"><Reportes /></ProtectedRoute>} />
         <Route path="membresias" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><ListadoMembresias /></ProtectedRoute>} />
         <Route path="sedes/:id" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE_GENERAL]} loginPath="/admin/login"><SedeDetalle /></ProtectedRoute>} />
@@ -231,4 +240,4 @@ export function AppRoutes() {
       <Route path="*" element={<NoEncontrado />} />
     </Routes>
   );
-}
+}

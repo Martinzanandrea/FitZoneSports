@@ -18,9 +18,15 @@ import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { TipoActor } from 'src/entities';
+import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import type { UsuarioAutenticado } from 'src/auth/types/usuario-autenticado.type';
-import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Acceso')
@@ -40,7 +46,7 @@ export class AccesoController {
     return this.accesoService.generarQr(usuarioId);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
+  @Roles(TipoActor.RECEPCIONISTA) // escanear y registrar: solo el mostrador
   @Post('validar')
   @ApiOperation({ summary: 'Validar ingreso mediante QR' })
   validarIngreso(
@@ -50,9 +56,11 @@ export class AccesoController {
     return this.accesoService.validarIngreso(dto.qrToken, dto.sedeId, user);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
+  @Roles(TipoActor.RECEPCIONISTA) // escanear y registrar: solo el mostrador
   @Post('validar-codigo')
-  @ApiOperation({ summary: 'Validar ingreso mediante código corto de 6 dígitos' })
+  @ApiOperation({
+    summary: 'Validar ingreso mediante código corto de 6 dígitos',
+  })
   validarCodigo(
     @Body() dto: ValidarCodigoDto,
     @CurrentUser() user: UsuarioAutenticado,
@@ -60,7 +68,7 @@ export class AccesoController {
     return this.accesoService.validarCodigo(dto.codigo, dto.sedeId, user);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
+  @Roles(TipoActor.RECEPCIONISTA) // escanear y registrar: solo el mostrador
   @Post('egreso')
   @ApiOperation({ summary: 'Registrar egreso de un usuario' })
   registrarEgreso(
@@ -72,19 +80,34 @@ export class AccesoController {
 
   @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)
   @Get('resumen')
-  @ApiOperation({ summary: 'Obtener resumen de accesos por sede (solo lectura)' })
+  @ApiOperation({
+    summary: 'Obtener resumen de accesos por sede (solo lectura)',
+  })
   obtenerResumenAccesos(@CurrentUser() user: UsuarioAutenticado) {
     return this.accesoService.obtenerResumenAccesos(user);
   }
 
-  @Get('aforo/:sedeId') // sin ownership: es info de la sede, no de un usuario
+  @Roles(
+    TipoActor.RECEPCIONISTA,
+    TipoActor.GERENTE_SEDE,
+    TipoActor.GERENTE_GENERAL,
+  )
+  @Get('aforo/:sedeId')
   @ApiOperation({ summary: 'Consultar aforo actual de una sede' })
   @ApiParam({ name: 'sedeId', description: 'UUID de la sede' })
-  obtenerAforo(@Param('sedeId', ParseUUIDPipe) sedeId: string) {
+  obtenerAforo(
+    @Param('sedeId', ParseUUIDPipe) sedeId: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    assertSedeScope(user, sedeId); // RECEP y GS: solo su sede; GG: todas
     return this.accesoService.obtenerAforo(sedeId);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
+  @Roles(
+    TipoActor.RECEPCIONISTA,
+    TipoActor.GERENTE_SEDE,
+    TipoActor.GERENTE_GENERAL,
+  )
   @Get('dentro/:sedeId')
   @ApiOperation({ summary: 'Listar usuarios actualmente dentro de una sede' })
   @ApiParam({ name: 'sedeId', description: 'UUID de la sede' })

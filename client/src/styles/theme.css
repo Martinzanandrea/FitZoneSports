@@ -3,6 +3,16 @@
 
 /* Paso 1 — base visual "liquid glass". Tokens del diseño + :root. */
 :root {
+  /* Escala de z-index. Va acá y no en variables.css porque theme.css es el único
+     CSS global que importa main.tsx. popover y toast quedan por encima de TODO
+     lo existente (el máximo previo era 200 en publico.css). */
+  --z-contenido: 1;
+  --z-header: 30;
+  --z-sidebar: 40;
+  --z-drawer: 65;
+  --z-modal: 80;
+  --z-popover: 300;
+  --z-toast: 400;
   color-scheme: dark;
   font-family: "Space Grotesk", sans-serif;
   color: #f3f6eb;

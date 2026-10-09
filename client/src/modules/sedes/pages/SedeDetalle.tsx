@@ -56,10 +56,9 @@ export function SedeDetalle() {
         if (!viva) return;
         setSede(s);
         setForm({ nombre: s.nombre, direccion: s.direccion, aforoMaximo: s.aforoMaximo });
-        const receps = staff.data.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA);
-        setRecepcionistas(receps);
-        const asignado = receps.find((r) => r.sede?.id === s.id);
-        setSelectedRecep(asignado ? asignado.id : '');
+        // Solo activos: un recepcionista dado de baja no atiende la sede.
+        setRecepcionistas(staff.data.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA && u.activo));
+        setSelectedRecep('');
         setCounts({
           canchas: (canchas.data as { sede: { id: string } }[]).filter((c) => c.sede.id === s.id).length,
           clases: clases.data.length,
@@ -73,6 +72,8 @@ export function SedeDetalle() {
       viva = false;
     };
   }, [id, recarga]);
+
+  const asignados = recepcionistas.filter((r) => r.sede?.id === id);
 
   async function handleSave() {
     if (!id || !sede) return;
@@ -100,10 +101,10 @@ export function SedeDetalle() {
     try {
       await usuariosApi.asignarSede(selectedRecep, id);
       setMsg({ type: 'ok', text: 'Recepcionista asignado.' });
-      const staff = await usuariosApi.getStaff(1, 100);
-      setRecepcionistas(staff.data.filter((u) => u.tipoActor === TipoActor.RECEPCIONISTA));
-    } catch {
-      setMsg({ type: 'err', text: 'No se pudo asignar.' });
+      setRecarga((n) => n + 1); // vuelve a pedir sede, personal y conteos
+    } catch (e) {
+      const raw = (e as { response?: { data?: { message?: string | string[] } } }).response?.data?.message;
+      setMsg({ type: 'err', text: Array.isArray(raw) ? raw.join(', ') : raw ?? 'No se pudo asignar.' });
     } finally {
       setAssigning(false);
     }
@@ -212,14 +213,25 @@ export function SedeDetalle() {
         </section>
 
         <section className="glass panel">
-          <SectionHeader title="Recepcionista asignado" description="Reasigna si ya tiene otra sede." />
+          <SectionHeader title="Recepcionistas de la sede" description="Asigna a esta sede (reasigna si ya tiene otra)." />
           <div className="stack-gap">
+            {asignados.length === 0 ? (
+              <p style={{ fontSize: 12 }}>Esta sede no tiene recepcionistas asignados.</p>
+            ) : (
+              <ul className="stack-gap" style={{ gap: 6, margin: 0, padding: 0, listStyle: 'none' }}>
+                {asignados.map((r) => (
+                  <li key={r.id} className="ops-strong" style={{ fontSize: 13 }}>
+                    {r.nombre} {r.apellido} <span style={{ fontWeight: 400 }}>— {r.email}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Select
               value={selectedRecep}
               onChange={setSelectedRecep}
               placeholder="Seleccionar recepcionista..."
               ariaLabel="Recepcionista"
-              opciones={recepcionistas.map((r) => ({ value: r.id, label: `${r.nombre} ${r.apellido} — ${r.email}${r.sede ? ` (${r.sede.nombre})` : ''}` }))}
+              opciones={recepcionistas.filter((r) => r.sede?.id !== id).map((r) => ({ value: r.id, label: `${r.nombre} ${r.apellido} — ${r.email}${r.sede ? ` (${r.sede.nombre})` : ''}` }))}
             />
             <button className="btn btn-secondary" onClick={() => void handleAssign()} disabled={assigning}>
               {assigning ? 'Asignando...' : 'Asignar a esta sede'}

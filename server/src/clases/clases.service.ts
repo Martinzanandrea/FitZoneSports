@@ -11,12 +11,13 @@ import {
   Clase,
   ClaseHorarioSemanal,
   ClaseOcurrencia,
+  ReservaClase,
   Sede,
   Instructor,
 } from '../entities';
 import { CreateClaseDto } from './dto/create-clase.dto';
 import { UpdateClaseDto } from './dto/update-clase.dto';
-import { TipoActor } from '../entities/enums';
+import { EstadoResClase, TipoActor } from '../entities/enums';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { RepartoHorasService } from './reparto-horas.service';
@@ -281,7 +282,28 @@ export class ClasesService {
       .addOrderBy('ocurrencia.horaInicio', 'ASC');
     if (desde) qb.andWhere('ocurrencia.fecha >= :desde', { desde });
     if (hasta) qb.andWhere('ocurrencia.fecha <= :hasta', { hasta });
-    return paginarQueryBuilder(qb, query?.page ?? 1, query?.limit ?? 20);
+    const pagina = await paginarQueryBuilder(
+      qb,
+      query?.page ?? 1,
+      query?.limit ?? 20,
+    );
+    // Cupo ocupado agregado (solo RESERVADA): el Socio calcula lugares sin
+    // ver las reservas de otros usuarios.
+    if (pagina.data.length > 0) {
+      const filas = await this.ocurrenciasRepo.manager
+        .createQueryBuilder(ReservaClase, 'r')
+        .select('r.ocurrencia_id', 'ocurrenciaId')
+        .addSelect('COUNT(*)', 'cupo')
+        .where('r.ocurrencia_id IN (:...ids)', {
+          ids: pagina.data.map((o) => o.id),
+        })
+        .andWhere('r.estado = :estado', { estado: EstadoResClase.RESERVADA })
+        .groupBy('r.ocurrencia_id')
+        .getRawMany<{ ocurrenciaId: string; cupo: string }>();
+      const porId = new Map(filas.map((f) => [f.ocurrenciaId, Number(f.cupo)]));
+      for (const o of pagina.data) o.cupoOcupado = porId.get(o.id) ?? 0;
+    }
+    return pagina;
   }
 
   // Acción acotada, distinta de update(): GG y GS con scope a la sede de

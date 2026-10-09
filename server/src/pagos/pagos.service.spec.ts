@@ -180,3 +180,25 @@ describe('PagosService — promoción EXTERNO → SOCIO', () => {
     );
   });
 });
+
+describe('PagosService — comprobante en la respuesta', () => {
+  it('el cobro en efectivo devuelve el comprobante sin referencia circular', async () => {
+    const t = armar({ rolTitular: TipoActor.SOCIO });
+    t.comprobantes.generar.mockResolvedValue({
+      id: 'comp-1',
+      pdfPath: 'https://x/c.pdf',
+      generadoEn: new Date(0),
+      pago: { circular: true },
+    });
+    const pago = await t.service.registrarPagoEfectivo(
+      { usuarioId: ID_TITULAR, plan: TipoPlan.MENSUAL } as never,
+      ID_RECEP,
+    );
+    expect(pago.comprobante).toEqual({
+      id: 'comp-1',
+      pdfPath: 'https://x/c.pdf',
+      generadoEn: new Date(0),
+    });
+    expect(() => JSON.stringify(pago)).not.toThrow();
+  });
+});

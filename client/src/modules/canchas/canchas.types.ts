@@ -57,3 +57,16 @@ export interface ReservaCancha {
   creadaEn: string;
   canceladaEn?: string | null;
 }
+
+// Reserva propia (GET /reservas-cancha/mias): sin datos de usuario.
+export interface MiReservaCancha {
+  id: string;
+  fecha: string;
+  horaInicio: string;
+  horaFin: string;
+  precioFinal: string;
+  estrategiaPrecio: TipoEstrategiaPrecio;
+  estado: EstadoResCancha;
+  creadaEn: string;
+  cancha: { id: string; nombre: string; sede: { id: string; nombre: string } };
+}

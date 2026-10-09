@@ -246,11 +246,18 @@ export function PersonalPage() {
               <span />
             </div>
             {filtrados.map((u) => (
-              <div className="ops-row" key={u.id}>
+              <div className="ops-row" key={u.id} style={u.activo ? undefined : { opacity: 0.55 }}>
                 <div className="person-cell">
                   <Avatar name={`${u.nombre} ${u.apellido}`} size={34} />
                   <span>
-                    <strong>{u.nombre} {u.apellido}</strong>
+                    <strong>
+                      {u.nombre} {u.apellido}
+                      {!u.activo && (
+                        <span style={{ marginLeft: 8, verticalAlign: 'middle' }}>
+                          <Badge variant="neutral">Baja</Badge>
+                        </span>
+                      )}
+                    </strong>
                     <small>{u.email}</small>
                   </span>
                 </div>

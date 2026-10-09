@@ -5,7 +5,30 @@ import type { PaginatedResponse } from "../../shared/types/pagination";
 // Resultado mínimo de GET /usuarios/buscar-clientes (solo Socios y Externos).
 export type ClienteBuscado = Pick<Usuario, "id" | "nombre" | "apellido" | "dni" | "tipoActor">;
 
+export type TipoCliente = 'SOCIO' | 'EXTERNO' | 'INSTRUCTOR';
+
+// Fila de GET /personal/clientes (solo Gerente General): socios, externos e instructores.
+export interface ClienteAfiliado {
+  id: string;
+  tipo: TipoCliente;
+  nombre: string;
+  apellido: string | null;
+  dni: string | null;
+  email: string | null;
+  telefono: string | null;
+  activo: boolean;
+  sede: { id: string; nombre: string } | null;
+  membresia: { plan: string; vencimiento: string } | null;
+}
+
 export const usuariosApi = {
+  // Listado de afiliados de la cadena, filtrado, ordenado (bajas al final) y paginado en el servidor.
+  getClientes: (params: { page: number; limit?: number; q?: string; tipo?: TipoCliente | ''; estado?: 'ACTIVO' | 'BAJA' | '' }) =>
+    api
+      .get<PaginatedResponse<ClienteAfiliado>>("/personal/clientes", {
+        params: { page: params.page, limit: params.limit ?? 20, q: params.q || undefined, tipo: params.tipo || undefined, estado: params.estado || undefined },
+      })
+      .then((res) => res.data),
   // Búsqueda para el mostrador (recepción y gerentes): mínimo 3 caracteres,
   // por nombre, apellido o DNI; el backend devuelve hasta 20 resultados.
   buscarClientes: (q: string) =>

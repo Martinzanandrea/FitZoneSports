@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { CalendarDays } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { TipoActor } from '../../../shared/types/enums';
-import { clasesApi, fetchMapaReservasClase } from '../clases.api';
-import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
+import { clasesApi, fetchMapaClases } from '../clases.api';
+import type { Clase, ClaseOcurrencia, MiReservaClase } from '../clases.types';
 import { Badge } from '../../../shared/components/ui';
 import { Select } from '../../../shared/components/Select';
 import { EmptyState } from '../../../shared/components/EmptyState';
@@ -47,8 +47,7 @@ export function ReservarClases() {
   const { user } = useAuth();
   const [clases, setClases] = useState<Clase[]>([]);
   const [ocurrenciasPorClase, setOcurrenciasPorClase] = useState<Record<string, ClaseOcurrencia[]>>({});
-  const [reservasPorOcurrencia, setReservasPorOcurrencia] = useState<Record<string, ReservaClase[]>>({});
-  const [misReservas, setMisReservas] = useState<ReservaClase[]>([]);
+  const [misReservas, setMisReservas] = useState<MiReservaClase[]>([]);
   const [sedeFiltro, setSedeFiltro] = useState<string>('');
   const [tipoFiltro, setTipoFiltro] = useState<string>('');
   const [diaFiltro, setDiaFiltro] = useState<string>('');
@@ -75,18 +74,20 @@ export function ReservarClases() {
     return out;
   }, []);
 
-  async function cargar() {
-    setLoading(true);
+  // silencioso: refresca después de reservar/cancelar sin volver al spinner.
+  async function cargar(silencioso = false) {
+    if (!silencioso) setLoading(true);
     setError(null);
     try {
-      const mapa = await fetchMapaReservasClase(DIAS_A_FUTURO);
+      // Cupos: conteo agregado por ocurrencia. Mis reservas: endpoint propio
+      // (el backend toma el usuario del token y no expone reservas ajenas).
+      const [mapa, mias] = await Promise.all([
+        fetchMapaClases(DIAS_A_FUTURO),
+        clasesApi.getMisReservas(fechaLocalYMD(new Date())),
+      ]);
       setClases(mapa.clases);
       setOcurrenciasPorClase(mapa.occMap);
-      setReservasPorOcurrencia(mapa.resMap);
-      if (user) {
-        const todas = Object.values(mapa.resMap).flat();
-        setMisReservas(todas.filter((r) => r.usuario.id === user.id && r.estado !== 'CANCELADA'));
-      }
+      setMisReservas(mias.data);
     } catch {
       setError('No se pudieron cargar las clases.');
     } finally {
@@ -106,19 +107,21 @@ export function ReservarClases() {
       (tipoFiltro === '' || c.tipoClase === tipoFiltro),
   );
 
+  function mensajeError(e: unknown, porDefecto: string): string {
+    const ax = e as { response?: { data?: { message?: string | string[] } } };
+    const raw = ax.response?.data?.message;
+    return Array.isArray(raw) ? raw.join(', ') : (raw ?? porDefecto);
+  }
+
   async function handleReservar(ocurrenciaId: string) {
     if (!user) return;
     setAccionId(ocurrenciaId);
     setError(null);
     try {
-      const reserva = await clasesApi.reservar(ocurrenciaId, user.id);
-      setReservasPorOcurrencia((prev) => ({ ...prev, [ocurrenciaId]: [...(prev[ocurrenciaId] ?? []), reserva] }));
-      setMisReservas((prev) => [...prev, reserva]);
+      await clasesApi.reservar(ocurrenciaId, user.id);
+      await cargar(true);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'No se pudo reservar.';
-      const ax = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = ax.response?.data?.message;
-      setError(Array.isArray(raw) ? raw.join(', ') : (raw ?? msg));
+      setError(mensajeError(e, 'No se pudo reservar.'));
     } finally {
       setAccionId(null);
     }
@@ -129,16 +132,9 @@ export function ReservarClases() {
     setError(null);
     try {
       await clasesApi.cancelarReserva(reservaId);
-      setMisReservas((prev) => prev.filter((r) => r.id !== reservaId));
-      setReservasPorOcurrencia((prev) => {
-        const next = { ...prev };
-        for (const k of Object.keys(next)) next[k] = next[k].filter((r) => r.id !== reservaId);
-        return next;
-      });
+      await cargar(true);
     } catch (e: unknown) {
-      const ax = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = ax.response?.data?.message;
-      setError(Array.isArray(raw) ? raw.join(', ') : (raw ?? 'No se pudo cancelar.'));
+      setError(mensajeError(e, 'No se pudo cancelar.'));
     } finally {
       setAccionId(null);
     }
@@ -174,6 +170,14 @@ export function ReservarClases() {
       </>
     );
   }
+
+  // Protección: una reserva sin ocurrencia/clase no debe tumbar la pantalla.
+  // Se omite del listado y se avisa en consola para no ocultar el problema.
+  const reservasMostrables = misReservas.filter((r) => {
+    const completa = Boolean(r.ocurrencia?.clase);
+    if (!completa) console.error('Reserva de clase incompleta (falta ocurrencia/clase):', r.id);
+    return completa;
+  });
 
   return (
     <>
@@ -263,7 +267,6 @@ export function ReservarClases() {
                     <TurnoBoton
                       clase={clase}
                       ocurrencias={proximas}
-                      reservasPorOcurrencia={reservasPorOcurrencia}
                       misReservas={misReservas}
                       accionId={accionId}
                       onReservar={handleReservar}
@@ -278,7 +281,7 @@ export function ReservarClases() {
 
       <section className="glass panel" style={{ marginTop: 14 }} aria-label="Mis reservas de clases">
         <SectionHeader title="Mis reservas" description="Cancelá sin cargo hasta 6 h antes." />
-        {misReservas.length === 0 ? (
+        {reservasMostrables.length === 0 ? (
           <EmptyState
             title="Todavía no tenés reservas"
             description="Elegí un turno de la lista para empezar."
@@ -286,7 +289,7 @@ export function ReservarClases() {
           />
         ) : (
           <div className="stack-list">
-            {misReservas.map((r) => (
+            {reservasMostrables.map((r) => (
               <div className="list-row" key={r.id}>
                 <div className="row-main">
                   <strong>{r.ocurrencia.clase.tipoClase}</strong>
@@ -317,26 +320,20 @@ export function ReservarClases() {
 function TurnoBoton({
   clase,
   ocurrencias,
-  reservasPorOcurrencia,
   misReservas,
   accionId,
   onReservar,
 }: {
   clase: Clase;
   ocurrencias: ClaseOcurrencia[];
-  reservasPorOcurrencia: Record<string, ReservaClase[]>;
-  misReservas: ReservaClase[];
+  misReservas: MiReservaClase[];
   accionId: string | null;
   onReservar: (ocurrenciaId: string) => void;
 }) {
   // Muestra el primer turno con lugar (o el primero si todos están llenos).
-  const conLugar =
-    ocurrencias.find((o) => {
-      const ocupadas = (reservasPorOcurrencia[o.id] ?? []).filter((r) => r.estado === 'RESERVADA').length;
-      return ocupadas < clase.capacidad;
-    }) ?? ocurrencias[0];
-  const reservas = reservasPorOcurrencia[conLugar.id] ?? [];
-  const ocupadas = reservas.filter((r) => r.estado === 'RESERVADA').length;
+  // El cupo ocupado viene como conteo agregado de la ocurrencia.
+  const conLugar = ocurrencias.find((o) => (o.cupoOcupado ?? 0) < clase.capacidad) ?? ocurrencias[0];
+  const ocupadas = conLugar.cupoOcupado ?? 0;
   const llena = ocupadas >= clase.capacidad;
   const yaReservada = misReservas.some((r) => r.ocurrencia.id === conLugar.id);
   const lugares = llena

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown } from 'lucide-react';
+import { usePosicionFlotante } from '../hooks/usePosicionFlotante';
 
 export interface OpcionSelect {
   value: string;
@@ -22,11 +24,15 @@ interface SelectProps {
 // Dropdown propio con el lenguaje visual de la app (el popup del
 // <select> nativo lo pinta el navegador/SO y no se puede restylear).
 // Cierra con click afuera, Escape o Tab; navegable con flechas + Enter.
+// La lista va en un portal sobre document.body con position: fixed: así no la
+// recortan ni la tapan los contextos de apilamiento (.glass) ni los overflow.
 export function Select({ value, onChange, opciones, placeholder, disabled, ariaLabel, required }: SelectProps) {
   const [abierto, setAbierto] = useState(false);
   const [destacado, setDestacado] = useState(0);
   const raizRef = useRef<HTMLDivElement>(null);
   const listaRef = useRef<HTMLDivElement>(null);
+  const botonRef = useRef<HTMLButtonElement>(null);
+  const pos = usePosicionFlotante(abierto, botonRef, listaRef, { modo: 'lista' });
 
   // El placeholder "" cuenta como primera opción elegible, igual que el
   // <option value=""> del select nativo que reemplaza.
@@ -39,13 +45,14 @@ export function Select({ value, onChange, opciones, placeholder, disabled, ariaL
   useEffect(() => {
     if (!abierto) return;
     function alClickAfuera(e: MouseEvent) {
-      if (raizRef.current && !raizRef.current.contains(e.target as Node)) {
+      const objetivo = e.target as Node;
+      if (raizRef.current && !raizRef.current.contains(objetivo) && !listaRef.current?.contains(objetivo)) {
         setAbierto(false);
       }
     }
     document.addEventListener('mousedown', alClickAfuera);
     return () => document.removeEventListener('mousedown', alClickAfuera);
-  }, [abierto ]);
+  }, [abierto]);
 
   useEffect(() => {
     if (!abierto || !listaRef.current) return;
@@ -75,6 +82,7 @@ export function Select({ value, onChange, opciones, placeholder, disabled, ariaL
     if (!abierto) return;
     if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation(); // no cierra además el modal/panel que contiene al select
       setAbierto(false);
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -107,6 +115,7 @@ export function Select({ value, onChange, opciones, placeholder, disabled, ariaL
   return (
     <div ref={raizRef} className="relative w-full">
       <button
+        ref={botonRef}
         type="button"
         role="combobox"
         aria-expanded={abierto}
@@ -135,11 +144,20 @@ export function Select({ value, onChange, opciones, placeholder, disabled, ariaL
           className="pointer-events-none absolute h-px w-px opacity-0"
         />
       )}
-      {abierto && (
+      {abierto && createPortal(
         <div
           ref={listaRef}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-[#0e2b2f] p-1.5 shadow-[0_16px_35px_-12px_rgba(0,0,0,0.6)]"
+          className="overflow-y-auto rounded-xl border border-white/15 bg-[#0e2b2f] p-1.5 shadow-[0_16px_35px_-12px_rgba(0,0,0,0.6)]"
+          style={{
+            position: 'fixed',
+            zIndex: 'var(--z-popover)',
+            top: pos?.top ?? 0,
+            left: pos?.left ?? 0,
+            width: pos?.width,
+            maxHeight: pos?.maxHeight ?? 240,
+            visibility: pos ? 'visible' : 'hidden',
+          }}
         >
           {items.map((op, i) => {
             const seleccionada = op.value === value;
@@ -169,7 +187,8 @@ export function Select({ value, onChange, opciones, placeholder, disabled, ariaL
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

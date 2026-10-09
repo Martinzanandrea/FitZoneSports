@@ -83,6 +83,8 @@ export class UsuariosController {
     TipoActor.GERENTE_SEDE,
     TipoActor.GERENTE_GENERAL,
   )
+  // Tope de frecuencia propio: frena el barrido de la base letra por letra.
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get('buscar-clientes')
   @ApiOperation({
     summary:

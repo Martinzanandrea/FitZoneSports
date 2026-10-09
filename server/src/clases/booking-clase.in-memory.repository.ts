@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { EstadoResClase } from '../entities/enums';
 import type { ReservaClase } from '../entities';
 import type {
@@ -35,6 +35,21 @@ export class InMemoryBookingClaseRepository
       ocupadas < capacidad
         ? EstadoResClase.RESERVADA
         : EstadoResClase.LISTA_ESPERA;
+    const previa = this.reservas.find(
+      (r) =>
+        r.ocurrenciaId === datos.ocurrenciaId &&
+        r.usuarioId === datos.usuario.id,
+    );
+    if (previa) {
+      if (previa.estado !== EstadoResClase.CANCELADA) {
+        throw new ConflictException(
+          'Este usuario ya tiene una reserva para esta ocurrencia',
+        );
+      }
+      previa.estado = estado;
+      previa.creadaEn = new Date();
+      return previa as any;
+    }
     const reserva = {
       id: crypto.randomUUID(),
       ocurrenciaId: datos.ocurrenciaId,

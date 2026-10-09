@@ -1,5 +1,5 @@
 import { api } from '../../api/axios';
-import type { Cancha, ReservaCancha, CanchaPayload, TipoCanchaCatalogo } from './canchas.types';
+import type { Cancha, MiReservaCancha, ReservaCancha, CanchaPayload, TipoCanchaCatalogo } from './canchas.types';
 import type { PaginatedResponse } from '../../shared/types/pagination';
 
 export interface CanchaPublica {
@@ -25,6 +25,18 @@ export const canchasApi = {
   // Borra una cancha de verdad, solo si no tiene reservas en su historial;
   // si las tiene el backend responde 400 con el motivo.
   eliminar: (id: string) => api.delete<void>(`/canchas/${id}`).then((r) => r.data),
+  // Franjas ocupadas de una cancha en una fecha (sin datos de quién reservó);
+  // lo usan Socio y Externo para ver la grilla horaria.
+  getOcupacion: (canchaId: string, fecha: string) =>
+    api
+      .get<Array<{ horaInicio: string; horaFin: string }>>(`/reservas-cancha/cancha/${canchaId}/ocupacion`, { params: { fecha } })
+      .then((r) => r.data),
+  // Mis reservas confirmadas (el backend toma el usuario del token); fecha =
+  // día exacto, desde = a partir de ese día. Ambos "YYYY-MM-DD".
+  getMisReservas: (filtros: { fecha?: string; desde?: string } = {}, page = 1, limit = 100) =>
+    api
+      .get<PaginatedResponse<MiReservaCancha>>('/reservas-cancha/mias', { params: { ...filtros, page, limit } })
+      .then((r) => r.data),
   // Trae las reservas de una cancha (canchaId dice cuál); si se pasa una fecha,
   // devuelve solo las de ese día para armar la grilla horaria. También viene
   // paginado (un día tiene 15 turnos como máximo, así que una página alcanza).
@@ -78,28 +90,3 @@ export const tiposCanchaApi = {
   eliminar: (id: string) =>
     api.delete<void>(`/tipos-cancha/${id}`).then((r) => r.data),
 };
-
-// Agregación compartida: recorre todas las canchas y junta las reservas
-// CONFIRMADA del usuario (el usuarioId dice de quién). Cada cancha que
-// falla aporta nada, no rompe el resto.
-export async function fetchMisReservasCancha(
-  usuarioId: string,
-): Promise<Array<{ reserva: ReservaCancha; cancha: Cancha }>> {
-  const canchasRes = await canchasApi.getAll(1, 100);
-  const out: Array<{ reserva: ReservaCancha; cancha: Cancha }> = [];
-  await Promise.all(
-    canchasRes.data.map(async (c) => {
-      try {
-        const res = await canchasApi.getReservasPorCancha(c.id, undefined, 1, 100);
-        for (const r of res.data) {
-          if (r.usuario.id === usuarioId && r.estado === 'CONFIRMADA') {
-            out.push({ reserva: r, cancha: c });
-          }
-        }
-      } catch {
-        // sin reservas visibles en esta cancha, se ignora
-      }
-    }),
-  );
-  return out;
-}

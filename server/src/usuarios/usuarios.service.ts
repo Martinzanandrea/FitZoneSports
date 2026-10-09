@@ -11,7 +11,7 @@ import { Repository, type FindOptionsWhere } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { EmailVerificacionService } from './email-verificacion.service';
-import { TipoActor, Usuario } from '../entities';
+import { Sede, TipoActor, Usuario } from '../entities';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
@@ -20,6 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+import { escaparLike } from '../common/helpers/like.helper';
 import { assertAccesoPerfil } from '../auth/helpers/ownership.helper';
 
 const SALT_ROUNDS = 10; // "costo" del hasheo: más alto = más lento pero más seguro. 10 es el estándar razonable hoy.
@@ -148,9 +149,7 @@ export class UsuariosService {
         token,
       );
     } catch (err) {
-      this.logger.warn(
-        `No se pudo reenviar verificación a ${email}: ${err}`,
-      );
+      this.logger.warn(`No se pudo reenviar verificación a ${email}: ${err}`);
     }
     return generico;
   }
@@ -183,9 +182,7 @@ export class UsuariosService {
     if (actor.tipoActor === TipoActor.GERENTE_SEDE) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       if (dto.tipoActor !== TipoActor.RECEPCIONISTA) {
-        throw new ForbiddenException(
-          'Solo podés dar de alta Recepcionistas',
-        );
+        throw new ForbiddenException('Solo podés dar de alta Recepcionistas');
       }
       if (!actor.sedeId) {
         throw new ForbiddenException('No tenés sede asignada');
@@ -262,7 +259,8 @@ export class UsuariosService {
           },
         ],
         relations: { sede: true },
-        order: { creadoEn: 'DESC' },
+        // Activos primero, bajas al final; luego apellido y nombre (sobre el total, no por página).
+        order: { activo: 'DESC', apellido: 'ASC', nombre: 'ASC', id: 'ASC' },
         skip: (page - 1) * limit,
         take: limit,
       });
@@ -281,7 +279,8 @@ export class UsuariosService {
         { tipoActor: TipoActor.GERENTE_SEDE },
       ],
       relations: { sede: true },
-      order: { creadoEn: 'DESC' },
+      // Activos primero, bajas al final; luego apellido y nombre (sobre el total, no por página).
+      order: { activo: 'DESC', apellido: 'ASC', nombre: 'ASC', id: 'ASC' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -315,6 +314,19 @@ export class UsuariosService {
       );
     }
 
+    if (!usuario.activo) {
+      throw new BadRequestException(
+        'No se puede asignar sede a un usuario dado de baja',
+      );
+    }
+    // Validar antes de guardar: una sede inexistente rompería la FK (500) en vez de un 404 claro.
+    const sedeExiste = await this.usuariosRepo.manager.exists(Sede, {
+      where: { id: sedeId },
+    });
+    if (!sedeExiste) {
+      throw new NotFoundException(`Sede ${sedeId} no encontrada`);
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     usuario.sede = { id: sedeId } as any;
     await this.usuariosRepo.save(usuario);
@@ -343,7 +355,9 @@ export class UsuariosService {
 
     const existente = await this.usuariosRepo.findOne({ where: { dni } });
     if (existente && existente.id !== usuarioId) {
-      throw new ConflictException('Ese DNI ya está registrado por otro usuario');
+      throw new ConflictException(
+        'Ese DNI ya está registrado por otro usuario',
+      );
     }
 
     usuario.dni = dni;
@@ -486,10 +500,14 @@ export class UsuariosService {
       .where('u.tipoActor IN (:...roles)', {
         roles: [TipoActor.SOCIO, TipoActor.EXTERNO],
       })
+      .andWhere('u.activo = true')
       .andWhere(
         '(u.nombre ILIKE :q OR u.apellido ILIKE :q OR u.dni ILIKE :q)',
-        { q: `%${texto}%` },
+        { q: `%${escaparLike(texto)}%` },
       )
+      .orderBy('u.apellido', 'ASC')
+      .addOrderBy('u.nombre', 'ASC')
+      .addOrderBy('u.id', 'ASC')
       .take(20)
       .getMany();
   }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ClaseOcurrencia, ReservaClase, Usuario } from '../entities';
 import { EstadoResClase } from '../entities/enums';
@@ -60,6 +64,33 @@ export class TypeOrmBookingClaseRepository
         cupoOcupado < ocurrencia.clase.capacidad
           ? EstadoResClase.RESERVADA
           : EstadoResClase.LISTA_ESPERA;
+
+      // 3) Con el lock tomado, buscar una fila previa del mismo usuario:
+      // UNIQUE(ocurrencia, usuario) impide insertar otra. Si está CANCELADA
+      // se reactiva (misma decisión de estado que una reserva nueva); si
+      // no, es un duplicado real.
+      const existente = await manager.findOne(ReservaClase, {
+        where: {
+          ocurrencia: { id: datos.ocurrenciaId },
+          usuario: { id: datos.usuario.id },
+        },
+      });
+      if (existente) {
+        if (existente.estado !== EstadoResClase.CANCELADA) {
+          throw new ConflictException(
+            'Este usuario ya tiene una reserva para esta ocurrencia',
+          );
+        }
+        // Misma forma de respuesta que una reserva nueva: el findOne no
+        // trae relaciones y el cliente lee ocurrencia.clase y usuario.
+        existente.ocurrencia = ocurrencia;
+        existente.usuario = datos.usuario;
+        existente.estado = estado;
+        existente.creadaEn = new Date();
+        existente.canceladaEn = null;
+        existente.notificado = false;
+        return manager.save(existente);
+      }
 
       const reserva = manager.create(ReservaClase, {
         ocurrencia,

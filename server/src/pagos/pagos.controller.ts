@@ -12,6 +12,9 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { PagosService } from './pagos.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { RegistrarPagoEfectivoDto } from './dto/registrar-pago-efectivo.dto';
+import { ClientesCobroQueryDto } from './dto/clientes-cobro-query.dto';
+import { ReservasCanchaCobroQueryDto } from './dto/reservas-cancha-cobro-query.dto';
+import { Throttle } from '@nestjs/throttler';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -42,7 +45,8 @@ export class PagosController {
     return this.pagosService.pagarConPasarela(dto);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
+  // Cobro en efectivo: solo el Recepcionista (los gerentes no cobran).
+  @Roles(TipoActor.RECEPCIONISTA)
   @Post('efectivo')
   @ApiOperation({ summary: 'Registrar un pago en efectivo' })
   @Auditable('COBRAR_EFECTIVO', 'Pago')
@@ -53,11 +57,29 @@ export class PagosController {
     return this.pagosService.registrarPagoEfectivo(dto, user.id);
   }
 
-  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
-  @Get('efectivo/opciones')
-  @ApiOperation({ summary: 'Obtener opciones para cobro en efectivo' })
-  opcionesEfectivo(@CurrentUser() user: UsuarioAutenticado) {
-    return this.pagosService.obtenerOpcionesCobro(user);
+  @Roles(TipoActor.RECEPCIONISTA)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  @Get('efectivo/clientes')
+  @ApiOperation({
+    summary: 'Clientes de la sede para cobrar en efectivo (paginado, con q)',
+  })
+  clientesEfectivo(
+    @Query() query: ClientesCobroQueryDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.pagosService.listarClientesParaCobro(query, user);
+  }
+
+  @Roles(TipoActor.RECEPCIONISTA)
+  @Get('efectivo/reservas-cancha')
+  @ApiOperation({
+    summary: 'Reservas de cancha de un cliente pendientes de cobro, en la sede',
+  })
+  reservasCanchaEfectivo(
+    @Query() query: ReservasCanchaCobroQueryDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.pagosService.reservasCanchaParaCobro(query.usuarioId, user);
   }
 
   @Get('usuario/:usuarioId')

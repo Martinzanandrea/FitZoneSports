@@ -23,6 +23,8 @@ export interface ClaseOcurrencia {
   horaInicio: string;
   horaFin: string;
   estado: 'PROGRAMADA' | 'CANCELADA';
+  // Conteo agregado de reservas RESERVADA (el backend no expone las ajenas).
+  cupoOcupado?: number;
 }
 
 export type EstadoResClase = 'RESERVADA' | 'LISTA_ESPERA' | 'CANCELADA' | 'ASISTIO' | 'NO_ASISTIO';
@@ -33,4 +35,25 @@ export interface ReservaClase {
   usuario: { id: string; nombre: string; apellido: string };
   estado: EstadoResClase;
   creadaEn: string;
+}
+
+// Reserva propia (GET /clases/reservas/mias): sin datos de usuario; trae
+// sede e instructor de la clase.
+export interface MiReservaClase {
+  id: string;
+  estado: EstadoResClase;
+  creadaEn: string;
+  ocurrencia: {
+    id: string;
+    fecha: string;
+    horaInicio: string;
+    horaFin: string;
+    estado: 'PROGRAMADA' | 'CANCELADA';
+    clase: {
+      id: string;
+      tipoClase: string;
+      sede: { id: string; nombre: string };
+      instructor: { id: string; nombre: string };
+    };
+  };
 }

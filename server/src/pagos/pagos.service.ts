@@ -7,7 +7,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
-import { Pago, Usuario, Membresia, ReservaCancha } from '../entities';
+import {
+  Comprobante,
+  Pago,
+  Usuario,
+  Membresia,
+  ReservaCancha,
+} from '../entities';
 import {
   EstadoPago,
   MetodoPago,
@@ -27,6 +33,8 @@ import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { ClientesCobroQueryDto } from './dto/clientes-cobro-query.dto';
+import { escaparLike } from '../common/helpers/like.helper';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 
 @Injectable()
@@ -49,87 +57,137 @@ export class PagosService {
     private readonly auditoria: AuditoriaService,
   ) {}
 
-  async obtenerOpcionesCobro(currentUser: UsuarioAutenticado) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    const esGG = currentUser.tipoActor === TipoActor.GERENTE_GENERAL;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (!esGG && !currentUser.sedeId) {
+  // Genera el comprobante y lo deja en `pago.comprobante` para que la respuesta
+  // lo incluya (el cliente lo necesita para mostrar el enlace). Se copian solo
+  // los campos propios: la entidad trae `pago` y crearía una referencia circular
+  // al serializar.
+  private async generarYAdjuntar(
+    pago: Pago,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const c = await this.comprobantes.generar(pago, manager);
+    if (c?.id) {
+      pago.comprobante = {
+        id: c.id,
+        pdfPath: c.pdfPath,
+        generadoEn: c.generadoEn,
+      } as Comprobante;
+    }
+  }
+
+  // Sede de quien cobra. Fail-closed: sin sede asignada no se lista nada.
+  private sedeDeCobro(currentUser: UsuarioAutenticado): string {
+    if (!currentUser.sedeId) {
       throw new ForbiddenException('Tu usuario no tiene una sede asignada');
     }
-    const sedeId = currentUser.sedeId;
-    const [usuarios, membresias, reservasCancha] = await Promise.all([
-      this.usuariosRepo.find({ relations: { sede: true } }),
-      this.membresiasRepo.find({
-        relations: { usuario: true, sedeAlta: true },
-      }),
-      this.reservasCanchaRepo.find({
-        where: { estado: EstadoResCancha.CONFIRMADA },
-        relations: { usuario: true, cancha: { sede: true } },
-      }),
-    ]);
+    return currentUser.sedeId;
+  }
 
-    const esDeSede = (sede?: { id: string } | null) =>
-      !sedeId || sede?.id === sedeId;
-    const membresiasDeSede = membresias.filter((m) => esDeSede(m.sedeAlta));
-    const reservasCanchaDeSede = reservasCancha.filter((r) =>
-      esDeSede(r.cancha.sede),
-    );
-    const idsUsuarios = new Set([
-      ...membresiasDeSede.map((m) => m.usuario.id),
-      ...reservasCanchaDeSede.map((r) => r.usuario.id),
-      ...usuarios.filter((u) => esDeSede(u.sede)).map((u) => u.id),
-    ]);
+  // Socios y externos activos "de la sede": con la sede asignada, con una
+  // membresía dada de alta en ella o con una reserva de cancha confirmada en
+  // ella. Se resuelve en la base, paginado, y devuelve solo lo necesario para
+  // identificar a quién se cobra (sin email, teléfono ni datos de cuenta).
+  async listarClientesParaCobro(
+    query: ClientesCobroQueryDto,
+    currentUser: UsuarioAutenticado,
+  ): Promise<
+    PaginatedResponse<{
+      id: string;
+      nombre: string;
+      apellido: string;
+      dni: string | null;
+      tipoActor: string;
+    }>
+  > {
+    const sedeId = this.sedeDeCobro(currentUser);
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 20, 20);
 
-    return {
-      // Solo SOCIO y EXTERNO, con campos mínimos: sin emails,
-      // teléfonos ni personal.
-      usuarios: usuarios
-        .filter(
-          (u) =>
-            idsUsuarios.has(u.id) &&
-            (u.tipoActor === TipoActor.SOCIO ||
-              u.tipoActor === TipoActor.EXTERNO),
+    const params: unknown[] = [sedeId, EstadoResCancha.CONFIRMADA];
+    let filtroTexto = '';
+    const texto = (query.q ?? '').trim();
+    if (texto) {
+      params.push(`%${escaparLike(texto)}%`);
+      filtroTexto = `AND (u.nombre ILIKE $3 OR u.apellido ILIKE $3 OR u.dni ILIKE $3 OR (u.nombre || ' ' || u.apellido) ILIKE $3)`;
+    }
+    const desde = `
+      FROM usuarios u
+      WHERE u.tipo_actor IN ('SOCIO', 'EXTERNO')
+        AND u.activo
+        AND (
+          u.sede_id = $1
+          OR EXISTS (SELECT 1 FROM membresias m WHERE m.usuario_id = u.id AND m.sede_alta_id = $1)
+          OR EXISTS (
+            SELECT 1 FROM reservas_cancha r
+            JOIN canchas c ON c.id = r.cancha_id
+            WHERE r.usuario_id = u.id AND c.sede_id = $1 AND r.estado = $2
+          )
         )
-        .map((u) => ({
-          id: u.id,
-          nombre: u.nombre,
-          apellido: u.apellido,
-          dni: u.dni ?? null,
-          tipoActor: u.tipoActor,
-        })),
-      membresias: membresiasDeSede.map((m) => ({
-        id: m.id,
-        plan: m.plan,
-        estado: m.estado,
-        fechaInicio: m.fechaInicio,
-        fechaFin: m.fechaFin,
-        usuario: {
-          id: m.usuario.id,
-          nombre: m.usuario.nombre,
-          apellido: m.usuario.apellido,
-          dni: m.usuario.dni ?? null,
-        },
-        sedeAlta: { id: m.sedeAlta.id, nombre: m.sedeAlta.nombre },
+        ${filtroTexto}`;
+
+    const [{ total }] = await this.dataSource.query<{ total: string }[]>(
+      `SELECT COUNT(*)::text AS total ${desde}`,
+      params,
+    );
+    const filas = await this.dataSource.query<
+      {
+        id: string;
+        nombre: string;
+        apellido: string;
+        dni: string | null;
+        tipo_actor: string;
+      }[]
+    >(
+      `SELECT u.id, u.nombre, u.apellido, u.dni, u.tipo_actor::text AS tipo_actor ${desde}
+       ORDER BY lower(u.apellido), lower(u.nombre), u.id
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, limit, (page - 1) * limit],
+    );
+    const totalNum = Number(total);
+    return {
+      data: filas.map((f) => ({
+        id: f.id,
+        nombre: f.nombre,
+        apellido: f.apellido,
+        dni: f.dni,
+        tipoActor: f.tipo_actor,
       })),
-      reservasCancha: reservasCanchaDeSede.map((r) => ({
-        id: r.id,
-        estado: r.estado,
-        fecha: r.fecha,
-        horaInicio: r.horaInicio,
-        horaFin: r.horaFin,
-        precioFinal: r.precioFinal,
-        usuario: {
-          id: r.usuario.id,
-          nombre: r.usuario.nombre,
-          apellido: r.usuario.apellido,
-          dni: r.usuario.dni ?? null,
-        },
-        cancha: {
-          nombre: r.cancha.nombre,
-          sede: { id: r.cancha.sede.id, nombre: r.cancha.sede.nombre },
-        },
-      })),
+      total: totalNum,
+      page,
+      limit,
+      totalPages: Math.ceil(totalNum / limit) || 1,
     };
+  }
+
+  // Reservas de cancha confirmadas de UN cliente, solo de canchas de la sede
+  // de quien cobra (acotar por cliente evita barrer toda la tabla).
+  async reservasCanchaParaCobro(
+    usuarioId: string,
+    currentUser: UsuarioAutenticado,
+  ) {
+    const sedeId = this.sedeDeCobro(currentUser);
+    const reservas = await this.reservasCanchaRepo.find({
+      where: {
+        estado: EstadoResCancha.CONFIRMADA,
+        usuario: { id: usuarioId },
+        cancha: { sede: { id: sedeId } },
+      },
+      relations: { cancha: { sede: true } },
+      order: { fecha: 'ASC', horaInicio: 'ASC' },
+      take: 50,
+    });
+    return reservas.map((r) => ({
+      id: r.id,
+      estado: r.estado,
+      fecha: r.fecha,
+      horaInicio: r.horaInicio,
+      horaFin: r.horaFin,
+      precioFinal: r.precioFinal,
+      cancha: {
+        nombre: r.cancha.nombre,
+        sede: { id: r.cancha.sede.id, nombre: r.cancha.sede.nombre },
+      },
+    }));
   }
 
   private async resolverReferencia(dto: {
@@ -284,7 +342,7 @@ export class PagosService {
       await this.auditarPromocion(promovidoId, guardado.id, usuario.id);
     }
 
-    await this.comprobantes.generar(guardado);
+    await this.generarYAdjuntar(guardado);
     return guardado;
   }
 
@@ -398,7 +456,7 @@ export class PagosService {
           pagadoEn: new Date(),
         });
         const guardado = await pagosRepoTx.save(pago);
-        await this.comprobantes.generar(guardado, manager);
+        await this.generarYAdjuntar(guardado, manager);
         return guardado;
       });
     }
@@ -466,7 +524,7 @@ export class PagosService {
           manager,
           guardado,
         );
-        await this.comprobantes.generar(guardado, manager);
+        await this.generarYAdjuntar(guardado, manager);
         return { guardado, promovidoId };
       },
     );

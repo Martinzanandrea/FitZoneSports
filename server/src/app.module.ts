@@ -5,6 +5,7 @@ import { DatabaseModule } from './database/database.module';
 import { SedesModule } from './sedes/sedes.module';
 import { InstructoresModule } from './instructores/instructores.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
+import { ClientesModule } from './clientes/clientes.module';
 import { MembresiasModule } from './membresias/membresias.module';
 import { ClasesModule } from './clases/clases.module';
 import { CanchasModule } from './canchas/canchas.module';
@@ -26,6 +27,7 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
     InstructoresModule,
     ScheduleModule.forRoot(),
     UsuariosModule,
+    ClientesModule,
     MembresiasModule,
     ClasesModule,
     CanchasModule,

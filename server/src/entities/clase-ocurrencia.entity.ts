@@ -45,6 +45,9 @@ export class ClaseOcurrencia {
   @CreateDateColumn({ name: 'creada_en', type: 'timestamptz' })
   creadaEn!: Date;
 
+  // No es columna: lo completa listarOcurrencias con un conteo agregado.
+  cupoOcupado?: number;
+
   @OneToMany(() => ReservaClase, (reserva) => reserva.ocurrencia)
   reservas!: ReservaClase[];
 }

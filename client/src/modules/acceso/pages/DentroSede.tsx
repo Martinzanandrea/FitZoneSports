@@ -26,6 +26,8 @@ export function DentroSede() {
   useTitulo('Quién está dentro');
   const { user } = useAuth();
   const esGerente = user?.tipoActor === TipoActor.GERENTE_GENERAL;
+  // Registrar egresos es solo del Recepcionista; los gerentes ven la lista sin acciones.
+  const puedeEgreso = user?.tipoActor === TipoActor.RECEPCIONISTA;
   const [sedeId, setSedeId] = useState<string | null>(user?.sedeId ?? null);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [sesiones, setSesiones] = useState<SesionAbierta[]>([]);
@@ -181,9 +183,11 @@ export function DentroSede() {
                         Ingresó {s.horaIngreso.slice(0, 5)} · {haceCuanto(s.horaIngreso)}
                       </span>
                     </div>
-                    <button className="btn btn-secondary" onClick={() => void handleEgreso(s.usuario.id, nombre)} disabled={ocupado}>
-                      {ocupado ? 'Registrando...' : 'Registrar egreso'}
-                    </button>
+                    {puedeEgreso && (
+                      <button className="btn btn-secondary" onClick={() => void handleEgreso(s.usuario.id, nombre)} disabled={ocupado}>
+                        {ocupado ? 'Registrando...' : 'Registrar egreso'}
+                      </button>
+                    )}
                   </div>
                 );
               })}

@@ -15,7 +15,7 @@ export function ExternoInicio() {
   const { user } = useAuth();
   const navigate = useNavigate();
   // El externo solo puede reservar canchas: sus próximas son solo de ese tipo.
-  const { proximas, cargando, error } = useProximasReservas(user?.id, 4);
+  const { proximas, cargando, error } = useProximasReservas(user?.id, 4, false);
   const canchas = proximas.filter((p) => p.kind === 'cancha');
 
   return (
@@ -47,7 +47,11 @@ export function ExternoInicio() {
           ) : error ? (
             <ErrorState
               title="No pudimos cargar tus reservas"
-              description="Revisá tu conexión e intentá de nuevo en unos segundos."
+              description={
+                error === 'red'
+                  ? 'Revisá tu conexión e intentá de nuevo en unos segundos.'
+                  : 'Ocurrió un problema al mostrar tus reservas. Intentá de nuevo más tarde.'
+              }
               onRetry={() => window.location.reload()}
             />
           ) : canchas.length === 0 ? (

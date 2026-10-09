@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Banknote, Search, UserRound } from 'lucide-react';
-import { pagosApi, type OpcionesCobroEfectivo } from '../pagos.api';
+import { pagosApi, type ReservaCanchaCobro } from '../pagos.api';
 import type { Pago } from '../pagos.types';
 import { usuariosApi, type ClienteBuscado } from '../../usuarios/usuarios.api';
 import { membresiasApi } from '../../membresias/membresias.api';
@@ -8,14 +8,16 @@ import type { Membresia } from '../../membresias/membresias.types';
 import { preciosApi } from '../../precios/precios.api';
 import type { PrecioPlan } from '../../precios/precios.types';
 import { Select } from '../../../shared/components/Select';
+import { Pagination } from '../../../shared/components/ui';
 import { SectionHeader } from '../../../shared/components/SectionHeader';
 import { EmptyState } from '../../../shared/components/EmptyState';
 import { LoadingState } from '../../../shared/components/LoadingState';
+import { ErrorState } from '../../../shared/components/ErrorState';
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 type Tipo = 'plan' | 'cancha';
-type ReservaCancha = OpcionesCobroEfectivo['reservasCancha'][number];
+type ReservaCancha = ReservaCanchaCobro;
 
 const MIN_BUSQUEDA = 3;
 
@@ -37,9 +39,20 @@ export function CobrarEfectivo() {
   useTitulo('Cobrar en efectivo');
 
   const [busqueda, setBusqueda] = useState('');
+  // Texto ya "asentado" (con espera de 300 ms): es el que se manda al servidor.
+  const [q, setQ] = useState('');
   const [resultados, setResultados] = useState<ClienteBuscado[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState('');
+  // Clientes de la sede de quien cobra: una página a la vez, filtrada en el servidor
+  // (GET /pagos/efectivo/clientes, ya acotado por sede).
+  const [deLaSede, setDeLaSede] = useState<ClienteBuscado[]>([]);
+  const [paginaLista, setPaginaLista] = useState(1);
+  const [paginasLista, setPaginasLista] = useState(1);
+  const [totalLista, setTotalLista] = useState(0);
+  const [cargandoLista, setCargandoLista] = useState(true);
+  const [errorLista, setErrorLista] = useState(false);
+  const [recargaLista, setRecargaLista] = useState(0);
   const [cliente, setCliente] = useState<ClienteBuscado | null>(null);
 
   const [membresia, setMembresia] = useState<Membresia | null>(null);
@@ -62,33 +75,61 @@ export function CobrarEfectivo() {
     preciosApi.getMembresiasPublico().then(setPrecios).catch(() => setErrorPrecios(true));
   }, []);
 
-  // Búsqueda con espera corta: GET /usuarios/buscar-clientes pide mínimo 3 caracteres.
+  // Espera de 300 ms tras dejar de escribir antes de consultar al servidor.
   useEffect(() => {
-    const q = busqueda.trim();
+    const t = window.setTimeout(() => {
+      setQ(busqueda.trim());
+      setPaginaLista(1);
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [busqueda]);
+
+  // Lista de la sede. `viva` descarta respuestas viejas si cambió la página o el texto.
+  useEffect(() => {
+    let viva = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCargandoLista(true);
+    setErrorLista(false);
+    pagosApi
+      .getClientesEfectivo({ page: paginaLista, q })
+      .then((res) => {
+        if (!viva) return;
+        setDeLaSede(res.data);
+        setPaginasLista(res.totalPages);
+        setTotalLista(res.total);
+      })
+      .catch(() => viva && setErrorLista(true))
+      .finally(() => viva && setCargandoLista(false));
+    return () => {
+      viva = false;
+    };
+  }, [paginaLista, q, recargaLista]);
+
+  // Otras coincidencias (toda la cadena, un socio puede pagar en cualquier sede):
+  // GET /usuarios/buscar-clientes pide mínimo 3 caracteres y devuelve hasta 20.
+  useEffect(() => {
     if (cliente || q.length < MIN_BUSQUEDA) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResultados([]);
       setErrorBusqueda('');
       return;
     }
     let viva = true;
     setBuscando(true);
-    const t = window.setTimeout(() => {
-      usuariosApi
-        .buscarClientes(q)
-        .then((r) => {
-          if (!viva) return;
-          setResultados(r);
-          setErrorBusqueda('');
-        })
-        .catch(() => viva && setErrorBusqueda('No se pudo buscar. Intentá de nuevo.'))
-        .finally(() => viva && setBuscando(false));
-    }, 300);
+    usuariosApi
+      .buscarClientes(q)
+      .then((r) => {
+        if (!viva) return;
+        setResultados(r);
+        setErrorBusqueda('');
+      })
+      .catch(() => viva && setErrorBusqueda('No se pudo buscar. Intentá de nuevo.'))
+      .finally(() => viva && setBuscando(false));
     return () => {
       viva = false;
-      window.clearTimeout(t);
       setBuscando(false);
     };
-  }, [busqueda, cliente]);
+  }, [q, cliente]);
 
   // Estado de membresía del cliente elegido (solo lectura).
   useEffect(() => {
@@ -114,8 +155,8 @@ export function CobrarEfectivo() {
     let viva = true;
     setCargandoReservas(true);
     pagosApi
-      .getOpcionesEfectivo()
-      .then((o) => viva && setReservas(o.reservasCancha.filter((r) => r.usuario.id === cliente.id)))
+      .getReservasCanchaEfectivo(cliente.id)
+      .then((r) => viva && setReservas(r))
       .catch(() => viva && setReservas([]))
       .finally(() => viva && setCargandoReservas(false));
     return () => {
@@ -180,6 +221,10 @@ export function CobrarEfectivo() {
     }
   }
 
+  // Las coincidencias de otras sedes no repiten a quienes ya figuran en la página actual.
+  const idsLista = new Set(deLaSede.map((c) => c.id));
+  const otrasCoincidencias = resultados.filter((c) => !idsLista.has(c.id));
+
   const planElegido = precios.find((p) => p.plan === plan);
 
   return (
@@ -222,35 +267,65 @@ export function CobrarEfectivo() {
                       type="search"
                       value={busqueda}
                       onChange={(e) => setBusqueda(e.target.value)}
-                      placeholder="Buscar por nombre, apellido o DNI (mínimo 3 letras)"
+                      placeholder="Buscar por nombre, apellido o DNI"
                       aria-label="Buscar cliente"
                     />
                   </label>
-                  {busqueda.trim().length > 0 && busqueda.trim().length < MIN_BUSQUEDA && (
-                    <p style={{ fontSize: 11, marginTop: 8 }}>Escribí al menos {MIN_BUSQUEDA} caracteres.</p>
+                  {cargandoLista ? (
+                    <LoadingState rows={2} label="Cargando clientes de la sede" />
+                  ) : errorLista ? (
+                    <ErrorState title="No pudimos cargar los clientes de la sede" onRetry={() => setRecargaLista((n) => n + 1)} />
+                  ) : deLaSede.length === 0 ? (
+                    <EmptyState
+                      icon={UserRound}
+                      title={q ? 'Nadie de tu sede coincide' : 'Tu sede todavía no tiene clientes'}
+                      description={q ? 'Probá con otro nombre o DNI.' : 'Cuando haya socios o externos en tu sede, aparecen acá.'}
+                    />
+                  ) : (
+                    <>
+                      <span className="field-label" style={{ display: 'block', marginTop: 12 }}>
+                        CLIENTES DE LA SEDE ({totalLista})
+                      </span>
+                      <div className="pick-list" style={{ marginTop: 4 }}>
+                        {deLaSede.map((c) => (
+                          <button key={c.id} type="button" className="pick-item" onClick={() => elegirCliente(c)}>
+                            <span>
+                              {c.apellido}, {c.nombre}
+                              <br />
+                              <small>DNI {c.dni ?? 'sin DNI'}</small>
+                            </span>
+                            <small>{c.tipoActor === TipoActor.EXTERNO ? 'Externo' : 'Socio'}</small>
+                          </button>
+                        ))}
+                      </div>
+                      <Pagination page={paginaLista} totalPages={paginasLista} onChange={setPaginaLista} />
+                    </>
                   )}
-                  {buscando && <LoadingState rows={1} label="Buscando" />}
+                  {busqueda.trim().length > 0 && busqueda.trim().length < MIN_BUSQUEDA && (
+                    <p style={{ fontSize: 11, marginTop: 8 }}>Con {MIN_BUSQUEDA} letras también buscamos en otras sedes.</p>
+                  )}
+                  {buscando && <LoadingState rows={1} label="Buscando en otras sedes" />}
                   {errorBusqueda && (
                     <p role="alert" className="notice notice-err" style={{ marginTop: 8 }}>
                       {errorBusqueda}
                     </p>
                   )}
-                  {!buscando && !errorBusqueda && busqueda.trim().length >= MIN_BUSQUEDA && resultados.length === 0 && (
-                    <p style={{ fontSize: 11, marginTop: 8 }}>No encontramos clientes con esa búsqueda.</p>
-                  )}
-                  {resultados.length > 0 && (
-                    <div className="pick-list" style={{ marginTop: 8 }}>
-                      {resultados.map((c) => (
-                        <button key={c.id} type="button" className="pick-item" onClick={() => elegirCliente(c)}>
-                          <span>
-                            {c.nombre} {c.apellido}
-                            <br />
-                            <small>DNI {c.dni ?? 'sin DNI'}</small>
-                          </span>
-                          <small>{c.tipoActor === TipoActor.EXTERNO ? 'Externo' : 'Socio'}</small>
-                        </button>
-                      ))}
-                    </div>
+                  {otrasCoincidencias.length > 0 && (
+                    <>
+                      <span className="field-label" style={{ display: 'block', marginTop: 12 }}>OTRAS COINCIDENCIAS</span>
+                      <div className="pick-list" style={{ marginTop: 4 }}>
+                        {otrasCoincidencias.map((c) => (
+                          <button key={c.id} type="button" className="pick-item" onClick={() => elegirCliente(c)}>
+                            <span>
+                              {c.nombre} {c.apellido}
+                              <br />
+                              <small>DNI {c.dni ?? 'sin DNI'}</small>
+                            </span>
+                            <small>{c.tipoActor === TipoActor.EXTERNO ? 'Externo' : 'Socio'}</small>
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </>
               )}

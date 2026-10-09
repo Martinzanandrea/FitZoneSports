@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, MoreThanOrEqual, Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ReservaClase, ClaseOcurrencia, Membresia, Usuario } from '../entities';
 import {
@@ -23,6 +23,10 @@ import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import {
+  usuarioReducido,
+  type UsuarioReducido,
+} from '../common/helpers/usuario-reducido.helper';
+import {
   CLASE_CUPO_LIBERADO,
   type CupoLiberadoPayload,
 } from './events/clase.events';
@@ -30,6 +34,29 @@ import {
   BOOKING_CLASE_REPOSITORY,
   type IBookingClaseRepository,
 } from './booking-clase.repository';
+
+export type ReservaClaseListada = Omit<ReservaClase, 'usuario'> & {
+  usuario: UsuarioReducido;
+};
+
+export interface MiReservaClase {
+  id: string;
+  estado: EstadoResClase;
+  creadaEn: Date;
+  ocurrencia: {
+    id: string;
+    fecha: string;
+    horaInicio: string;
+    horaFin: string;
+    estado: EstadoOcurrenciaClase;
+    clase: {
+      id: string;
+      tipoClase: string;
+      sede: { id: string; nombre: string };
+      instructor: { id: string; nombre: string };
+    };
+  };
+}
 
 const HORAS_LIMITE_RESERVA_PROPIA = 48;
 const MINUTOS_LIMITE_RESERVA_STAFF = 30;
@@ -116,7 +143,8 @@ export class ReservasClaseService {
     const yaReservada = await this.reservasRepo.findOne({
       where: { ocurrencia: { id: ocurrenciaId }, usuario: { id: usuarioId } },
     });
-    if (yaReservada) {
+    // Una CANCELADA no bloquea: el repository la reactiva bajo lock.
+    if (yaReservada && yaReservada.estado !== EstadoResClase.CANCELADA) {
       throw new ConflictException(
         'Este usuario ya tiene una reserva para esta ocurrencia',
       );
@@ -187,10 +215,21 @@ export class ReservasClaseService {
     return guardada;
   }
 
+  // Listado de gestión: solo personal, acotado a la sede de la clase
+  // (fail-closed vía assertSedeScope). El usuario sale reducido.
   async findPorOcurrencia(
     ocurrenciaId: string,
     query: PaginationQueryDto,
-  ): Promise<PaginatedResponse<ReservaClase>> {
+    currentUser: UsuarioAutenticado,
+  ): Promise<PaginatedResponse<ReservaClaseListada>> {
+    const ocurrencia = await this.ocurrenciasRepo.findOne({
+      where: { id: ocurrenciaId },
+      relations: { clase: { sede: true } },
+    });
+    if (!ocurrencia)
+      throw new NotFoundException(`Ocurrencia ${ocurrenciaId} no encontrada`);
+    assertSedeScope(currentUser, ocurrencia.clase.sede.id);
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const [data, total] = await this.reservasRepo.findAndCount({
@@ -204,7 +243,63 @@ export class ReservasClaseService {
       take: limit,
     });
     return {
-      data,
+      data: data.map((r) => ({ ...r, usuario: usuarioReducido(r.usuario) })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  // Reservas activas (RESERVADA / LISTA_ESPERA) del usuario autenticado:
+  // el id sale del JWT, nunca de un parámetro. Incluye instructor y sede
+  // para que el cliente no dependa de otra consulta.
+  async misReservas(
+    usuarioId: string,
+    desde: string | undefined,
+    query?: PaginationQueryDto,
+  ): Promise<PaginatedResponse<MiReservaClase>> {
+    if (desde && !/^\d{4}-\d{2}-\d{2}$/.test(desde)) {
+      throw new BadRequestException('El filtro desde debe tener formato YYYY-MM-DD');
+    }
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const [data, total] = await this.reservasRepo.findAndCount({
+      where: {
+        usuario: { id: usuarioId },
+        estado: In([EstadoResClase.RESERVADA, EstadoResClase.LISTA_ESPERA]),
+        ...(desde ? { ocurrencia: { fecha: MoreThanOrEqual(desde) } } : {}),
+      },
+      relations: { ocurrencia: { clase: { sede: true, instructor: true } } },
+      order: { ocurrencia: { fecha: 'ASC', horaInicio: 'ASC' } },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return {
+      data: data.map((r) => ({
+        id: r.id,
+        estado: r.estado,
+        creadaEn: r.creadaEn,
+        ocurrencia: {
+          id: r.ocurrencia.id,
+          fecha: r.ocurrencia.fecha,
+          horaInicio: r.ocurrencia.horaInicio,
+          horaFin: r.ocurrencia.horaFin,
+          estado: r.ocurrencia.estado,
+          clase: {
+            id: r.ocurrencia.clase.id,
+            tipoClase: r.ocurrencia.clase.tipoClase,
+            sede: {
+              id: r.ocurrencia.clase.sede.id,
+              nombre: r.ocurrencia.clase.sede.nombre,
+            },
+            instructor: {
+              id: r.ocurrencia.clase.instructor.id,
+              nombre: r.ocurrencia.clase.instructor.nombre,
+            },
+          },
+        },
+      })),
       total,
       page,
       limit,

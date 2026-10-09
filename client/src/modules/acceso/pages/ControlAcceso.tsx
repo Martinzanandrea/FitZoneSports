@@ -21,6 +21,9 @@ export function ControlAcceso() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sedeId = user?.sedeId ?? null;
+  // Escanear/validar y registrar egresos: solo el Recepcionista. El Gerente de Sede
+  // ve únicamente el aforo y quién está dentro (el backend lo exige igual).
+  const puedeOperar = user?.tipoActor === TipoActor.RECEPCIONISTA;
 
   // ?modo= permite llegar directo a la cámara o al código desde el panel.
   const modoInicial = searchParams.get('modo');
@@ -203,14 +206,19 @@ export function ControlAcceso() {
         <div>
           <h2>Control de acceso</h2>
           <p>
-            {sedeNombre
-              ? `Validá ingresos por QR o código y registrá egresos de ${sedeNombre}.`
-              : 'Validá ingresos por QR o código y registrá egresos de tu sede.'}
+            {puedeOperar
+              ? sedeNombre
+                ? `Validá ingresos por QR o código y registrá egresos de ${sedeNombre}.`
+                : 'Validá ingresos por QR o código y registrá egresos de tu sede.'
+              : sedeNombre
+                ? `Aforo y personas dentro de ${sedeNombre}.`
+                : 'Aforo y personas dentro de tu sede.'}
           </p>
         </div>
       </div>
 
-      <div className="ops-grid">
+      <div className="ops-grid" style={puedeOperar ? undefined : { gridTemplateColumns: 'minmax(0, 1fr)' }}>
+        {puedeOperar && (
         <div className="stack-gap" style={{ minWidth: 0 }}>
           {/* Validar ingreso */}
           <section className="glass panel" aria-label="Validar ingreso">
@@ -313,6 +321,7 @@ export function ControlAcceso() {
             )}
           </section>
         </div>
+        )}
 
         <div className="stack-gap" style={{ minWidth: 0 }}>
           {/* Aforo */}
@@ -359,13 +368,15 @@ export function ControlAcceso() {
                           Ingresó {s.horaIngreso.slice(0, 5)} · {haceCuanto(s.horaIngreso)}
                         </span>
                       </div>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => void handleEgresoDirecto(s.usuario.id, nombre)}
-                        disabled={ocupado}
-                      >
-                        {ocupado ? 'Registrando...' : 'Egreso'}
-                      </button>
+                      {puedeOperar && (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => void handleEgresoDirecto(s.usuario.id, nombre)}
+                          disabled={ocupado}
+                        >
+                          {ocupado ? 'Registrando...' : 'Egreso'}
+                        </button>
+                      )}
                     </div>
                   );
                 })}

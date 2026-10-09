@@ -4,6 +4,7 @@ import type {
   Clase,
   ClaseHorarioSemanal,
   ClaseOcurrencia,
+  MiReservaClase,
   ReservaClase,
 } from './clases.types';
 
@@ -99,6 +100,12 @@ export const clasesApi = {
   // si está llena, queda en lista de espera y le avisan cuando se libera un lugar.
   reservar: (ocurrenciaId: string, usuarioId: string) =>
     api.post<ReservaClase>(`/clases/ocurrencias/${ocurrenciaId}/reservas`, { usuarioId }).then((r) => r.data),
+  // Mis reservas activas (RESERVADA / LISTA_ESPERA). El backend toma el
+  // usuario del token; desde = "YYYY-MM-DD" recorta por fecha de la clase.
+  getMisReservas: (desde?: string, page = 1, limit = 100) =>
+    api
+      .get<PaginatedResponse<MiReservaClase>>('/clases/reservas/mias', { params: { ...(desde ? { desde } : {}), page, limit } })
+      .then((r) => r.data),
   // Trae quiénes están anotados (y en espera) en una fecha concreta; el ocurrenciaId dice cuál.
   // Viene paginado: page arranca en 1 y limit trae 20 por defecto.
   getReservasPorOcurrencia: (ocurrenciaId: string, page = 1, limit = 20) =>
@@ -113,13 +120,11 @@ function aYMD(d: Date): string {
   return d.toISOString().split('T')[0];
 }
 
-// Agregación compartida (la misma que usa la pantalla de reservas):
-// plantillas + ocurrencias en ventana de días + reservas por ocurrencia.
-// Cada llamada individual que falla aporta lista vacía, no rompe el resto.
-export async function fetchMapaReservasClase(ventanaDias = 14): Promise<{
+// Plantillas + ocurrencias en ventana de días (cada una con su cupoOcupado
+// agregado). Una clase que falla aporta lista vacía, no rompe el resto.
+export async function fetchMapaClases(ventanaDias = 14): Promise<{
   clases: Clase[];
   occMap: Record<string, ClaseOcurrencia[]>;
-  resMap: Record<string, ReservaClase[]>;
 }> {
   const clasesRes = await clasesApi.getAll(undefined, 1, 100);
   const clases = clasesRes.data;
@@ -135,17 +140,5 @@ export async function fetchMapaReservasClase(ventanaDias = 14): Promise<{
       }
     }),
   );
-  const resMap: Record<string, ReservaClase[]> = {};
-  await Promise.all(
-    Object.values(occMap)
-      .flat()
-      .map(async (o) => {
-        try {
-          resMap[o.id] = (await clasesApi.getReservasPorOcurrencia(o.id)).data;
-        } catch {
-          resMap[o.id] = [];
-        }
-      }),
-  );
-  return { clases, occMap, resMap };
+  return { clases, occMap };
 }

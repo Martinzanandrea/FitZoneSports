@@ -1,34 +1,19 @@
 import { api } from "../../api/axios";
 import type { Pago, PagoPasarelaPayload } from "./pagos.types";
+import type { Usuario } from "../usuarios/usuarios.types";
 import type { PaginatedResponse } from "../../shared/types/pagination";
 
-export interface OpcionesCobroEfectivo {
-  usuarios: Array<{
-    id: string;
-    nombre: string;
-    apellido: string;
-    dni: string | null;
-    sede?: { id: string; nombre: string } | null;
-  }>;
-  membresias: Array<{
-    id: string;
-    plan: string;
-    estado: string;
-    fechaInicio: string;
-    fechaFin: string;
-    usuario: { id: string; nombre: string; apellido: string; dni?: string | null };
-    sedeAlta: { id: string; nombre: string };
-  }>;
-  reservasCancha: Array<{
-    id: string;
-    estado: string;
-    fecha: string;
-    horaInicio: string;
-    horaFin: string;
-    precioFinal: string;
-    usuario: { id: string; nombre: string; apellido: string; dni?: string | null };
-    cancha: { nombre: string; sede: { id: string; nombre: string } };
-  }>;
+// Cliente de la sede para cobrar: solo lo necesario para identificarlo.
+export type ClienteCobro = Pick<Usuario, "id" | "nombre" | "apellido" | "dni" | "tipoActor">;
+
+export interface ReservaCanchaCobro {
+  id: string;
+  estado: string;
+  fecha: string;
+  horaInicio: string;
+  horaFin: string;
+  precioFinal: string;
+  cancha: { nombre: string; sede: { id: string; nombre: string } };
 }
 
 export interface RegistrarEfectivoPayload {
@@ -41,10 +26,19 @@ export interface RegistrarEfectivoPayload {
 }
 
 export const pagosApi = {
-  // Trae todo lo que un recepcionista puede cobrar en efectivo (usuarios,
-  // membresías y reservas pendientes), ya filtrado por su sede.
-  getOpcionesEfectivo: () =>
-    api.get<OpcionesCobroEfectivo>("/pagos/efectivo/opciones").then((res) => res.data),
+  // Clientes (socios y externos activos) de la sede de quien cobra, paginados
+  // en el servidor (limit máx. 20) y filtrables por nombre, apellido o DNI.
+  getClientesEfectivo: (params: { page: number; limit?: number; q?: string }) =>
+    api
+      .get<PaginatedResponse<ClienteCobro>>("/pagos/efectivo/clientes", {
+        params: { page: params.page, limit: params.limit ?? 20, q: params.q || undefined },
+      })
+      .then((res) => res.data),
+  // Reservas de cancha pendientes de cobro de UN cliente, en la sede de quien cobra.
+  getReservasCanchaEfectivo: (usuarioId: string) =>
+    api
+      .get<ReservaCanchaCobro[]>("/pagos/efectivo/reservas-cancha", { params: { usuarioId } })
+      .then((res) => res.data),
   // Cobra con la pasarela simulada; el monto real lo calcula el backend,
   // lo que se manda es a qué corresponde el pago y con qué método.
   pagarConPasarela: (payload: PagoPasarelaPayload) =>

@@ -240,7 +240,11 @@ export function SocioInicio() {
           ) : error ? (
             <ErrorState
               title="No pudimos cargar tus reservas"
-              description="Revisá tu conexión e intentá de nuevo en unos segundos."
+              description={
+                error === 'red'
+                  ? 'Revisá tu conexión e intentá de nuevo en unos segundos.'
+                  : 'Ocurrió un problema al mostrar tus reservas. Intentá de nuevo más tarde.'
+              }
               onRetry={() => window.location.reload()}
             />
           ) : proximas.length === 0 ? (

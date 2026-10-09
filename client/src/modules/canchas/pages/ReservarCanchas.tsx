@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Volleyball } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { canchasApi } from '../canchas.api';
-import type { Cancha, ReservaCancha } from '../canchas.types';
+import type { Cancha, MiReservaCancha, ReservaCancha } from '../canchas.types';
 import { Badge } from '../../../shared/components/ui';
 import { Select } from '../../../shared/components/Select';
 import { EmptyState } from '../../../shared/components/EmptyState';
@@ -36,7 +36,11 @@ export function ReservarCanchas() {
   const [tipoSel, setTipoSel] = useState<string>('');
   const [canchaId, setCanchaId] = useState<string>('');
   const [fecha, setFecha] = useState<string>(formatFecha(new Date()));
-  const [reservas, setReservas] = useState<ReservaCancha[]>([]);
+  // Franjas ocupadas (sin datos de quién reservó) y mis reservas del día,
+  // ambas desde endpoints que no exponen reservas ajenas.
+  const [ocupacion, setOcupacion] = useState<Array<{ horaInicio: string; horaFin: string }>>([]);
+  const [misReservasDia, setMisReservasDia] = useState<MiReservaCancha[]>([]);
+  const [recarga, setRecarga] = useState(0);
   const [loading, setLoading] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
   const [reservando, setReservando] = useState<string | null>(null);
@@ -96,12 +100,20 @@ export function ReservarCanchas() {
 
   useEffect(() => {
     if (!canchaId) return;
-    canchasApi.getReservasPorCancha(canchaId, fecha).then((res) => setReservas(res.data)).catch(() => setReservas([]));
-  }, [canchaId, fecha]);
+    Promise.all([canchasApi.getOcupacion(canchaId, fecha), canchasApi.getMisReservas({ fecha })])
+      .then(([ocup, mias]) => {
+        setOcupacion(ocup);
+        setMisReservasDia(mias.data);
+      })
+      .catch(() => {
+        setOcupacion([]);
+        setMisReservasDia([]);
+      });
+  }, [canchaId, fecha, recarga]);
 
   const ocupadas = useMemo(
-    () => new Set(reservas.filter((r) => r.estado === 'CONFIRMADA').map((r) => r.horaInicio.slice(0, 5))),
-    [reservas],
+    () => new Set(ocupacion.map((r) => r.horaInicio.slice(0, 5))),
+    [ocupacion],
   );
 
   async function confirmarReserva() {
@@ -113,7 +125,7 @@ export function ReservarCanchas() {
       const r = await canchasApi.reservar({ canchaId, usuarioId: user.id, fecha, horaInicio, horaFin });
       setUltimaReserva(r);
       setMsg({ type: 'ok', text: `Reserva confirmada — $${r.precioFinal} (${r.estrategiaPrecio})` });
-      setReservas((prev) => [...prev, r]);
+      setRecarga((n) => n + 1);
       setCotizacion(null);
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } } };
@@ -148,7 +160,7 @@ export function ReservarCanchas() {
     setReservando(id);
     try {
       await canchasApi.cancelar(id);
-      setReservas((prev) => prev.filter((r) => r.id !== id));
+      setRecarga((n) => n + 1);
       setMsg({ type: 'ok', text: 'Reserva cancelada.' });
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } } };
@@ -169,7 +181,7 @@ export function ReservarCanchas() {
     );
 
   const canchaSel = canchasFiltradas.find((c) => c.id === canchaId);
-  const misReservasHoy = reservas.filter((r) => r.usuario.id === user?.id && r.estado === 'CONFIRMADA');
+  const misReservasHoy = misReservasDia.filter((r) => r.cancha.id === canchaId);
 
   return (
     <>

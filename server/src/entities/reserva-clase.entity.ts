@@ -53,7 +53,7 @@ export class ReservaClase {
   creadaEn: Date;
 
   @Column({ name: 'cancelada_en', type: 'timestamptz', nullable: true })
-  canceladaEn?: Date;
+  canceladaEn?: Date | null;
 
   @OneToMany(() => Pago, (pago) => pago.reservaClase)
   pagos: Pago[];

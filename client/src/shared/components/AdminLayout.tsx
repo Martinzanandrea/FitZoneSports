@@ -5,6 +5,7 @@ import {
   Calendar,
   CalendarCheck,
   ClipboardList,
+  Contact,
   CreditCard,
   GraduationCap,
   QrCode,
@@ -45,13 +46,13 @@ const MENU_SEDE: MenuAdminItem[] = [
   { to: '/admin/membresias', label: 'Membresías', icon: CreditCard },
   { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList },
   { to: '/admin/acceso', label: 'Control de acceso', icon: QrCode },
-  { to: '/admin/cobrar', label: 'Cobrar', icon: Banknote },
   { to: '/admin/reportes', label: 'Reportes', icon: TrendingUp },
 ];
 
 const MENU_GENERAL: MenuAdminItem[] = [
   { to: '/admin/gerente', label: 'Panel', icon: TrendingUp },
   { to: '/admin/personal', label: 'Personal', icon: Users },
+  { to: '/admin/personal/clientes', label: 'Clientes', icon: Contact },
   { to: '/admin/sedes', label: 'Sedes', icon: Building2 },
   { to: '/admin/canchas', label: 'Canchas', icon: ScanLine },
   { to: '/admin/clases', label: 'Clases', icon: BookOpen },
