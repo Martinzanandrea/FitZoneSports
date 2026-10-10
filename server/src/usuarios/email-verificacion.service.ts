@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { describirErrorMail } from '../common/helpers/error-mail.helper';
 import { escaparHtml } from '../common/helpers/escape-html.helper';
 
 const REMITENTE = 'FitZone Sports <fitzonesports@gmail.com>';
@@ -37,6 +38,7 @@ export class EmailVerificacionService {
       console.log(`[DEV] Link de verificación: ${link}`);
     }
     const transporter = this.crearTransporte(user, pass);
+    const inicio = Date.now();
     try {
       await transporter.sendMail({
         from: REMITENTE,
@@ -52,7 +54,9 @@ export class EmailVerificacionService {
         (err as { code?: string; responseCode?: number })?.code ??
         (err as { responseCode?: number })?.responseCode ??
         'desconocido';
-      this.logger.warn(`El SMTP rechazó el envío de verificación (${codigo})`);
+      this.logger.warn(
+        `El SMTP rechazó el envío de verificación (${describirErrorMail(err, Date.now() - inicio)})`,
+      );
       throw new Error(`El SMTP rechazó el envío (${codigo})`);
     }
   }

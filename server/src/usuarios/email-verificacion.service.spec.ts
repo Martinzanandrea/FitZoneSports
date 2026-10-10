@@ -80,4 +80,23 @@ describe('EmailVerificacionService', () => {
     expect((err as Error).message).not.toContain('a@x.com');
     expect((err as Error).message).toContain('EENVELOPE');
   });
+
+  it('el log trae code/responseCode/command y ms si hubo timeout, sin el email', async () => {
+    sendMail.mockRejectedValue(
+      Object.assign(new Error('timeout enviando a a@x.com'), {
+        code: 'ETIMEDOUT',
+        responseCode: 421,
+        command: 'CONN',
+      }),
+    );
+    const { service, warn } = armar();
+    await service.enviarVerificacion('a@x.com', 'Ana', 'tok').catch(() => 0);
+    const texto = JSON.stringify(warn.mock.calls);
+    expect(texto).toContain('code=ETIMEDOUT');
+    expect(texto).toContain('responseCode=421');
+    expect(texto).toContain('command=CONN');
+    expect(texto).toMatch(/tardó=\d+ms/);
+    expect(texto).not.toContain('a@x.com');
+    expect(texto).not.toContain('timeout enviando');
+  });
 });

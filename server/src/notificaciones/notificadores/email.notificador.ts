@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { describirErrorMail } from '../../common/helpers/error-mail.helper';
 import { EmailVerificacionService } from '../../usuarios/email-verificacion.service';
 import { renderEmailFitZone } from '../plantillas/email-fitzone';
 import type {
@@ -23,6 +24,7 @@ export class EmailNotificador implements Notificador {
     mensaje: MensajeNotificacion,
   ): Promise<boolean> {
     if (!destinatario.email || !destinatario.emailVerificado) return false;
+    const inicio = Date.now();
     try {
       await this.mail.enviarCorreo(
         destinatario.email,
@@ -34,9 +36,12 @@ export class EmailNotificador implements Notificador {
         }),
       );
       return true;
-    } catch {
-      // Ni dirección ni mensaje del error (puede incluir el destinatario).
-      this.logger.warn('Falló el envío de un mail de notificación');
+    } catch (err) {
+      // Ni dirección ni mensaje del error (puede incluir el destinatario):
+      // solo el id del usuario y los códigos técnicos.
+      this.logger.warn(
+        `Falló el envío de un mail de notificación al usuario ${destinatario.id} (${describirErrorMail(err, Date.now() - inicio)})`,
+      );
       return false;
     }
   }
