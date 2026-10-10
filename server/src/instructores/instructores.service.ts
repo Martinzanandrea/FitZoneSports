@@ -13,6 +13,27 @@ import type { PaginatedResponse } from '../common/types/paginated-response.type'
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 
+export interface InstructorVistaReducida {
+  id: string;
+  nombre: string;
+  especialidad: string | null;
+}
+
+function verVistaCompleta(user?: UsuarioAutenticado): boolean {
+  return (
+    user?.tipoActor === TipoActor.GERENTE_GENERAL ||
+    user?.tipoActor === TipoActor.GERENTE_SEDE
+  );
+}
+
+function vistaReducida(i: Instructor): InstructorVistaReducida {
+  return {
+    id: i.id,
+    nombre: i.nombre,
+    especialidad: i.especialidad ?? null,
+  };
+}
+
 @Injectable()
 export class InstructoresService {
   constructor(
@@ -41,22 +62,42 @@ export class InstructoresService {
     return this.instructoresRepo.save(instructor);
   }
 
+  // Los gerentes ven la entidad completa (incluye teléfono y estado). Todos los
+  // demás (Socio, Externo, Recepcionista) reciben solo id, nombre y especialidad
+  // de los instructores ACTIVOS: el teléfono es un dato personal del instructor.
+  // La entidad no tiene apellido; el nombre completo va en `nombre`.
   async findAll(
     query: PaginationQueryDto,
-  ): Promise<PaginatedResponse<Instructor>> {
+    currentUser?: UsuarioAutenticado,
+  ): Promise<PaginatedResponse<Instructor | InstructorVistaReducida>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
+    const completa = verVistaCompleta(currentUser);
     const [data, total] = await this.instructoresRepo.findAndCount({
+      ...(completa ? {} : { where: { activo: true } }),
+      order: { nombre: 'ASC', id: 'ASC' },
       skip: (page - 1) * limit,
       take: limit,
     });
     return {
-      data,
+      data: completa ? data : data.map(vistaReducida),
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit) || 1,
     };
+  }
+
+  async findOneVisible(
+    id: string,
+    currentUser?: UsuarioAutenticado,
+  ): Promise<Instructor | InstructorVistaReducida> {
+    const instructor = await this.findOne(id);
+    if (verVistaCompleta(currentUser)) return instructor;
+    if (!instructor.activo) {
+      throw new NotFoundException(`Instructor ${id} no encontrado`);
+    }
+    return vistaReducida(instructor);
   }
 
   async findOne(id: string): Promise<Instructor> {

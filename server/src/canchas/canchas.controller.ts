@@ -23,6 +23,7 @@ import { UpdateCanchaDto } from './dto/update-cancha.dto';
 import { CreateBloqueoDto } from './dto/create-bloqueo.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
 
 @ApiTags('Canchas')
 @ApiCookieAuth('token')
@@ -43,6 +44,7 @@ export class CanchasController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Get()
   @ApiOperation({ summary: 'Listar canchas' })
   findAll(
@@ -69,11 +71,15 @@ export class CanchasController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una cancha por ID' })
   @ApiParam({ name: 'id', description: 'UUID de la cancha' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.canchasService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.canchasService.findOneVisible(id, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

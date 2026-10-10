@@ -1,5 +1,12 @@
 import { api } from "../../api/axios";
-import type { Pago, PagoPasarelaPayload } from "./pagos.types";
+import type {
+  FiltrosHistorialPagos,
+  Pago,
+  PagoHistorial,
+  PagoPasarelaPayload,
+  PagoPropio,
+  TotalesHistorial,
+} from "./pagos.types";
 import type { Usuario } from "../usuarios/usuarios.types";
 import type { PaginatedResponse } from "../../shared/types/pagination";
 
@@ -25,7 +32,34 @@ export interface RegistrarEfectivoPayload {
   monto?: number;
 }
 
+export interface CobrarCanchaPresencialPayload {
+  usuarioId: string;
+  canchaId: string;
+  fecha: string;
+  horaInicio: string;
+  horaFin: string;
+}
+
 export const pagosApi = {
+  // Historial del personal (GG todas las sedes; recepción y gerente de sede, la suya).
+  getHistorial: (f: FiltrosHistorialPagos) =>
+    api
+      .get<PaginatedResponse<PagoHistorial> & { totales: TotalesHistorial }>("/pagos", {
+        params: { ...f, limit: f.limit ?? 20 },
+      })
+      .then((res) => res.data),
+  // Historial propio (Socio y Externo): el usuario sale de la sesión, no se manda.
+  getMios: (page = 1, limit = 20) =>
+    api.get<PaginatedResponse<PagoPropio>>("/pagos/mias", { params: { page, limit } }).then((res) => res.data),
+  // Emite el comprobante de un pago aprobado que no lo tiene (solo personal).
+  generarComprobante: (pagoId: string) =>
+    api.post<{ id: string; generadoEn: string; creado: boolean }>(`/pagos/${pagoId}/comprobante`).then((res) => res.data),
+  // Rehace el PDF de un comprobante existente con el diseño actual (mismo registro).
+  regenerarComprobante: (pagoId: string) =>
+    api.post<{ id: string; generadoEn: string; creado: boolean }>(`/pagos/${pagoId}/comprobante/regenerar`).then((res) => res.data),
+  // Descarga el PDF por el endpoint con control de acceso (no la URL pública).
+  getArchivoComprobante: (comprobanteId: string) =>
+    api.get<Blob>(`/comprobantes/${comprobanteId}/archivo`, { responseType: "blob" }).then((res) => res.data),
   // Clientes (socios y externos activos) de la sede de quien cobra, paginados
   // en el servidor (limit máx. 20) y filtrables por nombre, apellido o DNI.
   getClientesEfectivo: (params: { page: number; limit?: number; q?: string }) =>
@@ -53,4 +87,8 @@ export const pagosApi = {
   // (membresía o reserva de cancha).
   registrarEfectivo: (payload: RegistrarEfectivoPayload) =>
     api.post<Pago>("/pagos/efectivo", payload).then((res) => res.data),
+  // Cobro presencial de cancha: el backend crea la reserva y registra el pago
+  // en efectivo en una sola operación; el precio lo calcula él (no se manda).
+  cobrarCanchaPresencial: (payload: CobrarCanchaPresencialPayload) =>
+    api.post<Pago>("/pagos/efectivo/cancha", payload).then((res) => res.data),
 };

@@ -8,6 +8,9 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { parsearExpiracionMs } from './helpers/jwt-expiracion.helper';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @ApiTags('Autenticación')
 @Controller('auth')
@@ -70,7 +73,8 @@ export class AuthController {
     return { message: 'Sesión cerrada' };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Get('me')
   @ApiCookieAuth('token')
   @ApiOperation({ summary: 'Obtener el usuario autenticado' })

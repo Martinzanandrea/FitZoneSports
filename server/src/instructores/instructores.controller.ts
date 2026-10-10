@@ -27,6 +27,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Instructores')
@@ -48,17 +49,25 @@ export class InstructoresController {
     return this.instructoresService.create(dto, user);
   }
 
+  @Roles(...TODOS_LOS_ROLES)
   @Get()
   @ApiOperation({ summary: 'Listar instructores' })
-  findAll(@Query() query: PaginationQueryDto) {
-    return this.instructoresService.findAll(query);
+  findAll(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.instructoresService.findAll(query, user);
   }
 
+  @Roles(...TODOS_LOS_ROLES)
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un instructor por ID' })
   @ApiParam({ name: 'id', description: 'UUID del instructor' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.instructoresService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.instructoresService.findOneVisible(id, user);
   }
 
   @Roles(TipoActor.GERENTE_GENERAL, TipoActor.GERENTE_SEDE)

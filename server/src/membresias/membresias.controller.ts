@@ -22,6 +22,8 @@ import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type'
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
+import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Membresías')
@@ -30,24 +32,12 @@ import { ApiCookieAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 export class MembresiasController {
   constructor(private readonly membresiasService: MembresiasService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Crear una membresía' })
-  create(
-    @Body() dto: CreateMembresiaDto,
-    @CurrentUser() user: UsuarioAutenticado,
-  ) {
-    assertOwnerOrStaff(user, dto.usuarioId);
-    return this.membresiasService.create(dto);
-  }
-
-  @Post('renovar')
-  @ApiOperation({ summary: 'Renovar una membresía' })
-  renovar(@Body() dto: CreateMembresiaDto, @CurrentUser() user: UsuarioAutenticado) {
-    assertOwnerOrStaff(user, dto.usuarioId);
-    return this.membresiasService.renovar(dto);
-  }
+  // No hay POST /membresias ni POST /membresias/renovar: una membresía solo
+  // nace (o se renueva) junto con un pago APROBADO, en la misma transacción.
+  // Se contrata con POST /pagos/pasarela o POST /pagos/efectivo.
 
   // Debe ir ANTES que ':id' para que Nest no lo confunda con un parámetro.
+  @Roles(...TODOS_LOS_ROLES)
   @Get('vigente/:usuarioId')
   @ApiOperation({ summary: 'Obtener el estado de membresía de un usuario (solo lectura)' })
   @ApiParam({ name: 'usuarioId', description: 'UUID del usuario' })
@@ -66,6 +56,7 @@ export class MembresiasController {
     return this.membresiasService.findAll(user, query);
   }
 
+  @Roles(...TODOS_LOS_ROLES)
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una membresía por ID' })
   @ApiParam({ name: 'id', description: 'UUID de la membresía' })
@@ -75,6 +66,10 @@ export class MembresiasController {
   ) {
     const membresia = await this.membresiasService.findOne(id);
     assertOwnerOrStaff(user, membresia.usuario.id);
+    // El personal de sede solo ve membresías dadas de alta en su sede.
+    if (user.id !== membresia.usuario.id) {
+      assertSedeScope(user, membresia.sedeAlta.id);
+    }
     return membresia;
   }
 
@@ -98,6 +93,7 @@ export class MembresiasController {
     return { message: `${cantidad} membresía(s) marcadas como vencidas` };
   }
 
+  @Roles(TipoActor.SOCIO, TipoActor.EXTERNO, TipoActor.GERENTE_SEDE, TipoActor.GERENTE_GENERAL)
   @Patch(':id/cancelar')
   @ApiOperation({ summary: 'Cancelar una membresía' })
   @ApiParam({ name: 'id', description: 'UUID de la membresía' })

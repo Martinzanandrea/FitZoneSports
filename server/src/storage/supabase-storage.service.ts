@@ -35,4 +35,17 @@ export class SupabaseStorageService {
       .getPublicUrl(nombreArchivo);
     return data.publicUrl;
   }
+
+  // Borra un archivo propio a partir de su URL pública. Devuelve false si la URL
+  // no es de este bucket o si falla (el llamador decide si le importa).
+  async eliminarArchivo(bucket: string, urlPublica: string): Promise<boolean> {
+    const marca = `/${bucket}/`;
+    const i = urlPublica.indexOf(marca);
+    if (i < 0) return false;
+    const nombre = decodeURIComponent(
+      urlPublica.slice(i + marca.length).split('?')[0],
+    );
+    const { error } = await this.client.storage.from(bucket).remove([nombre]);
+    return !error;
+  }
 }

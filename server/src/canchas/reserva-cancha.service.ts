@@ -5,13 +5,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
-import { Cancha, Usuario, ReservaCancha } from '../entities';
-import { TipoActor, EstadoResCancha } from '../entities/enums';
+import { EntityManager, MoreThanOrEqual, Repository } from 'typeorm';
+import { BloqueoCancha, Cancha, Usuario, ReservaCancha } from '../entities';
+import { TipoActor, EstadoCancha, EstadoResCancha } from '../entities/enums';
+import { instanteArgentina } from '../common/helpers/hora-argentina.helper';
+import {
+  bloqueoSolapaTurno,
+  esTurnoValido,
+  turnosDelDia,
+} from './turnos-cancha';
 import { estadoDesde } from '../membresias/estado-membresia';
 import { MembresiasService } from '../membresias/membresias.service';
 import {
   BOOKING_CANCHA_REPOSITORY,
+  type DatosNuevaReserva,
   type IBookingCanchaRepository,
 } from './booking-cancha.repository';
 import { PricingCalculatorService } from './pricing/pricing-calculator.service';
@@ -55,6 +62,8 @@ export class ReservasCanchaService {
     private readonly bookingRepo: IBookingCanchaRepository,
     private readonly pricingCalculator: PricingCalculatorService,
     private readonly membresiasService: MembresiasService,
+    @InjectRepository(BloqueoCancha)
+    private readonly bloqueosRepo: Repository<BloqueoCancha>,
   ) {}
 
   /**
@@ -91,10 +100,9 @@ export class ReservasCanchaService {
     if (!usuario)
       throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
 
-    const inicio = new Date(`${dto.fecha}T${dto.horaInicio}:00`);
-    if (inicio.getTime() <= Date.now()) {
-      throw new BadRequestException('No se puede reservar un horario que ya comenzó');
-    }
+    this.assertTurnoValido(dto.horaInicio, dto.horaFin);
+    this.assertTurnoNoComenzado(dto.fecha, dto.horaInicio);
+    this.assertCanchaReservable(cancha);
 
     const { precioFinal, estrategia } = await this.calcularPrecio(
       cancha,
@@ -134,12 +142,105 @@ export class ReservasCanchaService {
     const usuario = await this.usuariosRepo.findOne({ where: { id: dto.usuarioId } });
     if (!usuario) throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
 
-    const inicio = new Date(`${dto.fecha}T${dto.horaInicio}:00`);
-    if (inicio.getTime() <= Date.now()) {
-      throw new BadRequestException('No se puede reservar un horario que ya comenzó');
-    }
+    this.assertTurnoValido(dto.horaInicio, dto.horaFin);
+    this.assertTurnoNoComenzado(dto.fecha, dto.horaInicio);
+    this.assertCanchaReservable(cancha);
 
     return this.calcularPrecio(cancha, usuario, dto.horaInicio);
+  }
+
+  // Turnos en punto de una hora entre las 08:00 y las 22:00. Mismo criterio
+  // que el cobro de mostrador: el precio es por hora, así que no se acepta
+  // un horaFin elegido por el cliente.
+  private assertTurnoValido(horaInicio: string, horaFin: string): void {
+    if (!esTurnoValido(horaInicio, horaFin)) {
+      throw new BadRequestException(
+        'El turno debe ser de una hora, en punto, entre las 08:00 y las 22:00',
+      );
+    }
+  }
+
+  // Hora de Argentina, no la del servidor.
+  private assertTurnoNoComenzado(fecha: string, horaInicio: string): void {
+    if (instanteArgentina(fecha, horaInicio).getTime() <= Date.now()) {
+      throw new BadRequestException('No se puede reservar un horario que ya comenzó');
+    }
+  }
+
+  // Chequeo temprano para dar un error claro; el definitivo (y el de los
+  // bloqueos por franja) lo hace el repositorio bajo el lock de la cancha.
+  private assertCanchaReservable(cancha: Cancha): void {
+    if (cancha.estado === EstadoCancha.MANTENIMIENTO) {
+      throw new BadRequestException('La cancha está en mantenimiento');
+    }
+  }
+
+  // Cobro presencial (paso 1, fuera de la transacción): valida cancha de la
+  // sede de quien cobra, cliente Socio/Externo activo, turno válido y calcula
+  // el precio en el servidor con la misma lógica que la reserva online
+  // (descuento de socio, hora pico y cuota vencida = tarifa de externo).
+  async prepararReservaPresencial(
+    dto: {
+      canchaId: string;
+      usuarioId: string;
+      fecha: string;
+      horaInicio: string;
+      horaFin: string;
+    },
+    currentUser: UsuarioAutenticado,
+  ): Promise<{
+    cancha: Cancha;
+    usuario: Usuario;
+    precioFinal: number;
+    estrategia: DatosNuevaReserva['estrategiaPrecio'];
+  }> {
+    const cancha = await this.canchasRepo.findOne({
+      where: { id: dto.canchaId },
+      relations: { sede: true },
+    });
+    if (!cancha)
+      throw new NotFoundException(`Cancha ${dto.canchaId} no encontrada`);
+    // Fail-closed: otra sede, o sin sede asignada, es 403.
+    assertSedeScope(currentUser, cancha.sede.id);
+
+    const usuario = await this.usuariosRepo.findOne({
+      where: { id: dto.usuarioId },
+    });
+    if (!usuario)
+      throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
+    const esCliente =
+      usuario.tipoActor === TipoActor.SOCIO ||
+      usuario.tipoActor === TipoActor.EXTERNO;
+    if (!esCliente || !usuario.activo) {
+      throw new BadRequestException(
+        'El cliente debe ser un Socio o un Externo activo',
+      );
+    }
+
+    if (!esTurnoValido(dto.horaInicio, dto.horaFin)) {
+      throw new BadRequestException(
+        'El turno debe ser de una hora, en punto, entre las 08:00 y las 22:00',
+      );
+    }
+    this.assertTurnoNoComenzado(dto.fecha, dto.horaInicio);
+    this.assertCanchaReservable(cancha);
+
+    const { precioFinal, estrategia } = await this.calcularPrecio(
+      cancha,
+      usuario,
+      dto.horaInicio,
+    );
+    return { cancha, usuario, precioFinal, estrategia };
+  }
+
+  // Paso 2: la inserción con el lock de la cancha, dentro de la transacción
+  // de quien llama (comparte disponibilidad, mantenimiento y sobreventa con
+  // la reserva online).
+  crearReservaEnTransaccion(
+    manager: EntityManager,
+    datos: DatosNuevaReserva,
+  ): Promise<ReservaCancha> {
+    return this.bookingRepo.crearReservaSegura(datos, manager);
   }
 
   private async calcularPrecio(cancha: Cancha, usuario: Usuario, horaInicio: string) {
@@ -199,6 +300,12 @@ export class ReservasCanchaService {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha ?? '')) {
       throw new BadRequestException('La fecha debe tener formato YYYY-MM-DD');
     }
+    const cancha = await this.canchasRepo.findOne({ where: { id: canchaId } });
+    if (!cancha) throw new NotFoundException(`Cancha ${canchaId} no encontrada`);
+    // Cancha en mantenimiento: ningún turno nuevo está disponible.
+    if (cancha.estado === EstadoCancha.MANTENIMIENTO) {
+      return turnosDelDia();
+    }
     const reservas = await this.reservasRepo.find({
       where: {
         cancha: { id: canchaId },
@@ -207,10 +314,28 @@ export class ReservasCanchaService {
       },
       order: { horaInicio: 'ASC' },
     });
-    return reservas.map((r) => ({
-      horaInicio: r.horaInicio,
-      horaFin: r.horaFin,
-    }));
+    const ocupadas = new Map<string, { horaInicio: string; horaFin: string }>(
+      reservas.map((r) => [
+        r.horaInicio.slice(0, 5),
+        { horaInicio: r.horaInicio, horaFin: r.horaFin },
+      ]),
+    );
+    // Bloqueos por rango: solo los turnos que toca cada bloqueo (sin motivo).
+    const bloqueos = await this.bloqueosRepo.find({
+      where: { cancha: { id: canchaId } },
+    });
+    for (const turno of turnosDelDia()) {
+      if (
+        bloqueos.some((b) =>
+          bloqueoSolapaTurno(b, fecha, turno.horaInicio, turno.horaFin),
+        )
+      ) {
+        ocupadas.set(turno.horaInicio.slice(0, 5), turno);
+      }
+    }
+    return [...ocupadas.values()].sort((a, b) =>
+      a.horaInicio.localeCompare(b.horaInicio),
+    );
   }
 
   // Reservas CONFIRMADA del usuario autenticado (id del JWT, nunca de un
@@ -271,12 +396,20 @@ export class ReservasCanchaService {
   ): Promise<ReservaCancha> {
     const reserva = await this.reservasRepo.findOne({
       where: { id: reservaId },
-      relations: { usuario: true },
+      relations: { usuario: true, cancha: { sede: true } },
     });
     if (!reserva)
       throw new NotFoundException(`Reserva ${reservaId} no encontrada`);
 
     assertOwnerOrStaff(currentUser, reserva.usuario.id);
+    // El personal que cancela la reserva de otra persona queda acotado a la
+    // sede de la cancha (GG: todas).
+    if (
+      currentUser.id !== reserva.usuario.id &&
+      currentUser.tipoActor !== TipoActor.GERENTE_GENERAL
+    ) {
+      assertSedeScope(currentUser, reserva.cancha.sede.id);
+    }
 
     reserva.estado = EstadoResCancha.CANCELADA;
     reserva.canceladaEn = new Date();

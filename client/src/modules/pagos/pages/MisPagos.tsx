@@ -1,26 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Banknote, CreditCard, Smartphone, type LucideIcon } from 'lucide-react';
-import { useAuth } from '../../auth/AuthContext';
 import { pagosApi } from '../pagos.api';
-import type { Pago } from '../pagos.types';
+import type { PagoPropio } from '../pagos.types';
 import { Badge } from '../../../shared/components/ui';
 import { EmptyState } from '../../../shared/components/EmptyState';
 import { ErrorState } from '../../../shared/components/ErrorState';
 import { LoadingState } from '../../../shared/components/LoadingState';
 import { SectionHeader } from '../../../shared/components/SectionHeader';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
-
-function concepto(p: Pago) {
-  if (p.membresia) return 'Membresía';
-  if (p.reservaClase) return 'Reserva de clase';
-  if (p.reservaCancha) return 'Reserva de cancha';
-  return 'Pago';
-}
+import { BotonComprobante } from '../components/BotonComprobante';
 
 const metodoIcono: Record<string, { icon: LucideIcon; color: string }> = {
   EFECTIVO: { icon: Banknote, color: '#8cf2a6' },
   MERCADOPAGO: { icon: CreditCard, color: '#54e6d8' },
   MODO: { icon: Smartphone, color: '#ffd071' },
+};
+
+const NOMBRE_METODO: Record<string, string> = {
+  EFECTIVO: 'Efectivo en mostrador',
+  MERCADOPAGO: 'Mercado Pago',
+  MODO: 'Modo',
 };
 
 function variantePorEstado(estado: string): 'success' | 'danger' | 'warning' {
@@ -33,26 +32,32 @@ function etiquetaEstado(estado: string) {
 
 export function MisPagos() {
   useTitulo('Mis pagos');
-  const { user } = useAuth();
-  const [pagos, setPagos] = useState<Pago[]>([]);
+  const [pagos, setPagos] = useState<PagoPropio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [recarga, setRecarga] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    if (!user) return;
+    let viva = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(false);
+    // El servidor devuelve los pagos de la sesión (online y de mostrador).
     pagosApi
-      .getPorUsuario(user.id, page)
+      .getMios(page)
       .then((res) => {
+        if (!viva) return;
         setPagos(res.data);
         setTotalPages(res.totalPages);
       })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [user, page]);
+      .catch(() => viva && setError(true))
+      .finally(() => viva && setLoading(false));
+    return () => {
+      viva = false;
+    };
+  }, [page, recarga]);
 
   const aprobados = pagos.filter((p) => p.estado === 'APROBADO');
   const total = aprobados.reduce((s, p) => s + Number(p.monto), 0);
@@ -72,7 +77,7 @@ export function MisPagos() {
         <ErrorState
           title="No pudimos cargar los pagos"
           description="Revisá tu conexión e intentá de nuevo en unos segundos."
-          onRetry={() => window.location.reload()}
+          onRetry={() => setRecarga((n) => n + 1)}
         />
       ) : (
         <>
@@ -116,33 +121,22 @@ export function MisPagos() {
                           <IconoMetodo size={16} />
                         </span>
                         <span>
-                          <strong>{concepto(p)}</strong>
-                          <small>
-                            {p.metodo} · {new Date(p.creadoEn).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </small>
+                          <strong>{p.concepto}</strong>
+                          <small>{NOMBRE_METODO[p.metodo] ?? p.metodo}</small>
                         </span>
                       </div>
                       <span>
                         <Badge variant={variantePorEstado(p.estado)}>{etiquetaEstado(p.estado)}</Badge>
                       </span>
                       <span className="cell-value">
-                        {new Date(p.creadoEn).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                        {new Date(p.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                       <span className="row-actions">
                         <span className="cell-value" style={{ fontWeight: 700, color: 'var(--text)' }}>
-                          ${p.monto}
+                          ${Number(p.monto).toLocaleString('es-AR')}
                         </span>
-                        {p.comprobante?.pdfPath && (
-                          <a
-                            href={p.comprobante.pdfPath}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-ghost"
-                            style={{ minHeight: 44, padding: '0 8px' }}
-                            aria-label={`Ver comprobante de ${concepto(p)}`}
-                          >
-                            🧾
-                          </a>
+                        {p.comprobanteId && (
+                          <BotonComprobante comprobanteId={p.comprobanteId} ariaLabel={`Ver comprobante de ${p.concepto}`} />
                         )}
                       </span>
                     </div>

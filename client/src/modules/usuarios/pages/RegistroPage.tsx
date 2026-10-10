@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Camera, Eye, EyeOff, Fingerprint, Lock, Mail, Phone, Star, User, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Eye, EyeOff, Fingerprint, Lock, Mail, Phone, User } from 'lucide-react';
 import { usuariosApi } from '../usuarios.api';
 import { TipoActor } from '../../../shared/types/enums';
 import { AuthInput, AuthLayout } from '../../auth/AuthLayout';
@@ -10,7 +10,6 @@ export function RegistroPage() {
   useTitulo('Creá tu cuenta');
   const [registradoEmail, setRegistradoEmail] = useState<string | null>(null);
 
-  const [tipoActor, setTipoActor] = useState<string>(TipoActor.SOCIO);
   const [dni, setDni] = useState('');
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
@@ -55,7 +54,8 @@ export function RegistroPage() {
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append('tipoActor', tipoActor);
+      // El servidor ignora este valor: todo registro nace EXTERNO.
+      formData.append('tipoActor', TipoActor.EXTERNO);
       formData.append('dni', dni);
       formData.append('nombre', nombre);
       formData.append('apellido', apellido);
@@ -159,28 +159,10 @@ export function RegistroPage() {
       <h1>Creá tu cuenta</h1>
       <p>Solo toma 2 minutos.</p>
 
-      <div>
-        <span className="field-label">TIPO DE CUENTA</span>
-        <div className="account-pick">
-          {(
-            [
-              { id: TipoActor.SOCIO, icon: <Star size={16} />, label: 'Socio', desc: 'Membresía activa, acceso completo' },
-              { id: TipoActor.EXTERNO, icon: <Users size={16} />, label: 'Cliente externo', desc: 'Clases y canchas sueltas' },
-            ] as const
-          ).map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setTipoActor(opt.id)}
-              aria-pressed={tipoActor === opt.id}
-            >
-              <span className="account-pick-icon">{opt.icon}</span>
-              <strong>{opt.label}</strong>
-              <span>{opt.desc}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      <p style={{ fontSize: 12, marginBottom: 14 }}>
+        Tu cuenta nace como <strong>cliente</strong> (clases y canchas sueltas). Pasás a ser <strong>socio</strong> al
+        pagar un plan de membresía.
+      </p>
 
       <div>
         <span className="field-label">FOTO DE PERFIL</span>

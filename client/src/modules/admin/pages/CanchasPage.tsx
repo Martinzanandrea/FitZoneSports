@@ -133,8 +133,8 @@ export function CanchasPage() {
     try {
       const payload = { sedeId, nombre: form.nombre.trim(), tipoId: form.tipoId, costoHoraBase: Number(form.costoHoraBase) };
       if (editingId) {
-        await canchasApi.update(editingId, { ...payload, estado: form.estado });
-        setMsg({ type: 'ok', text: 'Cancha actualizada.' });
+        const actualizada = await canchasApi.update(editingId, { ...payload, estado: form.estado });
+        setMsg({ type: 'ok', text: actualizada.aviso ? `Cancha actualizada. ${actualizada.aviso.mensaje}` : 'Cancha actualizada.' });
       } else {
         await canchasApi.create(payload);
         setMsg({ type: 'ok', text: 'Cancha creada.' });
@@ -362,8 +362,8 @@ export function CanchasPage() {
           <div className="glass panel modal-card" role="alertdialog" aria-modal="true" aria-label="Eliminar cancha">
             <SectionHeader title="Eliminar cancha" />
             <p style={{ marginBottom: 14, fontSize: 13 }}>
-              ¿Eliminar <strong style={{ color: 'var(--text)' }}>{aEliminar.nombre}</strong> de {aEliminar.sede.nombre}? Solo se puede borrar si nunca tuvo reservas; si las tiene, ponela en
-              mantenimiento.
+              ¿Eliminar <strong style={{ color: 'var(--text)' }}>{aEliminar.nombre}</strong> de {aEliminar.sede.nombre}? Solo se puede borrar si nunca tuvo reservas (cumplidas, canceladas o
+              por cumplirse); si las tiene, ponela en mantenimiento: se respetan las reservas ya tomadas.
             </p>
             {errorEliminar && (
               <p role="alert" className="notice notice-err" style={{ marginBottom: 14 }}>

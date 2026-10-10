@@ -25,6 +25,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Reservas de clases')
@@ -33,6 +34,7 @@ import {
 export class ReservasClaseController {
   constructor(private readonly reservasService: ReservasClaseService) {}
 
+  @Roles(...TODOS_LOS_ROLES)
   @Post('ocurrencias/:ocurrenciaId/reservas')
   @ApiOperation({ summary: 'Reservar una ocurrencia de clase' })
   @ApiParam({ name: 'ocurrenciaId', description: 'UUID de la ocurrencia' })
@@ -62,6 +64,7 @@ export class ReservasClaseController {
   }
 
   // El id sale siempre del JWT: no hay parámetro de usuario.
+  @Roles(TipoActor.SOCIO, TipoActor.EXTERNO)
   @Get('reservas/mias')
   @ApiOperation({ summary: 'Mis reservas de clases activas' })
   @ApiQuery({ name: 'desde', required: false, description: 'YYYY-MM-DD' })
@@ -73,6 +76,7 @@ export class ReservasClaseController {
     return this.reservasService.misReservas(user.id, desde, query);
   }
 
+  @Roles(...TODOS_LOS_ROLES)
   @Post('reservas/:reservaId/cancelar')
   @ApiOperation({ summary: 'Cancelar una reserva de clase' })
   @ApiParam({ name: 'reservaId', description: 'UUID de la reserva' })

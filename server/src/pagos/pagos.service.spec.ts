@@ -14,6 +14,8 @@ function armar(opts: {
   rolTitular: string;
   aprobado?: boolean;
   fallaUpdateRol?: boolean;
+  vigente?: Record<string, unknown> | null;
+  fallaPago?: boolean;
 }) {
   const pagosGuardados: Array<Record<string, unknown>> = [];
   const update = jest.fn().mockImplementation(() => {
@@ -33,6 +35,7 @@ function armar(opts: {
       {
         create: (d: Record<string, unknown>) => ({ id: 'pago-1', ...d }),
         save: (p: Record<string, unknown>) => {
+          if (opts.fallaPago) return Promise.reject(new Error('pago no guardado'));
           pagosGuardados.push(p);
           return Promise.resolve(p);
         },
@@ -79,9 +82,9 @@ function armar(opts: {
   const comprobantes = { generar: jest.fn().mockResolvedValue({}) };
   const preciosService = { obtenerPrecio: jest.fn().mockResolvedValue(12500) };
   const membresiasService = {
-    obtenerMembresiaVigente: jest.fn().mockResolvedValue(null),
+    obtenerMembresiaVigente: jest.fn().mockResolvedValue(opts.vigente ?? null),
     create: jest.fn().mockResolvedValue(membresia),
-    renovar: jest.fn(),
+    renovar: jest.fn().mockResolvedValue(membresia),
   };
   const auditoria = { registrar: jest.fn().mockResolvedValue(undefined) };
 
@@ -96,9 +99,12 @@ function armar(opts: {
     membresiasService as never,
     dataSource as never,
     auditoria as never,
+    {} as never,
   );
   return {
     service,
+    membresiasService,
+    manager,
     update,
     pagosGuardados,
     pagosRepo,
@@ -109,7 +115,8 @@ function armar(opts: {
 
 const dtoPasarela = {
   usuarioId: ID_TITULAR,
-  membresiaId: ID_MEMBRESIA,
+  plan: TipoPlan.MENSUAL,
+  sedeAltaId: ID_SEDE,
   metodo: MetodoPago.MERCADOPAGO,
 };
 
@@ -136,7 +143,9 @@ describe('PagosService — promoción EXTERNO → SOCIO', () => {
     const pago = await t.service.pagarConPasarela(dtoPasarela as never);
     expect(pago.estado).toBe(EstadoPago.RECHAZADO);
     expect(t.update).not.toHaveBeenCalled();
-    expect(t.auditoria.registrar).not.toHaveBeenCalled();
+    expect(t.auditoria.registrar).not.toHaveBeenCalledWith(
+      expect.objectContaining({ accion: 'PROMOVER_EXTERNO_A_SOCIO' }),
+    );
   });
 
   it('SOCIO + pago aprobado → sin cambios de rol', async () => {
@@ -146,10 +155,13 @@ describe('PagosService — promoción EXTERNO → SOCIO', () => {
     expect(t.auditoria.registrar).not.toHaveBeenCalled();
   });
 
-  it('GERENTE_SEDE titular + pago aprobado → sin cambios de rol', async () => {
+  it('GERENTE_SEDE no puede pagar una membresía: se rechaza antes de cobrar', async () => {
     const t = armar({ rolTitular: TipoActor.GERENTE_SEDE });
-    await t.service.pagarConPasarela(dtoPasarela as never);
+    await expect(
+      t.service.pagarConPasarela(dtoPasarela as never),
+    ).rejects.toThrow('Solo un socio o un cliente externo');
     expect(t.update).not.toHaveBeenCalled();
+    expect(t.membresiasService.create).not.toHaveBeenCalled();
   });
 
   it('falla al guardar el rol → el pago no queda aprobado', async () => {
@@ -200,5 +212,101 @@ describe('PagosService — comprobante en la respuesta', () => {
       generadoEn: new Date(0),
     });
     expect(() => JSON.stringify(pago)).not.toThrow();
+  });
+});
+
+describe('PagosService — una membresía solo queda activa con un pago aprobado', () => {
+  it('pago aprobado: membresía y pago se crean en la MISMA transacción', async () => {
+    const t = armar({ rolTitular: TipoActor.EXTERNO });
+    const pago = await t.service.pagarConPasarela(dtoPasarela as never);
+    expect(pago.estado).toBe(EstadoPago.APROBADO);
+    expect(t.membresiasService.create).toHaveBeenCalledTimes(1);
+    expect(t.membresiasService.create).toHaveBeenCalledWith(
+      { usuarioId: ID_TITULAR, sedeAltaId: ID_SEDE, plan: TipoPlan.MENSUAL },
+      t.manager,
+    );
+    expect(t.pagosGuardados).toHaveLength(1);
+    expect(t.pagosGuardados[0]).toEqual(
+      expect.objectContaining({ membresia: expect.objectContaining({ id: ID_MEMBRESIA }) }),
+    );
+  });
+
+  it('pago rechazado: no se crea ni renueva ninguna membresía y no se guarda pago', async () => {
+    const t = armar({ rolTitular: TipoActor.EXTERNO, aprobado: false });
+    const pago = await t.service.pagarConPasarela(dtoPasarela as never);
+    expect(pago.estado).toBe(EstadoPago.RECHAZADO);
+    expect(t.membresiasService.create).not.toHaveBeenCalled();
+    expect(t.membresiasService.renovar).not.toHaveBeenCalled();
+    expect(t.pagosGuardados).toHaveLength(0);
+    expect(t.auditoria.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ accion: 'PAGO_RECHAZADO' }),
+    );
+  });
+
+  it('pago rechazado de quien ya tiene membresía ACTIVO: no la toca', async () => {
+    const t = armar({
+      rolTitular: TipoActor.SOCIO,
+      aprobado: false,
+      vigente: { estado: 'ACTIVO', sedeAlta: { id: ID_SEDE } },
+    });
+    await t.service.pagarConPasarela(dtoPasarela as never);
+    expect(t.membresiasService.renovar).not.toHaveBeenCalled();
+  });
+
+  it('si falla guardar el pago, la transacción se deshace (nada queda activo sin pago)', async () => {
+    const t = armar({ rolTitular: TipoActor.EXTERNO, fallaPago: true });
+    await expect(
+      t.service.pagarConPasarela(dtoPasarela as never),
+    ).rejects.toThrow('pago no guardado');
+    expect(t.pagosGuardados).toHaveLength(0);
+    expect(t.comprobantes.generar).not.toHaveBeenCalled();
+  });
+
+  it('renovación con pago: renueva dentro de la transacción, con la sede de la vigente', async () => {
+    const t = armar({
+      rolTitular: TipoActor.SOCIO,
+      vigente: { estado: 'ACTIVO', sedeAlta: { id: 'sede-vieja' } },
+    });
+    const pago = await t.service.pagarConPasarela({
+      ...dtoPasarela,
+      sedeAltaId: undefined,
+    } as never);
+    expect(pago.estado).toBe(EstadoPago.APROBADO);
+    expect(t.membresiasService.create).not.toHaveBeenCalled();
+    expect(t.membresiasService.renovar).toHaveBeenCalledWith(
+      { usuarioId: ID_TITULAR, sedeAltaId: 'sede-vieja', plan: TipoPlan.MENSUAL },
+      t.manager,
+    );
+    expect(t.pagosGuardados).toHaveLength(1);
+  });
+
+  it('Socio vencido: volver a ser activo exige un pago (crea una membresía nueva con él)', async () => {
+    const t = armar({
+      rolTitular: TipoActor.SOCIO,
+      vigente: { estado: 'VENCIDO', sedeAlta: { id: ID_SEDE } },
+    });
+    await t.service.pagarConPasarela(dtoPasarela as never);
+    expect(t.membresiasService.renovar).not.toHaveBeenCalled();
+    expect(t.membresiasService.create).toHaveBeenCalledTimes(1);
+    expect(t.pagosGuardados).toHaveLength(1);
+  });
+
+  it('Socio vencido con pago rechazado: no se reactiva nada', async () => {
+    const t = armar({
+      rolTitular: TipoActor.SOCIO,
+      aprobado: false,
+      vigente: { estado: 'VENCIDO', sedeAlta: { id: ID_SEDE } },
+    });
+    await t.service.pagarConPasarela(dtoPasarela as never);
+    expect(t.membresiasService.create).not.toHaveBeenCalled();
+    expect(t.membresiasService.renovar).not.toHaveBeenCalled();
+  });
+
+  it('sin sede de alta (cliente nuevo sin sedeAltaId): 400 antes de cobrar', async () => {
+    const t = armar({ rolTitular: TipoActor.EXTERNO });
+    await expect(
+      t.service.pagarConPasarela({ ...dtoPasarela, sedeAltaId: undefined } as never),
+    ).rejects.toThrow('sedeAltaId');
+    expect(t.membresiasService.create).not.toHaveBeenCalled();
   });
 });

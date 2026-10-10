@@ -1,0 +1,83 @@
+import { EmailVerificacionService } from './email-verificacion.service';
+
+const sendMail = jest.fn();
+jest.mock('nodemailer', () => ({
+  createTransport: () => ({ sendMail: (o: unknown) => sendMail(o) }),
+}));
+
+function armar(extra: Record<string, string> = {}) {
+  const valores: Record<string, string> = {
+    GMAIL_USER: 'u',
+    GMAIL_APP_PASSWORD: 'p',
+    FRONTEND_URL: 'http://front',
+    ...extra,
+  };
+  const service = new EmailVerificacionService({
+    get: (k: string) => valores[k],
+  } as never);
+  const warn = jest
+    .spyOn(
+      (service as unknown as { logger: { warn: () => void } }).logger,
+      'warn',
+    )
+    .mockImplementation(() => undefined);
+  return { service, warn };
+}
+
+describe('EmailVerificacionService', () => {
+  beforeEach(() => {
+    sendMail.mockReset().mockResolvedValue(undefined);
+  });
+
+  it('escapa el nombre en el HTML del mail', async () => {
+    const { service } = armar();
+    await service.enviarVerificacion(
+      'a@x.com',
+      '<script>alert(1)</script>',
+      'tok',
+    );
+    const html = (sendMail.mock.calls[0] as Array<{ html: string }>)[0].html;
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;');
+  });
+
+  it('el token va codificado en el link', async () => {
+    const { service } = armar();
+    await service.enviarVerificacion('a@x.com', 'Ana', 'a b&c');
+    const html = (sendMail.mock.calls[0] as Array<{ html: string }>)[0].html;
+    expect(html).toContain('token=a%20b%26c');
+  });
+
+  it('no imprime email ni token por consola (ni en desarrollo por defecto)', async () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    const { service } = armar();
+    await service.enviarVerificacion('a@x.com', 'Ana', 'tok');
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it('solo con MAIL_DEV_LOG_LINKS=true imprime el link, y nunca el email', async () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    const { service } = armar({ MAIL_DEV_LOG_LINKS: 'true' });
+    await service.enviarVerificacion('a@x.com', 'Ana', 'tok');
+    const texto = JSON.stringify(log.mock.calls);
+    expect(texto).toContain('verificar-email');
+    expect(texto).not.toContain('a@x.com');
+    log.mockRestore();
+  });
+
+  it('un rechazo del SMTP no se registra ni se relanza con la dirección', async () => {
+    sendMail.mockRejectedValue(
+      Object.assign(new Error('Recipient a@x.com rejected'), {
+        code: 'EENVELOPE',
+      }),
+    );
+    const { service, warn } = armar();
+    const err = await service
+      .enviarVerificacion('a@x.com', 'Ana', 'tok')
+      .catch((e: unknown) => e);
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('a@x.com');
+    expect((err as Error).message).not.toContain('a@x.com');
+    expect((err as Error).message).toContain('EENVELOPE');
+  });
+});

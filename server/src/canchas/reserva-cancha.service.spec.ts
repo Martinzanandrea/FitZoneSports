@@ -50,6 +50,7 @@ function armar() {
     {} as never,
     {} as never,
     {} as never,
+    { find: jest.fn().mockResolvedValue([]) } as never,
   );
   return { service, canchasRepo, reservasRepo };
 }
@@ -187,5 +188,74 @@ describe('ReservasCanchaService.misReservas / ocupacion', () => {
     const { service } = armar();
     const r = await service.ocupacion('c1', '2026-11-01');
     expect(r).toEqual([{ horaInicio: '10:00:00', horaFin: '11:00:00' }]);
+  });
+});
+
+describe('ReservasCanchaService.ocupacion: mantenimiento y bloqueos', () => {
+  function conCancha(
+    estado: string,
+    bloqueos: Array<{ desde: string; hasta: string }>,
+  ) {
+    const canchasRepo = {
+      findOne: jest.fn().mockResolvedValue({ id: 'c1', estado }),
+    };
+    const reservasRepo = {
+      find: jest
+        .fn()
+        .mockResolvedValue([{ horaInicio: '10:00:00', horaFin: '11:00:00' }]),
+    };
+    const bloqueosRepo = {
+      find: jest.fn().mockResolvedValue(
+        bloqueos.map((b) => ({
+          desde: new Date(b.desde),
+          hasta: new Date(b.hasta),
+        })),
+      ),
+    };
+    return new ReservasCanchaService(
+      canchasRepo as never,
+      {} as never,
+      reservasRepo as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      bloqueosRepo as never,
+    );
+  }
+
+  it('cancha en mantenimiento: todos los turnos figuran ocupados', async () => {
+    const r = await conCancha('MANTENIMIENTO', []).ocupacion(
+      'c1',
+      '2026-11-01',
+    );
+    expect(r).toHaveLength(15);
+    expect(r[0].horaInicio).toBe('08:00:00');
+    expect(r[14].horaInicio).toBe('22:00:00');
+  });
+
+  it('bloqueo por rango: solo ocupa los turnos afectados (hora de Argentina)', async () => {
+    // 14:00 a 16:00 en Argentina = 17:00 a 19:00 UTC
+    const r = await conCancha('ACTIVA', [
+      { desde: '2026-11-01T17:00:00Z', hasta: '2026-11-01T19:00:00Z' },
+    ]).ocupacion('c1', '2026-11-01');
+    expect(r.map((t) => t.horaInicio)).toEqual([
+      '10:00:00',
+      '14:00:00',
+      '15:00:00',
+    ]);
+  });
+
+  it('un bloqueo que termina justo cuando empieza un turno no lo toca', async () => {
+    const r = await conCancha('ACTIVA', [
+      { desde: '2026-11-01T12:00:00Z', hasta: '2026-11-01T13:00:00Z' }, // 09:00-10:00 AR
+    ]).ocupacion('c1', '2026-11-01');
+    expect(r.map((t) => t.horaInicio)).toEqual(['09:00:00', '10:00:00']);
+  });
+
+  it('un bloqueo de otro día no afecta', async () => {
+    const r = await conCancha('ACTIVA', [
+      { desde: '2026-11-02T12:00:00Z', hasta: '2026-11-02T20:00:00Z' },
+    ]).ocupacion('c1', '2026-11-01');
+    expect(r).toHaveLength(1);
   });
 });

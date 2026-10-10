@@ -1,11 +1,25 @@
-import { IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 // A propósito NO incluye el horario semanal: si hay que cambiar el
 // horario, se desactiva la clase y se crea una nueva.
 export class UpdateClaseDto {
   @ApiPropertyOptional({ example: 'Funcional' })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
   @IsOptional()
   tipoClase?: string;
 

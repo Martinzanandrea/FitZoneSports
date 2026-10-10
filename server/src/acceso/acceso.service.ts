@@ -336,11 +336,15 @@ export class AccesoService {
   async findHistorialPorUsuario(
     usuarioId: string,
     query: PaginationQueryDto,
+    sedeId?: string,
   ): Promise<PaginatedResponse<ControlAcceso>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const [data, total] = await this.accesoRepo.findAndCount({
-      where: { usuario: { id: usuarioId } },
+      where: {
+        usuario: { id: usuarioId },
+        ...(sedeId ? { sede: { id: sedeId } } : {}),
+      },
       relations: { sede: true },
       order: { horaIngreso: 'DESC' },
       skip: (page - 1) * limit,

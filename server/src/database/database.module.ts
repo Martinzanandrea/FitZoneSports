@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ALL_ENTITIES } from '../entities';
+import { leerPoolConfig, opcionesDePool } from './pool.config';
 
 @Module({
   imports: [
@@ -19,6 +20,8 @@ import { ALL_ENTITIES } from '../entities';
         synchronize: false, // nunca poner en true,la db ya la creamos.
         logging: false,
         ssl: { rejectUnauthorized: false },
+        // Pool explícito (ver pool.config.ts y el README del servidor).
+        ...opcionesDePool(leerPoolConfig((k) => config.get<string>(k))),
       }),
     }),
   ],

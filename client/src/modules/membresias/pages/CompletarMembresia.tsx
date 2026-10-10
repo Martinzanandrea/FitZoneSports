@@ -95,19 +95,19 @@ export function CompletarMembresia() {
     setLoading(true);
     setError('');
     try {
-      const membresia = esRenovacion
-        ? await membresiasApi.renovar({ usuarioId: user.id, sedeAltaId: sedeId, plan })
-        : await membresiasApi.create({ usuarioId: user.id, sedeAltaId: sedeId, plan });
+      // La membresía no existe antes del pago: el backend la crea (o renueva)
+      // junto con el pago aprobado, en una sola operación. Un rechazo no deja
+      // nada creado, así que no hay nada que cancelar.
       const pago = await pagosApi.pagarConPasarela({
         usuarioId: user.id,
-        membresiaId: membresia.id,
+        plan,
+        sedeAltaId: sedeId,
         metodo,
         simularRechazo,
         // Sin "monto": el backend recalcula el precio real desde
         // precios_plan, ignorando cualquier valor que mandemos acá.
       });
       if (pago.estado !== 'APROBADO') {
-        await membresiasApi.cancelar(membresia.id);
         setError('El pago fue rechazado. Podés reintentar con otro método.');
         return;
       }

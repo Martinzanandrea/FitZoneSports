@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ClaseOcurrencia, ReservaClase, Usuario } from '../entities';
-import { EstadoResClase } from '../entities/enums';
+import { EstadoOcurrenciaClase, EstadoResClase } from '../entities/enums';
 
 export interface DatosNuevaReservaClase {
   ocurrenciaId: string;
@@ -22,14 +22,10 @@ export const BOOKING_CLASE_REPOSITORY = 'BOOKING_CLASE_REPOSITORY';
 // cupo se cierra con transacción + lock pesimista, separada del service
 // que orquesta las validaciones (ownership, sede, membresía, tiempos).
 @Injectable()
-export class TypeOrmBookingClaseRepository
-  implements IBookingClaseRepository
-{
+export class TypeOrmBookingClaseRepository implements IBookingClaseRepository {
   constructor(private readonly dataSource: DataSource) {}
 
-  async reservarSegura(
-    datos: DatosNuevaReservaClase,
-  ): Promise<ReservaClase> {
+  async reservarSegura(datos: DatosNuevaReservaClase): Promise<ReservaClase> {
     return this.dataSource.transaction(async (manager) => {
       // 1) Lock pesimista sobre la OCURRENCIA (no la clase entera:
       // dos reservas de ocurrencias distintas de la misma clase no
@@ -48,6 +44,17 @@ export class TypeOrmBookingClaseRepository
       if (!ocurrencia) {
         throw new NotFoundException(
           `Ocurrencia ${datos.ocurrenciaId} no encontrada`,
+        );
+      }
+
+      // Con el lock tomado, la baja de la clase (que bloquea las mismas filas)
+      // ya terminó o todavía no empezó: no se reserva en lo cancelado.
+      if (
+        ocurrencia.estado === EstadoOcurrenciaClase.CANCELADA ||
+        ocurrencia.clase.activa === false
+      ) {
+        throw new NotFoundException(
+          `Ocurrencia ${datos.ocurrenciaId} no disponible para reservar`,
         );
       }
 

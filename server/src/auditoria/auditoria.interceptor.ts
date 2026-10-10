@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable, tap } from 'rxjs';
 import { AUDITABLE_KEY, AuditableMeta } from './decorators/auditable.decorator';
 import { AuditoriaService } from './auditoria.service';
+import { redactarSecretos } from './redactar-secretos.helper';
 
 @Injectable()
 export class AuditoriaInterceptor implements NestInterceptor {
@@ -23,7 +24,8 @@ export class AuditoriaInterceptor implements NestInterceptor {
           accion: meta.accion,
           entidad: meta.entidad,
           entidadId: response?.id,
-          detalle: request.body,
+          // El body puede traer contraseñas o tokens: nunca se guardan.
+          detalle: redactarSecretos(request.body),
         });
       }),
     );

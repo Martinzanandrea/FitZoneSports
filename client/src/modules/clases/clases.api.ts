@@ -56,6 +56,27 @@ export interface ResumenClasePublica {
   horasSemanalesTotales: number;
 }
 
+// Reglas vigentes que publica el backend (GET /clases/reglas).
+export interface ReglasClases {
+  horasLimiteReservaPropia: number;
+  minutosLimiteReservaStaff: number;
+  horasLimiteCancelacion: number;
+  semanasVentanaOcurrencias: number;
+}
+
+// Lo que cancelaría la baja de una clase (GET /clases/:id/impacto-baja).
+export interface ImpactoBaja {
+  ocurrenciasFuturas: number;
+  reservasFuturas: number;
+  sociosAfectados: number;
+}
+
+export interface ResumenBaja {
+  ocurrenciasCanceladas: number;
+  reservasCanceladas: number;
+  sociosAfectados: number;
+}
+
 export const clasesApi = {
   // Catálogo público agregado por tipo (sin login): por cada tipo de
   // clase activa, cuántas sedes lo ofrecen y la carga horaria total.
@@ -64,8 +85,30 @@ export const clasesApi = {
   // Trae las plantillas de clases (no los horarios sueltos); si se pasa una
   // sede, devuelve solo las de esa sede. Viene paginado: page arranca
   // en 1 y limit trae 20 por defecto.
-  getAll: (sedeId?: string, page = 1, limit = 20) =>
-    api.get<PaginatedResponse<ClaseCruda>>('/clases', { params: { ...(sedeId ? { sedeId } : {}), page, limit } }).then((r) => ({ ...r.data, data: r.data.data.map(normalizarClase) })),
+  // `activa` (solo gerentes) filtra por estado; sin él, los gerentes ven activas y dadas de baja.
+  getAll: (sedeId?: string, page = 1, limit = 20, activa?: boolean) =>
+    api
+      .get<PaginatedResponse<ClaseCruda>>('/clases', {
+        params: { ...(sedeId ? { sedeId } : {}), ...(activa !== undefined ? { activa } : {}), page, limit },
+      })
+      .then((r) => ({ ...r.data, data: r.data.data.map(normalizarClase) })),
+  // Clases activas por tipo, calculado en el servidor (solo gerentes; el GS ve su sede).
+  getResumenTipos: (sedeId?: string) =>
+    api
+      .get<Array<{ tipoClase: string; activas: number }>>('/clases/resumen-tipos', { params: sedeId ? { sedeId } : {} })
+      .then((r) => r.data),
+  // Límites de reserva/cancelación y ventana de generación vigentes.
+  getReglas: () => api.get<ReglasClases>('/clases/reglas').then((r) => r.data),
+  // Edita tipo y/o capacidad; el backend rechaza una capacidad menor a las reservas.
+  actualizar: (id: string, payload: { tipoClase?: string; capacidad?: number }) =>
+    api.patch<ClaseCruda>(`/clases/${id}`, payload).then((r) => normalizarClase(r.data)),
+  // Cuántas reservas futuras cancelaría la baja (para confirmar con datos reales).
+  getImpactoBaja: (id: string) => api.get<ImpactoBaja>(`/clases/${id}/impacto-baja`).then((r) => r.data),
+  // Vuelve a ofrecer una clase dada de baja (las reservas canceladas no se restauran).
+  reactivar: (id: string) =>
+    api
+      .post<ClaseCruda & { ocurrenciasReabiertas: number; ocurrenciasGeneradas: number | null }>(`/clases/${id}/reactivar`)
+      .then((r) => r.data),
   // Trae el detalle de una clase con su grilla semanal; el id dice cuál.
   getOne: (id: string) =>
     api.get<ClaseCruda>(`/clases/${id}`).then((r) => normalizarClase(r.data)),
@@ -85,8 +128,8 @@ export const clasesApi = {
   // Reintenta generar las fechas de una clase (idempotente); GG o GS con scope.
   generarOcurrencias: (id: string) =>
     api.post<{ claseId: string; ocurrenciasGeneradas: number }>(`/clases/${id}/generar-ocurrencias`).then((r) => r.data),
-  // Desactiva una clase (el id dice cuál); lo ya generado y reservado queda intacto.
-  desactivar: (id: string) => api.delete(`/clases/${id}`).then((r) => r.data),
+  // Da de baja una clase (baja lógica): cancela sus fechas y reservas futuras y avisa a los socios.
+  desactivar: (id: string) => api.delete<{ resumenBaja: ResumenBaja }>(`/clases/${id}`).then((r) => r.data),
   // Le cambia el instructor a una clase; el claseId dice cuál clase y el instructorId quién la va a dar.
   asignarInstructor: (claseId: string, instructorId: string) =>
     api.patch<ClaseCruda>(`/clases/${claseId}/instructor`, { instructorId }).then((r) => normalizarClase(r.data)),

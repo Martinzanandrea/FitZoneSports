@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
   ValidationPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { UsuariosService } from './usuarios.service';
@@ -44,6 +45,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
 
 @ApiTags('Usuarios')
 @ApiCookieAuth('token')
@@ -122,8 +124,9 @@ export class UsuariosController {
     return this.usuariosService.asignarSede(id, dto.sedeId);
   }
 
+  // Público: el rol lo fuerza el servicio (siempre EXTERNO), no el body.
   @Post()
-  @ApiOperation({ summary: 'Crear un usuario' })
+  @ApiOperation({ summary: 'Registrarse (cuenta EXTERNO, sin verificar)' })
   @UseInterceptors(
     FileInterceptor('foto', { limits: { fileSize: 5 * 1024 * 1024 } }),
   )
@@ -142,7 +145,7 @@ export class UsuariosController {
     )
     foto?: Express.Multer.File,
   ) {
-    return this.usuariosService.create(dto, foto);
+    return this.usuariosService.registrarPublico(dto, foto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -156,7 +159,9 @@ export class UsuariosController {
     return this.usuariosService.findAll(query, user);
   }
 
-  @UseGuards(JwtAuthGuard) // sin RolesGuard: matriz de perfiles en el service
+  // La matriz fina de perfiles (propio / GG / GS / recepción) vive en el service.
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
@@ -167,7 +172,8 @@ export class UsuariosController {
     return this.usuariosService.leerPerfil(id, user);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Patch(':id')
   @UseInterceptors(RechazarCamposSensibleInterceptor)
   @ApiOperation({ summary: 'Actualizar un usuario' })
@@ -189,7 +195,8 @@ export class UsuariosController {
     return this.usuariosService.update(id, dto, user);
   }
 
-  @UseGuards(JwtAuthGuard) // sin RolesGuard: el propio usuario o staff (ownership abajo)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES) // el propio usuario o staff (ownership en el service)
   @Patch(':id/foto')
   @ApiOperation({ summary: 'Actualizar foto de perfil de un usuario' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
@@ -239,7 +246,8 @@ export class UsuariosController {
     return this.usuariosService.actualizarDni(id, dto.dni, user);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Patch(':id/password')
   @ApiOperation({ summary: 'Cambiar contraseña de un usuario' })
   @ApiParam({ name: 'id', description: 'UUID del usuario' })
@@ -248,7 +256,10 @@ export class UsuariosController {
     @Body() dto: ChangePasswordDto,
     @CurrentUser() user: any,
   ) {
-    assertOwnerOrStaff(user, id);
+    // Solo la propia contraseña: nadie la cambia por otra persona.
+    if (user.id !== id) {
+      throw new ForbiddenException('Solo podés cambiar tu propia contraseña');
+    }
     await this.usuariosService.changePassword(
       id,
       dto.passwordActual,

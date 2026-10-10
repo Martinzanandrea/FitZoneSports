@@ -22,6 +22,17 @@ import type { PaginatedResponse } from '../common/types/paginated-response.type'
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { escaparLike } from '../common/helpers/like.helper';
 import { assertAccesoPerfil } from '../auth/helpers/ownership.helper';
+import { conflictoPorUnique } from '../common/helpers/db-errors.helper';
+
+const MSG_DNI_DUPLICADO = 'Ya existe un usuario registrado con ese DNI';
+const MSG_EMAIL_DUPLICADO = 'Ya existe un usuario registrado con ese email';
+// Roles que se dan de alta desde el panel de personal. SOCIO y EXTERNO se
+// registran solos; un SOCIO nace de pagar una membresía (ADR 0011).
+const ROLES_ALTA_STAFF: TipoActor[] = [
+  TipoActor.RECEPCIONISTA,
+  TipoActor.GERENTE_SEDE,
+  TipoActor.GERENTE_GENERAL,
+];
 
 const SALT_ROUNDS = 10; // "costo" del hasheo: más alto = más lento pero más seguro. 10 es el estándar razonable hoy.
 
@@ -37,6 +48,58 @@ export class UsuariosService {
     private readonly jwtService: JwtService,
     private readonly emailVerificacion: EmailVerificacionService,
   ) {}
+
+  // Chequeo previo (mensaje claro, y antes de subir la foto). La carrera entre
+  // dos altas simultáneas la cierra el UNIQUE de la base: ver guardarUnico.
+  private async asegurarUnicos(
+    datos: { dni?: string | null; email?: string | null },
+    excluirId?: string,
+  ): Promise<void> {
+    const condiciones: FindOptionsWhere<Usuario>[] = [];
+    if (datos.dni) condiciones.push({ dni: datos.dni });
+    if (datos.email) condiciones.push({ email: datos.email });
+    if (!condiciones.length) return;
+    const existentes = await this.usuariosRepo.find({
+      where: condiciones,
+      select: { id: true, dni: true, email: true },
+    });
+    for (const u of existentes) {
+      if (u.id === excluirId) continue;
+      if (datos.dni && u.dni === datos.dni) {
+        throw new ConflictException(MSG_DNI_DUPLICADO);
+      }
+      if (datos.email && u.email === datos.email) {
+        throw new ConflictException(MSG_EMAIL_DUPLICADO);
+      }
+    }
+  }
+
+  // save() que traduce una violación de UNIQUE (carrera) a 409 en vez de 500.
+  private async guardarUnico(usuario: Usuario): Promise<Usuario> {
+    try {
+      return await this.usuariosRepo.save(usuario);
+    } catch (err) {
+      throw (
+        conflictoPorUnique(err, {
+          dni: MSG_DNI_DUPLICADO,
+          email: MSG_EMAIL_DUPLICADO,
+        }) ?? err
+      );
+    }
+  }
+
+  // Registro público (sin login). Nunca confía en el rol del body: todo el
+  // mundo nace EXTERNO y pasa a SOCIO recién al pagar una membresía (ADR 0011).
+  // Tampoco acepta sede: sin esto cualquiera podría registrarse como gerente.
+  registrarPublico(
+    dto: CreateUsuarioDto,
+    foto?: { buffer: Buffer; originalname: string; mimetype: string },
+  ): Promise<Usuario> {
+    return this.create(
+      { ...dto, tipoActor: TipoActor.EXTERNO, sedeId: undefined },
+      foto,
+    );
+  }
 
   async create(
     dto: CreateUsuarioDto,
@@ -54,6 +117,7 @@ export class UsuariosService {
         'sedeId es obligatorio para un GERENTE_SEDE',
       );
     }
+    await this.asegurarUnicos({ dni: dto.dni, email: dto.email });
     const fotoUrl = foto
       ? await this.storageService.subirArchivo(
           this.config.getOrThrow<string>('SUPABASE_BUCKET_FOTOS'),
@@ -72,7 +136,7 @@ export class UsuariosService {
       passwordHash: await bcrypt.hash(password, SALT_ROUNDS),
     });
 
-    const guardado = await this.usuariosRepo.save(usuario);
+    const guardado = await this.guardarUnico(usuario);
 
     // El registro no falla si el envío del email falla: solo se loguea, el usuario
     // puede pedir reenvío después (POST /usuarios/reenviar-verificacion).
@@ -85,8 +149,9 @@ export class UsuariosService {
           token,
         );
       } catch (err) {
+        // Solo el id y el tipo de error: el mensaje del SMTP puede traer el email.
         this.logger.warn(
-          `No se pudo enviar verificación a ${guardado.email}: ${err}`,
+          `No se pudo enviar verificación al usuario ${guardado.id} (${err instanceof Error ? err.name : 'error'})`,
         );
       }
     }
@@ -149,7 +214,9 @@ export class UsuariosService {
         token,
       );
     } catch (err) {
-      this.logger.warn(`No se pudo reenviar verificación a ${email}: ${err}`);
+      this.logger.warn(
+        `No se pudo reenviar verificación al usuario ${usuario.id} (${err instanceof Error ? err.name : 'error'})`,
+      );
     }
     return generico;
   }
@@ -178,6 +245,11 @@ export class UsuariosService {
     dto: CreateUsuarioDto,
     actor: UsuarioAutenticado,
   ): Promise<Usuario> {
+    if (!ROLES_ALTA_STAFF.includes(dto.tipoActor)) {
+      throw new BadRequestException(
+        'Por acá solo se dan de alta Recepcionistas y Gerentes',
+      );
+    }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (actor.tipoActor === TipoActor.GERENTE_SEDE) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
@@ -361,7 +433,7 @@ export class UsuariosService {
     }
 
     usuario.dni = dni;
-    await this.usuariosRepo.save(usuario);
+    await this.guardarUnico(usuario);
     return this.findOne(usuarioId);
   }
   // Lectura/edición de perfil con matriz por rol (REGLAS GERENTE_SEDE):
@@ -412,10 +484,13 @@ export class UsuariosService {
     // futuro alguien agrega un campo sensible al DTO, no se aplica solo.
     if (dto.nombre !== undefined) usuario.nombre = dto.nombre;
     if (dto.apellido !== undefined) usuario.apellido = dto.apellido;
-    if (dto.email !== undefined) usuario.email = dto.email;
+    if (dto.email !== undefined && dto.email !== usuario.email) {
+      await this.asegurarUnicos({ email: dto.email }, id);
+      usuario.email = dto.email;
+    }
     if (dto.telefono !== undefined) usuario.telefono = dto.telefono;
     if (dto.fotoUrl !== undefined) usuario.fotoUrl = dto.fotoUrl;
-    return this.usuariosRepo.save(usuario);
+    return this.guardarUnico(usuario);
   }
 
   async assignRole(id: string, dto: AssignRoleDto): Promise<Usuario> {

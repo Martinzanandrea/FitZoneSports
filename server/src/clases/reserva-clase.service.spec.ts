@@ -17,7 +17,7 @@ function armar(reservaPrevia: unknown) {
     id: 'o1',
     estado: 'PROGRAMADA',
     ...enDias(5),
-    clase: { sede: { id: 's1' } },
+    clase: { activa: true, sede: { id: 's1' } },
   };
   const reservasRepo = { findOne: jest.fn().mockResolvedValue(reservaPrevia) };
   const ocurrenciasRepo = { findOne: jest.fn().mockResolvedValue(ocurrencia) };

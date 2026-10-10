@@ -22,6 +22,6 @@ import { StorageModule } from '../storage/storage.module';
   ],
   controllers: [UsuariosController],
   providers: [UsuariosService, EmailVerificacionService],
-  exports: [UsuariosService], // otros módulos (acceso, membresias, reservas) van a necesitar validar que un usuario existe,por eso se exporta el service
+  exports: [UsuariosService, EmailVerificacionService], // otros módulos (acceso, membresias, reservas) van a necesitar validar que un usuario existe,por eso se exporta el service
 })
 export class UsuariosModule {}

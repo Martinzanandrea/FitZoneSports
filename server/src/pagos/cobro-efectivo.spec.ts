@@ -91,13 +91,14 @@ describe('ClientesCobroQueryDto', () => {
 });
 
 const sinDependencias = () =>
-  [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}] as unknown[];
+  [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}] as unknown[];
 
 function servicioCon(indice: number, dependencia: unknown) {
   const deps = sinDependencias();
   deps[indice] = dependencia;
   return new PagosService(
     ...(deps as [
+      never,
       never,
       never,
       never,
@@ -224,22 +225,33 @@ describe('PagosService.reservasCanchaParaCobro', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('busca solo las del cliente y de la sede de quien cobra, con tope', async () => {
-    const find = jest.fn<Promise<unknown[]>, [unknown]>().mockResolvedValue([]);
-    const service = servicioCon(3, { find });
+  it('busca solo las del cliente y de la sede de quien cobra, sin las ya pagadas, con tope', async () => {
+    const qb: Record<string, jest.Mock> = {};
+    for (const m of [
+      'innerJoinAndSelect',
+      'where',
+      'andWhere',
+      'orderBy',
+      'addOrderBy',
+      'take',
+    ]) {
+      qb[m] = jest.fn().mockReturnValue(qb);
+    }
+    qb.getMany = jest.fn().mockResolvedValue([]);
+    const service = servicioCon(3, {
+      createQueryBuilder: jest.fn().mockReturnValue(qb),
+    });
     await service.reservasCanchaParaCobro('u9', {
       tipoActor: TipoActor.RECEPCIONISTA,
       sedeId: 's1',
     } as never);
-    const arg = find.mock.calls[0][0] as {
-      where: Record<string, unknown>;
-      take: number;
-    };
-    expect(arg.where).toMatchObject({
-      usuario: { id: 'u9' },
-      cancha: { sede: { id: 's1' } },
-    });
-    expect(arg.take).toBe(50);
+    const params = qb.andWhere.mock.calls.map((c) => c as unknown[]);
+    expect(params).toContainEqual(['r.usuario_id = :usuarioId', { usuarioId: 'u9' }]);
+    expect(params).toContainEqual(['s.id = :sedeId', { sedeId: 's1' }]);
+    expect(
+      params.some((c) => /NOT EXISTS .*pagos.*estado/.test(String(c[0]))),
+    ).toBe(true);
+    expect(qb.take).toHaveBeenCalledWith(50);
   });
 });
 

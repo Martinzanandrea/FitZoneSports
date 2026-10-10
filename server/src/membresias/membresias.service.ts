@@ -18,6 +18,29 @@ const DURACION_MESES: Record<TipoPlan, number> = {
   [TipoPlan.ANUAL]: 12,
 };
 
+// Una membresía huérfana (sin titular o sede válidos) rompe reservas, precios
+// y reportes: se valida acá, además de las FK de la base.
+function validarTitularYSede(usuario: Usuario, sede: Sede): void {
+  if (
+    usuario.tipoActor !== TipoActor.SOCIO &&
+    usuario.tipoActor !== TipoActor.EXTERNO
+  ) {
+    throw new BadRequestException(
+      'Solo un socio o un cliente externo puede tener una membresía',
+    );
+  }
+  if (!usuario.activo) {
+    throw new BadRequestException(
+      'No se puede crear una membresía para un usuario dado de baja',
+    );
+  }
+  if (!sede.activa) {
+    throw new BadRequestException(
+      'No se puede dar de alta una membresía en una sede inactiva',
+    );
+  }
+}
+
 @Injectable()
 export class MembresiasService {
   private readonly logger = new Logger(MembresiasService.name);
@@ -50,12 +73,12 @@ export class MembresiasService {
     return cantidad;
   }
 
-  // manager opcional: si viene de una transacción en curso (ej. cobro
-  // en efectivo), todos los writes corren dentro de ella.
-  async create(dto: CreateMembresiaDto, manager?: EntityManager): Promise<Membresia> {
-    const usuariosRepo = manager?.getRepository(Usuario) ?? this.usuariosRepo;
-    const sedesRepo = manager?.getRepository(Sede) ?? this.sedesRepo;
-    const membresiasRepo = manager?.getRepository(Membresia) ?? this.membresiasRepo;
+  // `manager` es obligatorio: una membresía ACTIVO solo se crea dentro de la
+  // transacción del pago aprobado (PagosService); no hay camino sin pago.
+  async create(dto: CreateMembresiaDto, manager: EntityManager): Promise<Membresia> {
+    const usuariosRepo = manager.getRepository(Usuario);
+    const sedesRepo = manager.getRepository(Sede);
+    const membresiasRepo = manager.getRepository(Membresia);
     const usuario = await usuariosRepo.findOne({
       where: { id: dto.usuarioId },
     });
@@ -76,6 +99,7 @@ export class MembresiasService {
     if (!sedeAlta) {
       throw new NotFoundException(`Sede ${dto.sedeAltaId} no encontrada`);
     }
+    validarTitularYSede(usuario, sedeAlta);
 
     const fechaInicio = new Date();
     const fechaFin = new Date(fechaInicio);
@@ -218,10 +242,11 @@ export class MembresiasService {
     return this.membresiasRepo.save(membresia);
   }
 
-  async renovar(dto: CreateMembresiaDto, manager?: EntityManager): Promise<Membresia> {
-    const usuariosRepo = manager?.getRepository(Usuario) ?? this.usuariosRepo;
-    const sedesRepo = manager?.getRepository(Sede) ?? this.sedesRepo;
-    const membresiasRepo = manager?.getRepository(Membresia) ?? this.membresiasRepo;
+  // Igual que create: solo dentro de la transacción de un pago aprobado.
+  async renovar(dto: CreateMembresiaDto, manager: EntityManager): Promise<Membresia> {
+    const usuariosRepo = manager.getRepository(Usuario);
+    const sedesRepo = manager.getRepository(Sede);
+    const membresiasRepo = manager.getRepository(Membresia);
     const usuario = await usuariosRepo.findOne({ where: { id: dto.usuarioId } });
     if (!usuario) throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
 
@@ -232,6 +257,7 @@ export class MembresiasService {
 
     const sedeAlta = await sedesRepo.findOne({ where: { id: dto.sedeAltaId } });
     if (!sedeAlta) throw new NotFoundException(`Sede ${dto.sedeAltaId} no encontrada`);
+    validarTitularYSede(usuario, sedeAlta);
 
     const fechaInicio = new Date(actual.fechaFin);
     const fechaFin = new Date(fechaInicio);

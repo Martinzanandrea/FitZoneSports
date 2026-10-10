@@ -1,5 +1,5 @@
 import { IsBoolean, IsEnum, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
-import { MetodoPago } from '../../entities/enums';
+import { MetodoPago, TipoPlan } from '../../entities/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePagoDto {
@@ -11,6 +11,19 @@ export class CreatePagoDto {
   @IsUUID()
   @IsOptional()
   membresiaId?: string;
+
+  // Plan a contratar o renovar: la membresía se crea al aprobarse el pago, con
+  // el precio del servidor.
+  @ApiPropertyOptional({ enum: TipoPlan, example: TipoPlan.MENSUAL })
+  @IsEnum(TipoPlan)
+  @IsOptional()
+  plan?: TipoPlan;
+
+  // Sede de alta de la membresía nueva (una renovación conserva la suya).
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440004' })
+  @IsUUID()
+  @IsOptional()
+  sedeAltaId?: string;
 
   @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440002' })
   @IsUUID()

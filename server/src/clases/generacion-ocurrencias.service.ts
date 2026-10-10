@@ -3,12 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Clase, ClaseOcurrencia } from '../entities';
-
-const SEMANAS_POR_DEFECTO = 4;
-
-function aFechaLocal(fecha: Date): string {
-  return fecha.toISOString().split('T')[0];
-}
+import { SEMANAS_VENTANA_OCURRENCIAS } from './reglas-clases';
+import {
+  ahoraArgentina,
+  diaSemanaDe,
+  instanteArgentina,
+  sumarDias,
+} from '../common/helpers/hora-argentina.helper';
 
 @Injectable()
 export class GeneracionOcurrenciasService {
@@ -26,7 +27,8 @@ export class GeneracionOcurrenciasService {
   // se generó antes), se saltea sin fallar toda la operación.
   async generarParaClase(
     claseId: string,
-    semanasHaciaAdelante = SEMANAS_POR_DEFECTO,
+    semanasHaciaAdelante = SEMANAS_VENTANA_OCURRENCIAS,
+    ahora: Date = new Date(),
   ): Promise<number> {
     const clase = await this.clasesRepo.findOne({
       where: { id: claseId },
@@ -41,21 +43,24 @@ export class GeneracionOcurrenciasService {
       porDia.set(h.diaSemana, lista);
     }
 
-    const ahora = Date.now();
+    // Fechas y horas son de pared en Argentina: "hoy", el día de la semana y
+    // "ya empezó" se calculan con esa hora, no con la del servidor (UTC).
+    const hoy = ahoraArgentina(ahora).fecha;
     let nuevas = 0;
     for (let d = 0; d < semanasHaciaAdelante * 7; d++) {
-      const dia = new Date();
-      dia.setDate(dia.getDate() + d);
-      const horarios = porDia.get(dia.getDay()) ?? [];
+      const fechaDia = sumarDias(hoy, d);
+      const horarios = porDia.get(diaSemanaDe(fechaDia)) ?? [];
       for (const h of horarios) {
         // No generar ocurrencias que ya empezaron (hoy con horario pasado).
-        if (new Date(`${aFechaLocal(dia)}T${h.horaInicio}`).getTime() <= ahora) {
+        if (
+          instanteArgentina(fechaDia, h.horaInicio).getTime() <= ahora.getTime()
+        ) {
           continue;
         }
         const existe = await this.ocurrenciasRepo.findOne({
           where: {
             clase: { id: claseId },
-            fecha: aFechaLocal(dia),
+            fecha: fechaDia,
             horaInicio: h.horaInicio,
           },
         });
@@ -64,7 +69,7 @@ export class GeneracionOcurrenciasService {
           await this.ocurrenciasRepo.save(
             this.ocurrenciasRepo.create({
               clase,
-              fecha: aFechaLocal(dia),
+              fecha: fechaDia,
               horaInicio: h.horaInicio,
               horaFin: h.horaFin,
             }),
@@ -72,7 +77,10 @@ export class GeneracionOcurrenciasService {
           nuevas++;
         } catch (error) {
           // Carreras entre ejecuciones: el UNIQUE ya la generó otro proceso.
-          if (error instanceof QueryFailedError && error.driverError?.code === '23505') {
+          if (
+            error instanceof QueryFailedError &&
+            error.driverError?.code === '23505'
+          ) {
             continue;
           }
           throw error;

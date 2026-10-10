@@ -19,6 +19,8 @@ import { ReservasCanchaService } from './reserva-cancha.service';
 import { CreateReservaCanchaDto } from './dto/create-reserva-cancha.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
+import { ROLES_CLIENTES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Reservas de canchas')
@@ -27,6 +29,7 @@ import { ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestj
 export class ReservasCanchaController {
   constructor(private readonly reservasService: ReservasCanchaService) {}
 
+  @Roles(...TODOS_LOS_ROLES)
   @Post()
   @ApiOperation({ summary: 'Reservar una cancha' })
   reservar(
@@ -37,6 +40,7 @@ export class ReservasCanchaController {
     return this.reservasService.reservar(dto, user);
   }
 
+  @Roles(...TODOS_LOS_ROLES)
   @Post('cotizar')
   @ApiOperation({ summary: 'Cotizar una reserva de cancha' })
   cotizar(
@@ -64,6 +68,7 @@ export class ReservasCanchaController {
     return this.reservasService.findPorCancha(canchaId, fecha, query, user);
   }
 
+  @Roles(...TODOS_LOS_ROLES)
   @Get('cancha/:canchaId/ocupacion')
   @ApiOperation({ summary: 'Franjas ocupadas de una cancha en una fecha (sin datos de usuarios)' })
   @ApiParam({ name: 'canchaId', description: 'UUID de la cancha' })
@@ -76,6 +81,7 @@ export class ReservasCanchaController {
   }
 
   // El id sale siempre del JWT: no hay parámetro de usuario.
+  @Roles(TipoActor.SOCIO, TipoActor.EXTERNO)
   @Get('mias')
   @ApiOperation({ summary: 'Mis reservas de canchas confirmadas' })
   @ApiQuery({ name: 'fecha', required: false })
@@ -89,6 +95,7 @@ export class ReservasCanchaController {
     return this.reservasService.misReservas(user.id, { fecha, desde }, query);
   }
 
+  @Roles(...TODOS_LOS_ROLES)
   @Post(':id/cancelar')
   @ApiOperation({ summary: 'Cancelar una reserva de cancha' })
   @ApiParam({ name: 'id', description: 'UUID de la reserva' })

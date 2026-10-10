@@ -7,6 +7,7 @@ import {
   Post,
   Query,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { AccesoService } from './acceso.service';
@@ -27,6 +28,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Acceso')
@@ -35,6 +37,7 @@ import {
 export class AccesoController {
   constructor(private readonly accesoService: AccesoService) {}
 
+  @Roles(TipoActor.SOCIO)
   @Get('qr/:usuarioId')
   @ApiOperation({ summary: 'Generar QR de acceso para un usuario' })
   @ApiParam({ name: 'usuarioId', description: 'UUID del usuario' })
@@ -42,7 +45,11 @@ export class AccesoController {
     @Param('usuarioId', ParseUUIDPipe) usuarioId: string,
     @CurrentUser() user: any,
   ) {
-    assertOwnerOrStaff(user, usuarioId);
+    // El QR es la llave de entrada: solo el propio socio lo genera. Ni el
+    // personal puede pedir uno a nombre de otra persona.
+    if (user.id !== usuarioId) {
+      throw new ForbiddenException('Solo podés generar tu propio QR');
+    }
     return this.accesoService.generarQr(usuarioId);
   }
 
@@ -119,6 +126,7 @@ export class AccesoController {
     return this.accesoService.listarDentro(sedeId, user, query);
   }
 
+  @Roles(...TODOS_LOS_ROLES)
   @Get('historial/:usuarioId')
   @ApiOperation({ summary: 'Consultar historial de acceso de un usuario' })
   @ApiParam({ name: 'usuarioId', description: 'UUID del usuario' })
@@ -128,6 +136,12 @@ export class AccesoController {
     @Query() query: PaginationQueryDto,
   ) {
     assertOwnerOrStaff(user, usuarioId);
-    return this.accesoService.findHistorialPorUsuario(usuarioId, query);
+    // El personal de sede solo ve los ingresos a SU sede (el GG, todos).
+    let sedeId: string | undefined;
+    if (user.id !== usuarioId && user.tipoActor !== TipoActor.GERENTE_GENERAL) {
+      if (!user.sedeId) throw new ForbiddenException('No tenés sede asignada');
+      sedeId = user.sedeId;
+    }
+    return this.accesoService.findHistorialPorUsuario(usuarioId, query, sedeId);
   }
 }

@@ -1,5 +1,6 @@
 import {
   Banknote,
+  Bell,
   BookOpen,
   Building2,
   Calendar,
@@ -9,6 +10,7 @@ import {
   CreditCard,
   GraduationCap,
   QrCode,
+  Receipt,
   ScanLine,
   Tag,
   TrendingUp,
@@ -32,6 +34,7 @@ const MENU_RECEPCION: MenuAdminItem[] = [
   { to: '/admin/acceso', label: 'Control de acceso', icon: ScanLine },
   { to: '/admin/acceso/dentro', label: 'Quién está dentro', icon: UserCheck },
   { to: '/admin/cobrar', label: 'Cobrar', icon: Banknote },
+  { to: '/admin/pagos', label: 'Pagos', icon: Receipt },
   { to: '/admin/reservas-clases', label: 'Reservas de clases', icon: Calendar },
   { to: '/admin/reservas-canchas', label: 'Reservas de canchas', icon: CalendarCheck },
 ];
@@ -45,6 +48,7 @@ const MENU_SEDE: MenuAdminItem[] = [
   { to: '/admin/instructores', label: 'Instructores', icon: GraduationCap },
   { to: '/admin/membresias', label: 'Membresías', icon: CreditCard },
   { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList },
+  { to: '/admin/pagos', label: 'Pagos', icon: Receipt },
   { to: '/admin/acceso', label: 'Control de acceso', icon: QrCode },
   { to: '/admin/reportes', label: 'Reportes', icon: TrendingUp },
 ];
@@ -59,8 +63,10 @@ const MENU_GENERAL: MenuAdminItem[] = [
   { to: '/admin/instructores', label: 'Instructores', icon: GraduationCap },
   { to: '/admin/membresias', label: 'Membresías', icon: CreditCard },
   { to: '/admin/reservas', label: 'Reservas', icon: ClipboardList },
+  { to: '/admin/pagos', label: 'Pagos', icon: Receipt },
   { to: '/admin/reportes', label: 'Reportes', icon: TrendingUp },
   { to: '/admin/precios', label: 'Precios', icon: Tag },
+  { to: '/admin/notificaciones', label: 'Notificaciones', icon: Bell },
 ];
 
 function configuracionPorRol(tipo: string | undefined) {

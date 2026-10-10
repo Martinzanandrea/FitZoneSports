@@ -17,6 +17,8 @@ export * from './pago.entity';
 export * from './comprobante.entity';
 export * from './precio-plan-entity';
 export * from './auditoria.entity';
+export * from './notificacion.entity';
+export * from './envio-notificacion.entity';
 
 import { Sede } from './sede.entity';
 import { Usuario } from './usuario.entity';
@@ -36,6 +38,8 @@ import { Pago } from './pago.entity';
 import { Comprobante } from './comprobante.entity';
 import { PrecioPlan } from './precio-plan-entity';
 import { Auditoria } from './auditoria.entity';
+import { Notificacion } from './notificacion.entity';
+import { EnvioNotificacion } from './envio-notificacion.entity';
 export const ALL_ENTITIES = [
   Sede,
   Usuario,
@@ -55,4 +59,6 @@ export const ALL_ENTITIES = [
   Comprobante,
   PrecioPlan,
   Auditoria,
+  Notificacion,
+  EnvioNotificacion,
 ];

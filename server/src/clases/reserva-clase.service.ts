@@ -22,6 +22,7 @@ import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
+import { instanteArgentina } from '../common/helpers/hora-argentina.helper';
 import {
   usuarioReducido,
   type UsuarioReducido,
@@ -30,6 +31,11 @@ import {
   CLASE_CUPO_LIBERADO,
   type CupoLiberadoPayload,
 } from './events/clase.events';
+import {
+  HORAS_LIMITE_CANCELACION,
+  HORAS_LIMITE_RESERVA_PROPIA,
+  MINUTOS_LIMITE_RESERVA_STAFF,
+} from './reglas-clases';
 import {
   BOOKING_CLASE_REPOSITORY,
   type IBookingClaseRepository,
@@ -57,10 +63,6 @@ export interface MiReservaClase {
     };
   };
 }
-
-const HORAS_LIMITE_RESERVA_PROPIA = 48;
-const MINUTOS_LIMITE_RESERVA_STAFF = 30;
-const HORAS_LIMITE_CANCELACION = 2;
 
 @Injectable()
 export class ReservasClaseService {
@@ -94,7 +96,12 @@ export class ReservasClaseService {
       where: { id: ocurrenciaId },
       relations: { clase: { sede: true } },
     });
-    if (!ocurrencia || ocurrencia.estado !== EstadoOcurrenciaClase.PROGRAMADA) {
+    // Una clase dada de baja no se reserva (sus ocurrencias futuras ya están canceladas).
+    if (
+      !ocurrencia ||
+      ocurrencia.estado !== EstadoOcurrenciaClase.PROGRAMADA ||
+      !ocurrencia.clase.activa
+    ) {
       throw new NotFoundException(
         `Ocurrencia ${ocurrenciaId} no disponible para reservar`,
       );
@@ -150,8 +157,9 @@ export class ReservasClaseService {
       );
     }
 
-    const inicioOcurrencia = new Date(
-      `${ocurrencia.fecha}T${ocurrencia.horaInicio}`,
+    const inicioOcurrencia = instanteArgentina(
+      ocurrencia.fecha,
+      ocurrencia.horaInicio,
     );
     const minutosHastaClase =
       (inicioOcurrencia.getTime() - Date.now()) / (1000 * 60);
@@ -179,17 +187,26 @@ export class ReservasClaseService {
   ): Promise<ReservaClase> {
     const reserva = await this.reservasRepo.findOne({
       where: { id: reservaId },
-      relations: { ocurrencia: { clase: true }, usuario: true },
+      relations: { ocurrencia: { clase: { sede: true } }, usuario: true },
     });
     if (!reserva)
       throw new NotFoundException(`Reserva ${reservaId} no encontrada`);
 
     assertOwnerOrStaff(currentUser, reserva.usuario.id);
+    // El personal que cancela la reserva de otra persona queda acotado a la
+    // sede de la clase (GG: todas).
+    if (
+      currentUser.id !== reserva.usuario.id &&
+      currentUser.tipoActor !== TipoActor.GERENTE_GENERAL
+    ) {
+      assertSedeScope(currentUser, reserva.ocurrencia.clase.sede.id);
+    }
     //Patron de diseño Strategy aplicado para validar la cancelación de reservas según el tipo de usuario
     // y el tiempo restante para la clase.
     if (reserva.estado === EstadoResClase.RESERVADA) {
-      const inicioOcurrencia = new Date(
-        `${reserva.ocurrencia.fecha}T${reserva.ocurrencia.horaInicio}`,
+      const inicioOcurrencia = instanteArgentina(
+        reserva.ocurrencia.fecha,
+        reserva.ocurrencia.horaInicio,
       );
       const horasHastaClase =
         (inicioOcurrencia.getTime() - Date.now()) / (1000 * 60 * 60);
@@ -260,7 +277,9 @@ export class ReservasClaseService {
     query?: PaginationQueryDto,
   ): Promise<PaginatedResponse<MiReservaClase>> {
     if (desde && !/^\d{4}-\d{2}-\d{2}$/.test(desde)) {
-      throw new BadRequestException('El filtro desde debe tener formato YYYY-MM-DD');
+      throw new BadRequestException(
+        'El filtro desde debe tener formato YYYY-MM-DD',
+      );
     }
     const page = query?.page ?? 1;
     const limit = query?.limit ?? 20;

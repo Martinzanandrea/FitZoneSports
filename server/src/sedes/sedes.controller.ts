@@ -31,6 +31,7 @@ import { CreateSedeDto } from './dto/create-sede.dto';
 import { UpdateSedeDto } from './dto/update-sede.dto';
 import { CreateFranjaDto } from './dto/create-franja.dto';
 import { Auditable } from '../auditoria/decorators/auditable.decorator';
+import { TODOS_LOS_ROLES } from '../auth/roles.constants';
 
 @ApiTags('Sedes')
 @Controller('sedes')
@@ -73,6 +74,7 @@ export class SedesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Get()
   @ApiCookieAuth('token')
   @ApiOperation({ summary: 'Obtener todas las sedes' })
@@ -90,6 +92,7 @@ export class SedesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Get(':id')
   @ApiCookieAuth('token')
   @ApiOperation({ summary: 'Obtener una sede por su ID' })
@@ -140,6 +143,7 @@ export class SedesController {
 
   // Franjas horarias de la sede (parte del recurso "sede").
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Get(':id/franjas')
   @ApiCookieAuth('token')
   @ApiOperation({ summary: 'Listar las franjas horarias de una sede' })

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Banknote, Search, UserRound } from 'lucide-react';
 import { pagosApi, type ReservaCanchaCobro } from '../pagos.api';
@@ -7,6 +8,7 @@ import { membresiasApi } from '../../membresias/membresias.api';
 import type { Membresia } from '../../membresias/membresias.types';
 import { preciosApi } from '../../precios/precios.api';
 import type { PrecioPlan } from '../../precios/precios.types';
+import { CobroCanchaMostrador } from '../components/CobroCanchaMostrador';
 import { Select } from '../../../shared/components/Select';
 import { Pagination } from '../../../shared/components/ui';
 import { SectionHeader } from '../../../shared/components/SectionHeader';
@@ -15,8 +17,12 @@ import { LoadingState } from '../../../shared/components/LoadingState';
 import { ErrorState } from '../../../shared/components/ErrorState';
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { BotonComprobante } from '../components/BotonComprobante';
 
 type Tipo = 'plan' | 'cancha';
+// 'nueva': el cliente elige cancha y horario en el mostrador y paga en el acto.
+// 'existente': cobra una reserva ya tomada (p. ej. online) en la sede.
+type ModoCancha = 'nueva' | 'existente';
 type ReservaCancha = ReservaCanchaCobro;
 
 const MIN_BUSQUEDA = 3;
@@ -59,6 +65,7 @@ export function CobrarEfectivo() {
   const [cargandoMembresia, setCargandoMembresia] = useState(false);
 
   const [tipo, setTipo] = useState<Tipo>('plan');
+  const [modoCancha, setModoCancha] = useState<ModoCancha>('nueva');
   const [precios, setPrecios] = useState<PrecioPlan[]>([]);
   const [errorPrecios, setErrorPrecios] = useState(false);
   const [plan, setPlan] = useState('');
@@ -151,7 +158,7 @@ export function CobrarEfectivo() {
 
   // Reservas de cancha pendientes de cobro: solo se piden al elegir "cancha".
   useEffect(() => {
-    if (!cliente || tipo !== 'cancha') return;
+    if (!cliente || tipo !== 'cancha' || modoCancha !== 'existente') return;
     let viva = true;
     setCargandoReservas(true);
     pagosApi
@@ -162,7 +169,7 @@ export function CobrarEfectivo() {
     return () => {
       viva = false;
     };
-  }, [cliente, tipo]);
+  }, [cliente, tipo, modoCancha]);
 
   function elegirCliente(c: ClienteBuscado) {
     setCliente(c);
@@ -232,7 +239,7 @@ export function CobrarEfectivo() {
       <div className="welcome-line">
         <div>
           <h2>Cobrar en efectivo</h2>
-          <p>Registrá el pago de una membresía o de una reserva de cancha. Las clases no se cobran por separado.</p>
+          <p>Registrá el pago de una membresía o cobrá una cancha en el mostrador. Las clases no se cobran por separado.</p>
         </div>
       </div>
 
@@ -371,11 +378,23 @@ export function CobrarEfectivo() {
                   </div>
                 ) : (
                   <div>
+                    <div className="segmented" style={{ marginBottom: 12 }} role="tablist" aria-label="Tipo de cobro de cancha">
+                      <button type="button" role="tab" aria-selected={modoCancha === 'nueva'} className={modoCancha === 'nueva' ? 'active' : ''} onClick={() => { setModoCancha('nueva'); setMsg(null); }}>
+                        Reservar y cobrar ahora
+                      </button>
+                      <button type="button" role="tab" aria-selected={modoCancha === 'existente'} className={modoCancha === 'existente' ? 'active' : ''} onClick={() => { setModoCancha('existente'); setMsg(null); }}>
+                        Cobrar reserva existente
+                      </button>
+                    </div>
+                    {modoCancha === 'nueva' ? (
+                      <CobroCanchaMostrador clienteId={cliente.id} onCobrado={() => undefined} />
+                    ) : (
+                    <>
                     <span className="field-label">RESERVA DE CANCHA</span>
                     {cargandoReservas ? (
                       <LoadingState rows={2} label="Cargando reservas" />
                     ) : !reservas || reservas.length === 0 ? (
-                      <p style={{ fontSize: 12 }}>Este cliente no tiene reservas de cancha pendientes de cobro.</p>
+                      <p style={{ fontSize: 12 }}>Este cliente no tiene reservas de cancha confirmadas en tu sede. Para una cancha nueva usá «Reservar y cobrar ahora».</p>
                     ) : (
                       <div className="pick-list">
                         {reservas.map((r) => (
@@ -398,6 +417,8 @@ export function CobrarEfectivo() {
                         ))}
                       </div>
                     )}
+                    </>
+                    )}
                   </div>
                 )}
 
@@ -407,14 +428,16 @@ export function CobrarEfectivo() {
                   </p>
                 )}
 
-                <button type="submit" className="btn btn-primary" disabled={loading || (tipo === 'plan' ? !plan : !reservaId)}>
-                  <Banknote size={16} aria-hidden />
-                  {loading
-                    ? 'Registrando...'
-                    : tipo === 'plan' && planElegido
-                      ? `Confirmar cobro de $${Number(planElegido.precio).toLocaleString('es-AR')}`
-                      : 'Confirmar cobro en efectivo'}
-                </button>
+                {(tipo === 'plan' || modoCancha === 'existente') && (
+                  <button type="submit" className="btn btn-primary" disabled={loading || (tipo === 'plan' ? !plan : !reservaId)}>
+                    <Banknote size={16} aria-hidden />
+                    {loading
+                      ? 'Registrando...'
+                      : tipo === 'plan' && planElegido
+                        ? `Confirmar cobro de $${Number(planElegido.precio).toLocaleString('es-AR')}`
+                        : 'Confirmar cobro en efectivo'}
+                  </button>
+                )}
               </>
             )}
           </form>
@@ -425,11 +448,14 @@ export function CobrarEfectivo() {
               <p style={{ fontSize: 11, marginTop: 6 }}>
                 Monto ${pago.monto} · {pago.estado}
               </p>
-              {pago.comprobante?.pdfPath && (
-                <a className="btn btn-secondary" style={{ marginTop: 10 }} href={pago.comprobante.pdfPath} target="_blank" rel="noreferrer">
-                  Ver comprobante PDF
-                </a>
-              )}
+              <div className="inline-actions" style={{ marginTop: 10 }}>
+                {pago.comprobante?.id && (
+                  <BotonComprobante comprobanteId={pago.comprobante.id} className="btn btn-secondary" />
+                )}
+                <Link className="btn btn-ghost" to="/admin/pagos" style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center' }}>
+                  Ver en Pagos
+                </Link>
+              </div>
             </div>
           )}
         </section>

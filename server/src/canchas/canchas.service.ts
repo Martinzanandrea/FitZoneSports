@@ -5,7 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import {
   Cancha,
   Pago,
@@ -14,9 +19,43 @@ import {
   ReservaCancha,
   TipoCancha,
 } from '../entities';
-import { EstadoCancha, EstadoPago, TipoActor } from '../entities/enums';
+import {
+  EstadoCancha,
+  EstadoPago,
+  EstadoResCancha,
+  TipoActor,
+} from '../entities/enums';
+import {
+  ahoraArgentina,
+  fechaCorta,
+  terminaDespuesDe,
+} from '../common/helpers/hora-argentina.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
+
+export interface ReservasFuturas {
+  cantidad: number;
+  fechas: string[]; // YYYY-MM-DD, únicas y ordenadas
+}
+
+// Aviso informativo (no bloqueante) al pasar una cancha a mantenimiento.
+export interface AvisoMantenimiento {
+  cantidad: number;
+  fechas: string[];
+  mensaje: string;
+}
+
+export type CanchaActualizada = Cancha & { aviso?: AvisoMantenimiento };
+
+const MAX_FECHAS_EN_MENSAJE = 5;
+
+function textoFechas(fechas: string[]): string {
+  const visibles = fechas.slice(0, MAX_FECHAS_EN_MENSAJE).map(fechaCorta);
+  const resto = fechas.length - visibles.length;
+  return resto > 0
+    ? `${visibles.join(', ')} y ${resto} más`
+    : visibles.join(', ');
+}
 
 export interface CanchaPublica {
   sede: string;
@@ -28,6 +67,24 @@ import type { PaginatedResponse } from '../common/types/paginated-response.type'
 import { CreateCanchaDto } from './dto/create-cancha.dto';
 import { UpdateCanchaDto } from './dto/update-cancha.dto';
 import { CreateBloqueoDto } from './dto/create-bloqueo.dto';
+
+function mensajeNoEliminable(
+  historial: number,
+  futuras: ReservasFuturas,
+): string {
+  if (futuras.cantidad > 0) {
+    return (
+      `No se puede eliminar: la cancha tiene ${futuras.cantidad} reserva(s) confirmada(s) ` +
+      `por cumplirse (${textoFechas(futuras.fechas)}). Ponela en mantenimiento: ` +
+      `se respetan las reservas ya tomadas y no se ofrecen turnos nuevos.`
+    );
+  }
+  return (
+    `No se puede eliminar: la cancha no tiene reservas por cumplirse, pero conserva ` +
+    `${historial} reserva(s) en su historial (ya cumplidas o canceladas). ` +
+    `Ponela en mantenimiento en su lugar.`
+  );
+}
 
 @Injectable()
 export class CanchasService {
@@ -42,6 +99,8 @@ export class CanchasService {
     private readonly tiposRepo: Repository<TipoCancha>,
     @InjectRepository(Pago)
     private readonly pagosRepo: Repository<Pago>,
+    @InjectRepository(ReservaCancha)
+    private readonly reservasRepo: Repository<ReservaCancha>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -116,7 +175,12 @@ export class CanchasService {
         totalPages: Math.ceil(total / limit) || 1,
       };
     }
+    // Socios y Externos no ven canchas en mantenimiento como opción reservable.
+    const soloActivas =
+      currentUser?.tipoActor === TipoActor.SOCIO ||
+      currentUser?.tipoActor === TipoActor.EXTERNO;
     const [data, total] = await this.canchasRepo.findAndCount({
+      where: soloActivas ? { estado: EstadoCancha.ACTIVA } : {},
       relations: { sede: true, tipo: true },
       skip: (page - 1) * limit,
       take: limit,
@@ -139,6 +203,19 @@ export class CanchasService {
     return cancha;
   }
 
+  // Lectura para el controlador: el Gerente de Sede solo ve canchas de su sede
+  // (igual que su listado). Socios y Externos ven el catálogo completo.
+  async findOneVisible(
+    id: string,
+    currentUser?: UsuarioAutenticado,
+  ): Promise<Cancha> {
+    const cancha = await this.findOne(id);
+    if (currentUser?.tipoActor === TipoActor.GERENTE_SEDE) {
+      assertSedeScope(currentUser, cancha.sede.id);
+    }
+    return cancha;
+  }
+
   // Scope contra la sede ACTUAL del recurso. UpdateCanchaDto acepta
   // sedeId (vía PartialType de CreateCanchaDto): un no-GG no puede
   // cambiarlo (403); solo GG puede mover una cancha de sede.
@@ -146,7 +223,7 @@ export class CanchasService {
     id: string,
     dto: UpdateCanchaDto,
     currentUser?: UsuarioAutenticado,
-  ): Promise<Cancha> {
+  ): Promise<CanchaActualizada> {
     const cancha = await this.findOne(id);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (currentUser && currentUser.tipoActor !== TipoActor.GERENTE_GENERAL) {
@@ -173,7 +250,47 @@ export class CanchasService {
     }
     if (costoHoraBase !== undefined)
       cancha.costoHoraBase = String(costoHoraBase);
-    return this.canchasRepo.save(cancha);
+    const guardada: CanchaActualizada = await this.canchasRepo.save(cancha);
+    // Pasar a mantenimiento NO se bloquea ni toca las reservas ya tomadas:
+    // solo se avisa cuántas siguen vigentes (informativo).
+    if (dto.estado === EstadoCancha.MANTENIMIENTO) {
+      const futuras = await this.reservasFuturasActivas(id);
+      if (futuras.cantidad > 0) {
+        guardada.aviso = {
+          ...futuras,
+          mensaje:
+            `La cancha pasó a mantenimiento. Ya no se ofrecerá para nuevas reservas, ` +
+            `pero se respetan ${futuras.cantidad} reserva(s) confirmada(s) por cumplirse ` +
+            `(${textoFechas(futuras.fechas)}). No se modificó ninguna.`,
+        };
+      }
+    }
+    return guardada;
+  }
+
+  // Reservas CONFIRMADA de la cancha cuyo horario de fin es posterior a
+  // "ahora" en hora de Argentina. CANCELADA y las ya terminadas no cuentan.
+  async reservasFuturasActivas(
+    canchaId: string,
+    manager?: EntityManager,
+  ): Promise<ReservasFuturas> {
+    const ahora = ahoraArgentina();
+    const repo = manager
+      ? manager.getRepository(ReservaCancha)
+      : this.reservasRepo;
+    const candidatas = await repo.find({
+      where: {
+        cancha: { id: canchaId },
+        estado: EstadoResCancha.CONFIRMADA,
+        fecha: MoreThanOrEqual(ahora.fecha),
+      },
+      select: { id: true, fecha: true, horaFin: true },
+    });
+    const vigentes = candidatas.filter((r) =>
+      terminaDespuesDe(r.fecha, r.horaFin, ahora),
+    );
+    const fechas = [...new Set(vigentes.map((r) => r.fecha))].sort();
+    return { cantidad: vigentes.length, fechas };
   }
 
   async crearBloqueo(
@@ -217,8 +334,9 @@ export class CanchasService {
           where: { cancha: { id } },
         });
         if (historial > 0) {
+          const futuras = await this.reservasFuturasActivas(id, manager);
           throw new BadRequestException(
-            `No se puede eliminar: la cancha tiene ${historial} reserva(s) en su historial. Ponela en mantenimiento en su lugar.`,
+            mensajeNoEliminable(historial, futuras),
           );
         }
         await manager.delete(BloqueoCancha, { cancha: { id } });
@@ -237,7 +355,7 @@ export class CanchasService {
       const code = (error as { code?: string })?.code;
       if (code === '23503') {
         throw new BadRequestException(
-          `No se puede eliminar: la cancha tiene ${historial} reserva(s) en su historial. Ponela en mantenimiento en su lugar.`,
+          mensajeNoEliminable(historial, { cantidad: 0, fechas: [] }),
         );
       }
       throw error;

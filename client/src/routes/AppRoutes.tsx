@@ -16,6 +16,8 @@ import { RegistroPage } from '../modules/usuarios/pages/RegistroPage';
 import { VerificarEmail } from '../modules/usuarios/pages/VerificarEmail';
 import { Configuracion } from '../modules/usuarios/pages/Configuracion';
 import { ClienteShell } from '../shared/layout/ClienteShell';
+import { MisNotificaciones } from '../modules/notificaciones/pages/MisNotificaciones';
+import { EnviarNotificaciones } from '../modules/notificaciones/pages/EnviarNotificaciones';
 import { PublicLayout } from '../shared/components/PublicLayout';
 import { ClasesPublicas } from '../modules/clases/pages/ClasesPublicas';
 import { CanchasPublicas } from '../modules/canchas/pages/CanchasPublicas';
@@ -42,6 +44,7 @@ import { DentroSede } from '../modules/acceso/pages/DentroSede';
 import { GestionReservasClases } from '../modules/clases/pages/GestionReservasClases';
 import { GestionReservasCanchas } from '../modules/canchas/pages/GestionReservasCanchas';
 import { CobrarEfectivo } from '../modules/pagos/pages/CobrarEfectivo';
+import { HistorialPagos } from '../modules/pagos/pages/HistorialPagos';
 import { Reportes } from '../modules/admin/pages/Reportes';
 import { SedeDetalle } from '../modules/sedes/pages/SedeDetalle';
 import { InstructorDetalle } from '../modules/instructores/pages/InstructorDetalle';
@@ -113,6 +116,15 @@ export function AppRoutes() {
           }
         />
         <Route path="/mi-cuenta" element={<Configuracion />} />
+        {/* Solo socios: los externos no tienen campanita ni lista de notificaciones. */}
+        <Route
+          path="/notificaciones"
+          element={
+            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login" fallbackPath="/dashboard">
+              <MisNotificaciones />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/reservar-clases"
           element={
@@ -214,6 +226,7 @@ export function AppRoutes() {
         <Route path="clases/configuracion" element={<ProtectedRoute allowedRoles={ROLES_GERENTES} loginPath="/admin/login"><ConfiguracionClases /></ProtectedRoute>} />
         <Route path="clases/:sedeId" element={<ProtectedRoute allowedRoles={ROLES_GERENTES} loginPath="/admin/login"><CalendarioSede /></ProtectedRoute>} />
         <Route path="instructores" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><CrearInstructor /></ProtectedRoute>} />
+        <Route path="notificaciones" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE_GENERAL]} loginPath="/admin/login"><EnviarNotificaciones /></ProtectedRoute>} />
         <Route path="precios" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE_GENERAL]} loginPath="/admin/login"><EditarPrecios /></ProtectedRoute>} />
         <Route path="acceso" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE]} loginPath="/admin/login"><ControlAcceso /></ProtectedRoute>} />
         <Route path="acceso/dentro" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><DentroSede /></ProtectedRoute>} />
@@ -221,6 +234,7 @@ export function AppRoutes() {
         <Route path="reservas-clases" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><GestionReservasClases /></ProtectedRoute>} />
         <Route path="reservas-canchas" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><GestionReservasCanchas /></ProtectedRoute>} />
         <Route path="cobrar" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><CobrarEfectivo /></ProtectedRoute>} />
+        <Route path="pagos" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><HistorialPagos /></ProtectedRoute>} />
         <Route path="reportes" element={<ProtectedRoute allowedRoles={ROLES_GERENTES} loginPath="/admin/login"><Reportes /></ProtectedRoute>} />
         <Route path="membresias" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><ListadoMembresias /></ProtectedRoute>} />
         <Route path="sedes/:id" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE_GENERAL]} loginPath="/admin/login"><SedeDetalle /></ProtectedRoute>} />

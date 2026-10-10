@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Dumbbell, LogOut, Menu, UserRound, X, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../../modules/auth/AuthContext';
@@ -20,13 +20,15 @@ interface AppShellProps {
   accountTo?: string | null;
   /** A dónde ir al cerrar sesión (default: /login). */
   logoutTo?: string;
+  /** Acciones extra en el header, antes del menú de usuario (ej. la campanita). */
+  topActions?: ReactNode;
 }
 
 function inicialesDe(nombre: string, apellido: string): string {
   return `${nombre[0] ?? ''}${apellido[0] ?? ''}`.toUpperCase();
 }
 
-export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', logoutTo = '/login' }: AppShellProps) {
+export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', logoutTo = '/login', topActions }: AppShellProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -142,6 +144,7 @@ export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', 
             <h1>{actual.label}</h1>
           </div>
           <div className="top-actions" ref={menuRef}>
+            {topActions}
             <button
               className="user-menu"
               aria-label="Menú de usuario"

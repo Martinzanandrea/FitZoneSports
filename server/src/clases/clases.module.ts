@@ -16,12 +16,14 @@ import { ClasesController } from './clases.controller';
 import { ReservasClaseService } from './reserva-clase.service';
 import { ReservasClaseController } from './reserva-clase.controller';
 import { ListaEsperaListener } from './listeners/lista-espera.listener';
+import { ClaseBajaListener } from './listeners/clase-baja.listener';
 import {
   BOOKING_CLASE_REPOSITORY,
   TypeOrmBookingClaseRepository,
 } from './booking-clase.repository';
 import { RepartoHorasService } from './reparto-horas.service';
 import { GeneracionOcurrenciasService } from './generacion-ocurrencias.service';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -36,6 +38,7 @@ import { GeneracionOcurrenciasService } from './generacion-ocurrencias.service';
       Instructor,
       Usuario,
     ]),
+    NotificacionesModule, // los listeners de eventos de clases notifican con su servicio
   ],
   controllers: [ClasesController, ReservasClaseController],
   providers: [
@@ -47,6 +50,7 @@ import { GeneracionOcurrenciasService } from './generacion-ocurrencias.service';
       useClass: TypeOrmBookingClaseRepository,
     },
     ListaEsperaListener,
+    ClaseBajaListener,
     RepartoHorasService,
     GeneracionOcurrenciasService,
   ],

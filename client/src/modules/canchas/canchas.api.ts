@@ -8,6 +8,14 @@ export interface CanchaPublica {
   costoHoraBase: string;
 }
 
+// Aviso informativo (no bloqueante) que devuelve el backend al pasar una
+// cancha a mantenimiento con reservas confirmadas por cumplirse.
+export interface AvisoMantenimiento {
+  cantidad: number;
+  fechas: string[];
+  mensaje: string;
+}
+
 export const canchasApi = {
   // Catálogo público de canchas activas (sin login): sede, tipo y
   // precio base por hora. Sin disponibilidad ni reservas.
@@ -21,7 +29,7 @@ export const canchasApi = {
   create: (payload: CanchaPayload) => api.post<Cancha>('/canchas', payload).then((r) => r.data),
   // Guarda cambios en una cancha (el id dice cuál); también se usa para pasarla
   // a mantenimiento sin borrar las reservas ya hechas.
-  update: (id: string, payload: Partial<CanchaPayload> & { estado?: Cancha['estado'] }) => api.patch<Cancha>(`/canchas/${id}`, payload).then((r) => r.data),
+  update: (id: string, payload: Partial<CanchaPayload> & { estado?: Cancha['estado'] }) => api.patch<Cancha & { aviso?: AvisoMantenimiento }>(`/canchas/${id}`, payload).then((r) => r.data),
   // Borra una cancha de verdad, solo si no tiene reservas en su historial;
   // si las tiene el backend responde 400 con el motivo.
   eliminar: (id: string) => api.delete<void>(`/canchas/${id}`).then((r) => r.data),

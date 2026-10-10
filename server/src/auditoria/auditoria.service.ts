@@ -35,7 +35,10 @@ export class AuditoriaService {
       });
       await this.auditoriaRepo.save(registro);
     } catch (err) {
-      this.logger.warn(`No se pudo registrar auditoría: ${err}`);
+      // Sin el mensaje de la base: puede traer valores (DNI, email) de la fila.
+      this.logger.warn(
+        `No se pudo registrar auditoría (${err instanceof Error ? err.name : 'error'})`,
+      );
     }
   }
 

@@ -18,6 +18,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AdminModule } from './admin/admin.module';
 import { PreciosModule } from './precios/precios.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
@@ -37,6 +38,7 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
     AdminModule,
     PreciosModule,
     AuditoriaModule,
+    NotificacionesModule,
 
     ThrottlerModule.forRoot({
       throttlers: [
