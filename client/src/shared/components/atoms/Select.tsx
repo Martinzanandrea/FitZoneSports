@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown } from 'lucide-react';
-import { usePosicionFlotante } from '../hooks/usePosicionFlotante';
+import { usePosicionFlotante } from '../../hooks/usePosicionFlotante';
 
 export interface OpcionSelect {
   value: string;

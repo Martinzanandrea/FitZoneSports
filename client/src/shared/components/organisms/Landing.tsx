@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import '../../styles/publico.css';
+import '../../../styles/publico.css';
 
 // Estructura pública (barra, drawer, pie, encabezados y CTA) con el estilo
 // lima/aqua "liquid glass" del resto de la app. Sin datos propios: todo

@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { accesoApi } from '../acceso.api';
 import { membresiasApi } from '../../membresias/membresias.api';
 import type { Membresia } from '../../membresias/membresias.types';
-import { Badge } from '../../../shared/components/ui';
+import { Badge } from '../../../shared/components/atoms';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function tonoMembresia(estado: Membresia['estado']): 'success' | 'warning' | 'danger' {

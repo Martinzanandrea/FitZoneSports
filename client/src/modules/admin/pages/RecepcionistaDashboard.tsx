@@ -8,12 +8,12 @@ import { accesoApi } from '../../acceso/acceso.api';
 import type { SesionAbierta } from '../../acceso/acceso.types';
 import { canchasApi } from '../../canchas/canchas.api';
 import { adminApi, type DashboardResumen } from '../admin.api';
-import { Donut } from '../../../shared/components/Donut';
-import { MetricCard } from '../../../shared/components/MetricCard';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Donut } from '../../../shared/components/atoms';;
+import { MetricCard } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function hoyYMD() {

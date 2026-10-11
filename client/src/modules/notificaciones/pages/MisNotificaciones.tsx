@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BellOff, CheckCheck } from 'lucide-react';
 import { notificacionesApi, type Notificacion } from '../notificaciones.api';
-import { Pagination } from '../../../shared/components/ui';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { Pagination } from '../../../shared/components/molecules';
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { formatearFechaHora } from '../utils';
 

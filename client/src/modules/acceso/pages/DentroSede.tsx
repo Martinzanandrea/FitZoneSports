@@ -6,12 +6,12 @@ import type { SesionAbierta } from '../acceso.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { TipoActor } from '../../../shared/types/enums';
-import { Pagination } from '../../../shared/components/ui';
-import { Select } from '../../../shared/components/Select';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Pagination } from '../../../shared/components/molecules';
+import { Select } from '../../../shared/components/atoms';;
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function haceCuanto(horaIngreso: string): string {

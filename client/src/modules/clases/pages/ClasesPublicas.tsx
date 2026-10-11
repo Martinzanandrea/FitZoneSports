@@ -1,9 +1,9 @@
 import { clasesApi } from '../clases.api';
 import { useAuth } from '../../auth/AuthContext';
-import { PageHeading, RegisterCta } from '../../../shared/components/Landing';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { PageHeading, RegisterCta } from '../../../shared/components/organisms';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { useDatosPublicos } from '../../../shared/hooks/useDatosPublicos';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 

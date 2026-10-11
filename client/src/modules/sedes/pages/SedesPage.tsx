@@ -3,12 +3,13 @@ import { Activity, Building2, MapPin, Pencil, Plus, Power, Tag, Users } from 'lu
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { sedesApi } from '../sedes.api';
 import type { CreateSedePayload, Sede } from '../sedes.types';
-import { Badge, Pagination } from '../../../shared/components/ui';
-import { MetricCard } from '../../../shared/components/MetricCard';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Badge } from '../../../shared/components/atoms';
+import { Pagination } from '../../../shared/components/molecules';
+import { MetricCard } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const EMPTY_FORM: CreateSedePayload = { nombre: '', direccion: '', aforoMaximo: 100 };

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Button } from '../../../shared/components/ui';
+import { Button } from '../../../shared/components/atoms';
 
 const ELEMENT_ID = 'lector-qr-visor';
 

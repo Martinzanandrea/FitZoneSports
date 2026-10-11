@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
-import { AdminLayout } from '../shared/components/AdminLayout';
+import { AdminLayout } from '../shared/components/organisms';;
 import { Login } from '../modules/auth/pages/Login';
 import { Inicio } from '../modules/inicio/pages/Inicio';
 import { AdminIndex } from '../modules/admin/AdminIndex';
@@ -18,7 +18,7 @@ import { Configuracion } from '../modules/usuarios/pages/Configuracion';
 import { ClienteShell } from '../shared/layout/ClienteShell';
 import { MisNotificaciones } from '../modules/notificaciones/pages/MisNotificaciones';
 import { EnviarNotificaciones } from '../modules/notificaciones/pages/EnviarNotificaciones';
-import { PublicLayout } from '../shared/components/PublicLayout';
+import { PublicLayout } from '../shared/components/organisms';;
 import { ClasesPublicas } from '../modules/clases/pages/ClasesPublicas';
 import { CanchasPublicas } from '../modules/canchas/pages/CanchasPublicas';
 import { SedesPublicas } from '../modules/sedes/pages/SedesPublicas';

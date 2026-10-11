@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { Banknote, CreditCard, Smartphone, type LucideIcon } from 'lucide-react';
 import { pagosApi } from '../pagos.api';
 import type { PagoPropio } from '../pagos.types';
-import { Badge } from '../../../shared/components/ui';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { Badge } from '../../../shared/components/atoms';
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { BotonComprobante } from '../components/BotonComprobante';
 

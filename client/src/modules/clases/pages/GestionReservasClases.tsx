@@ -7,11 +7,11 @@ import type { Clase, ClaseOcurrencia, ReservaClase } from '../clases.types';
 import { usuariosApi, type ClienteBuscado } from '../../usuarios/usuarios.api';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
-import { Select } from '../../../shared/components/Select';
-import { MetricCard } from '../../../shared/components/MetricCard';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Select } from '../../../shared/components/atoms';;
+import { MetricCard } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 

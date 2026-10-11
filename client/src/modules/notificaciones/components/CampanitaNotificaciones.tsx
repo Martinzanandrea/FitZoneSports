@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Bell, BellOff, CheckCheck } from 'lucide-react';
 import { notificacionesApi, type Notificacion } from '../notificaciones.api';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { formatearFechaHora } from '../utils';
 import '../../../styles/notificaciones.css';
 

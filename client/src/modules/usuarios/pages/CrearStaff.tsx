@@ -7,8 +7,8 @@ import type { Sede } from '../../sedes/sedes.types';
 import type { CrearStaffPayload } from '../usuarios.types';
 import { TipoActor } from '../../../shared/types/enums';
 import { useAuth } from '../../auth/AuthContext';
-import { Select } from '../../../shared/components/Select';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { Select } from '../../../shared/components/atoms';;
+import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function mensajeDe(e: unknown, porDefecto: string): string {

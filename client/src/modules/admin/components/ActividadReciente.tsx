@@ -1,10 +1,10 @@
 import { Activity } from 'lucide-react';
 import type { AuditoriaRegistro } from '../admin.api';
-import { Badge } from '../../../shared/components/ui';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Badge } from '../../../shared/components/atoms';
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 
 function accionVariant(accion: string) {
   const a = accion.toLowerCase();

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowIcon, PublicShell } from '../../../shared/components/Landing';
+import { ArrowIcon, PublicShell } from '../../../shared/components/organisms';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function NoEncontrado() {

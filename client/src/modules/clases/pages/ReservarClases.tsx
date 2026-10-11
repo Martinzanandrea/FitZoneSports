@@ -5,11 +5,11 @@ import { useAuth } from '../../auth/AuthContext';
 import { TipoActor } from '../../../shared/types/enums';
 import { clasesApi, fetchMapaClases } from '../clases.api';
 import type { Clase, ClaseOcurrencia, MiReservaClase } from '../clases.types';
-import { Badge } from '../../../shared/components/ui';
-import { Select } from '../../../shared/components/Select';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { LoadingState } from '../../../shared/components/LoadingState';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { Badge } from '../../../shared/components/atoms';
+import { Select } from '../../../shared/components/atoms';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const DIAS_A_FUTURO = 14;

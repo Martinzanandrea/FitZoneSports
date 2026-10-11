@@ -1,4 +1,4 @@
-import { PageHeading } from '../../../shared/components/Landing';
+import { PageHeading } from '../../../shared/components/organisms';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const SECCIONES: { titulo: string; cuerpo: string }[] = [

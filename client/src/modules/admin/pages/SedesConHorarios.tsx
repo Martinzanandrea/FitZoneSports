@@ -5,11 +5,12 @@ import { useAuth } from '../../auth/AuthContext';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { clasesApi } from '../../clases/clases.api';
-import { Badge, Pagination, ProgressBar } from '../../../shared/components/ui';
-import { MetricCard } from '../../../shared/components/MetricCard';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Badge, ProgressBar } from '../../../shared/components/atoms';
+import { Pagination } from '../../../shared/components/molecules';
+import { MetricCard } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 

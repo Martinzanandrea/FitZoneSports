@@ -6,9 +6,9 @@ import { canchasApi } from '../../canchas/canchas.api';
 import { EstadoCancha, type Cancha } from '../../canchas/canchas.types';
 import { pagosApi } from '../pagos.api';
 import type { Pago } from '../pagos.types';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { BotonComprobante } from './BotonComprobante';
 
 // Misma grilla que la reserva online: turnos de una hora, de 08:00 a 22:00.

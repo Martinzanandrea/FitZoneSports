@@ -7,12 +7,12 @@ import { usuariosApi } from '../../usuarios/usuarios.api';
 import type { Usuario } from '../../usuarios/usuarios.types';
 import { canchasApi } from '../../canchas/canchas.api';
 import { clasesApi } from '../../clases/clases.api';
-import { Badge } from '../../../shared/components/ui';
-import { Select } from '../../../shared/components/Select';
-import { MetricCard } from '../../../shared/components/MetricCard';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Badge } from '../../../shared/components/atoms';
+import { Select } from '../../../shared/components/atoms';;
+import { MetricCard } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 

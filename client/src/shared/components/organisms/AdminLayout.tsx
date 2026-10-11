@@ -17,10 +17,10 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { useAuth } from '../../modules/auth/AuthContext';
-import { TipoActor } from '../types/enums';
-import { AppShell, type AppShellNavItem } from '../layout/AppShell';
-import '../../styles/operarios.css';
+import { useAuth } from '../../../modules/auth/AuthContext';
+import { TipoActor } from '../../types/enums';
+import { AppShell, type AppShellNavItem } from '../../layout/AppShell';
+import '../../../styles/operarios.css';
 
 interface MenuAdminItem extends AppShellNavItem {
   /** false = ítem preparado pero todavía oculto. */

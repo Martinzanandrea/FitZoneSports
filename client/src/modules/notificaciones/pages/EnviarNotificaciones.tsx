@@ -10,12 +10,12 @@ import {
 import { sedesApi } from '../../sedes/sedes.api';
 import type { Sede } from '../../sedes/sedes.types';
 import { usuariosApi, type ClienteBuscado } from '../../usuarios/usuarios.api';
-import { Select } from '../../../shared/components/Select';
-import { Pagination } from '../../../shared/components/ui';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Select } from '../../../shared/components/atoms';;
+import { Pagination } from '../../../shared/components/molecules';
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { formatearFechaHora, mensajeDe } from '../utils';

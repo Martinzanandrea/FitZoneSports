@@ -2,7 +2,7 @@ import { Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { AuthLayout } from '../../auth/AuthLayout';
-import { EmptyState } from '../../../shared/components/EmptyState';
+import { EmptyState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 

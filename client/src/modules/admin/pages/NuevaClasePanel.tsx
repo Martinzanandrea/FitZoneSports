@@ -6,10 +6,10 @@ import type { Clase } from '../../clases/clases.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import type { FranjaHoraria } from '../../sedes/sedes.types';
 import { instructoresApi, type Instructor } from '../../instructores/instructores.api';
-import { Chip } from '../../../shared/components/ui';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { LoadingState } from '../../../shared/components/LoadingState';
-import { Select } from '../../../shared/components/Select';
+import { Chip } from '../../../shared/components/atoms';
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
+import { Select } from '../../../shared/components/atoms';;
 
 export const DIAS = [
   { value: 1, label: 'Lun' },

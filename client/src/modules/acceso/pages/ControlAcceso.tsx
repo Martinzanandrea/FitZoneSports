@@ -6,10 +6,10 @@ import { accesoApi } from '../acceso.api';
 import type { SesionAbierta } from '../acceso.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import { LectorQr } from '../components/LectorQr';
-import { Donut } from '../../../shared/components/Donut';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Donut } from '../../../shared/components/atoms';;
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 

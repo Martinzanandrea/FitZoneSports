@@ -3,12 +3,13 @@ import { CreditCard, DollarSign, Tag, Users } from 'lucide-react';
 import { preciosApi } from '../precios.api';
 import type { PrecioPlan } from '../precios.types';
 import { adminApi, type PlanPopularidad, type ReporteFinanciero } from '../../admin/admin.api';
-import { ProgressBar, formatMoney } from '../../../shared/components/ui';
-import { MetricCard } from '../../../shared/components/MetricCard';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { ProgressBar } from '../../../shared/components/atoms';
+import { formatMoney } from '../../../shared/utils/formatMoney';
+import { MetricCard } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 function nombrePlan(plan: string) {

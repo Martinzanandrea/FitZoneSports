@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PageHeading, RegisterCta } from '../../../shared/components/Landing';
+import { PageHeading, RegisterCta } from '../../../shared/components/organisms';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 // Preguntas frecuentes: solo reglas que existen en el sistema (descuento de

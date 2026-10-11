@@ -10,12 +10,12 @@ import {
 import { useAuth } from '../../auth/AuthContext';
 import { membresiasApi } from '../../membresias/membresias.api';
 import type { Membresia } from '../../membresias/membresias.types';
-import { Badge } from '../../../shared/components/ui';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { IconButton } from '../../../shared/components/IconButton';
+import { Badge } from '../../../shared/components/atoms';
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { IconButton } from '../../../shared/components/atoms';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { unaVez } from '../../../shared/utils/unaVez';
 import { formatearFechaCorta, useProximasReservas, type ProximaReserva } from '../hooks/useProximasReservas';

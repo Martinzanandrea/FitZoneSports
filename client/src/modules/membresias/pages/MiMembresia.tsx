@@ -6,11 +6,11 @@ import { membresiasApi } from '../membresias.api';
 import type { Membresia } from '../membresias.types';
 import { preciosApi } from '../../precios/precios.api';
 import type { PrecioPlan } from '../../precios/precios.types';
-import { Badge } from '../../../shared/components/ui';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { Badge } from '../../../shared/components/atoms';
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const BENEFICIOS = [

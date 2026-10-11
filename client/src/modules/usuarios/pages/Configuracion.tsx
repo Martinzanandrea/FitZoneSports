@@ -3,10 +3,10 @@ import { Camera, LockKeyhole } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { usuariosApi } from '../usuarios.api';
 import type { Usuario } from '../usuarios.types';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
 import { CambiarPasswordForm } from './CambiarPassword';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 

@@ -12,12 +12,14 @@ import type {
 } from '../pagos.types';
 import { TipoActor } from '../../../shared/types/enums';
 import { useAuth } from '../../auth/AuthContext';
-import { Avatar, Badge, Pagination, formatMoney } from '../../../shared/components/ui';
-import { Select } from '../../../shared/components/Select';
-import { MetricCard } from '../../../shared/components/MetricCard';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
+import { Avatar, Badge } from '../../../shared/components/atoms';
+import { Pagination } from '../../../shared/components/molecules';
+import { formatMoney } from '../../../shared/utils/formatMoney';
+import { Select } from '../../../shared/components/atoms';;
+import { MetricCard } from '../../../shared/components/molecules';;
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { BotonComprobante } from '../components/BotonComprobante';
 

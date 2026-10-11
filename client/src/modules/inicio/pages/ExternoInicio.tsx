@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, ChevronRight, Sparkles, Volleyball } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
-import { Badge } from '../../../shared/components/ui';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { ErrorState } from '../../../shared/components/ErrorState';
-import { LoadingState } from '../../../shared/components/LoadingState';
-import { SectionHeader } from '../../../shared/components/SectionHeader';
-import { IconButton } from '../../../shared/components/IconButton';
+import { Badge } from '../../../shared/components/atoms';
+import { EmptyState } from '../../../shared/components/molecules';;
+import { ErrorState } from '../../../shared/components/molecules';;
+import { LoadingState } from '../../../shared/components/molecules';;
+import { SectionHeader } from '../../../shared/components/molecules';;
+import { IconButton } from '../../../shared/components/atoms';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { formatearFechaCorta, useProximasReservas } from '../hooks/useProximasReservas';
 
