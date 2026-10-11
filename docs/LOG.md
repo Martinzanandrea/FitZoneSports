@@ -135,10 +135,10 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 ### Máximo Retamoso
 
 **Fecha:** 2026-10-06
-**Actividad:** Reorganización con Atomic Design (FT1-32, En curso) y rol Gerente de Sede (FT1-50, En curso): átomos/moléculas en shared/components/ui.tsx, jerarquía GG > GS > Recepcionista con scope por sede fail-closed.
-**Decisión:** (no aplica — en curso según diseño existente)
-**Problema encontrado:** recepcionista sin sede veía datos de todas las sedes (fail-open); corregido a 403 + pantalla /admin/sin-sede.
-**Commit(s):** `71c2f71`, `f8daf45`, `f07fa62`, `13b0d95` (ambas tareas En curso al 2026-10-11)
+**Actividad:** Reorganización con Atomic Design (FT1-32): átomos (10 piezas, un archivo por componente), moléculas (12), organismos (layouts) con barrels index.ts + README del sistema; formatMoney a shared/utils; eliminado código muerto (ui.tsx partido, Donut duplicado, Reveal/Layout sin uso). Rama refactor/atomic-design, build limpio.
+**Decisión:** un archivo por componente + barrels por nivel en vez de cajón único; mover sin cambiar comportamiento.
+**Problema encontrado:** mi script inicial duplicó bloques de imports (~50 archivos); se descartó todo con reset y se rehicieron los moves con corrección de profundidad de rutas relativas. Verificado con npm run build + render en local.
+**Commit(s):** `772b856` (rama refactor/atomic-design, pendiente merge)
 
 ## UNIDAD V
 
