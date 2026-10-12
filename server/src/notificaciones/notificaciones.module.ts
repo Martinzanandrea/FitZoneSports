@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EnvioNotificacion, Notificacion, Sede, Usuario } from '../entities';
-import { UsuariosModule } from '../usuarios/usuarios.module';
+import { MailModule } from '../common/mail/mail.module';
 import { NotificacionesController } from './notificaciones.controller';
 import { NotificacionesService } from './notificaciones.service';
 import { NotificadorFactory } from './notificadores/notificador.factory';
@@ -11,7 +11,7 @@ import { EmailNotificador } from './notificadores/email.notificador';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Notificacion, EnvioNotificacion, Usuario, Sede]),
-    UsuariosModule, // EmailVerificacionService: transporte de mail existente
+    MailModule, // EnviadorCorreo: proveedor de mail según MAIL_PROVIDER
   ],
   controllers: [NotificacionesController],
   providers: [

@@ -10,6 +10,7 @@ import { Select } from '../../../shared/components/atoms';;
 import { EmptyState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
+import { useAhora } from '../../../shared/hooks/useAhora';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const DIAS_A_FUTURO = 14;
@@ -43,6 +44,7 @@ function fechaLocalYMD(d: Date): string {
 }
 
 export function ReservarClases() {
+  const ahora = useAhora();
   useTitulo('Reservar clases');
   const { user } = useAuth();
   const [clases, setClases] = useState<Clase[]>([]);
@@ -100,7 +102,7 @@ export function ReservarClases() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const limiteReserva = Date.now() + 48 * 60 * 60 * 1000;
+  const limiteReserva = ahora + 48 * 60 * 60 * 1000;
   const filtradas = clases.filter(
     (c) =>
       (sedeFiltro === '' || c.sede.id === sedeFiltro) &&

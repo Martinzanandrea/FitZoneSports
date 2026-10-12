@@ -7,10 +7,12 @@ import { UsuariosController } from './usuarios.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Usuario } from '../entities/usuario.entity';
 import { StorageModule } from '../storage/storage.module';
+import { MailModule } from '../common/mail/mail.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Usuario]),
     StorageModule,
+    MailModule,
     // JwtModule propio (mismo JWT_SECRET que auth): evita ciclo
     // AuthModule -> UsuariosModule -> AuthModule.
     JwtModule.registerAsync({

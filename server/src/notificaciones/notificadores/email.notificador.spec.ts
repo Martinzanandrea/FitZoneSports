@@ -14,7 +14,7 @@ const mensaje = {
 } as never;
 
 function armar(enviarCorreo: jest.Mock) {
-  const notificador = new EmailNotificador({ enviarCorreo } as never);
+  const notificador = new EmailNotificador({ enviar: enviarCorreo });
   const warn = jest
     .spyOn(
       (notificador as unknown as { logger: { warn: () => void } }).logger,
@@ -47,13 +47,11 @@ describe('EmailNotificador - logs de error', () => {
 
   it('en un timeout indica cuántos ms tardó', async () => {
     const { notificador, warn } = armar(
-      jest
-        .fn()
-        .mockRejectedValue(
-          Object.assign(new Error('x ana.secreta@x.com'), {
-            code: 'ETIMEDOUT',
-          }),
-        ),
+      jest.fn().mockRejectedValue(
+        Object.assign(new Error('x ana.secreta@x.com'), {
+          code: 'ETIMEDOUT',
+        }),
+      ),
     );
     await notificador.enviar(destinatario, mensaje);
     const texto = JSON.stringify(warn.mock.calls);

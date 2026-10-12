@@ -399,14 +399,14 @@ describe('Aviso de baja: una notificación por persona y clase', () => {
       save: jest.fn().mockResolvedValue(undefined),
     };
     const mail = {
-      enviarCorreo: opts?.mailFalla
+      enviar: opts?.mailFalla
         ? jest.fn().mockRejectedValue(new Error('smtp caído'))
         : jest.fn().mockResolvedValue(undefined),
     };
     const notificaciones = new NotificacionesService(
       new NotificadorFactory(
         new PanelNotificador(notifRepo as never),
-        new EmailNotificador(mail as never),
+        new EmailNotificador(mail),
       ),
       {} as never,
       {} as never,
@@ -457,7 +457,7 @@ describe('Aviso de baja: una notificación por persona y clase', () => {
     await listener.notificarSociosAfectados(payload);
 
     expect(notifRepo.save).toHaveBeenCalledTimes(2); // u1 y u2, una cada uno
-    expect(mail.enviarCorreo).toHaveBeenCalledTimes(2);
+    expect(mail.enviar).toHaveBeenCalledTimes(2);
     const dePanelU1 = (
       notifRepo.create.mock.calls as Array<[Record<string, unknown>]>
     )

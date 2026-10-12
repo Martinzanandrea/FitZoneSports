@@ -1,20 +1,16 @@
 import { EmailVerificacionService } from './email-verificacion.service';
 
-const sendMail = jest.fn();
-jest.mock('nodemailer', () => ({
-  createTransport: () => ({ sendMail: (o: unknown) => sendMail(o) }),
-}));
+const enviar = jest.fn();
 
 function armar(extra: Record<string, string> = {}) {
   const valores: Record<string, string> = {
-    GMAIL_USER: 'u',
-    GMAIL_APP_PASSWORD: 'p',
     FRONTEND_URL: 'http://front',
     ...extra,
   };
-  const service = new EmailVerificacionService({
-    get: (k: string) => valores[k],
-  } as never);
+  const service = new EmailVerificacionService(
+    { get: (k: string) => valores[k] } as never,
+    { enviar },
+  );
   const warn = jest
     .spyOn(
       (service as unknown as { logger: { warn: () => void } }).logger,
@@ -26,7 +22,18 @@ function armar(extra: Record<string, string> = {}) {
 
 describe('EmailVerificacionService', () => {
   beforeEach(() => {
-    sendMail.mockReset().mockResolvedValue(undefined);
+    enviar.mockReset().mockResolvedValue(undefined);
+  });
+
+  it('envía al destinatario con el asunto de verificación', async () => {
+    const { service } = armar();
+    await service.enviarVerificacion('a@x.com', 'Ana', 'tok');
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        para: 'a@x.com',
+        asunto: 'Confirmá tu email en FitZone Sports',
+      }),
+    );
   });
 
   it('escapa el nombre en el HTML del mail', async () => {
@@ -36,7 +43,7 @@ describe('EmailVerificacionService', () => {
       '<script>alert(1)</script>',
       'tok',
     );
-    const html = (sendMail.mock.calls[0] as Array<{ html: string }>)[0].html;
+    const html = (enviar.mock.calls[0] as Array<{ html: string }>)[0].html;
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
   });
@@ -44,7 +51,7 @@ describe('EmailVerificacionService', () => {
   it('el token va codificado en el link', async () => {
     const { service } = armar();
     await service.enviarVerificacion('a@x.com', 'Ana', 'a b&c');
-    const html = (sendMail.mock.calls[0] as Array<{ html: string }>)[0].html;
+    const html = (enviar.mock.calls[0] as Array<{ html: string }>)[0].html;
     expect(html).toContain('token=a%20b%26c');
   });
 
@@ -67,7 +74,7 @@ describe('EmailVerificacionService', () => {
   });
 
   it('un rechazo del SMTP no se registra ni se relanza con la dirección', async () => {
-    sendMail.mockRejectedValue(
+    enviar.mockRejectedValue(
       Object.assign(new Error('Recipient a@x.com rejected'), {
         code: 'EENVELOPE',
       }),
@@ -82,7 +89,7 @@ describe('EmailVerificacionService', () => {
   });
 
   it('el log trae code/responseCode/command y ms si hubo timeout, sin el email', async () => {
-    sendMail.mockRejectedValue(
+    enviar.mockRejectedValue(
       Object.assign(new Error('timeout enviando a a@x.com'), {
         code: 'ETIMEDOUT',
         responseCode: 421,
@@ -98,5 +105,24 @@ describe('EmailVerificacionService', () => {
     expect(texto).toMatch(/tardó=\d+ms/);
     expect(texto).not.toContain('a@x.com');
     expect(texto).not.toContain('timeout enviando');
+  });
+
+  it('un rechazo de Brevo (status + code) se registra sin el email', async () => {
+    enviar.mockRejectedValue(
+      Object.assign(new Error('Brevo rechazó a a@x.com'), {
+        code: 'invalid_parameter',
+        status: 400,
+      }),
+    );
+    const { service, warn } = armar();
+    const err = await service
+      .enviarVerificacion('a@x.com', 'Ana', 'tok')
+      .catch((e: unknown) => e);
+    const texto = JSON.stringify(warn.mock.calls);
+    expect(texto).toContain('code=invalid_parameter');
+    expect(texto).toContain('status=400');
+    expect(texto).not.toContain('a@x.com');
+    expect((err as Error).message).toContain('invalid_parameter');
+    expect((err as Error).message).not.toContain('a@x.com');
   });
 });

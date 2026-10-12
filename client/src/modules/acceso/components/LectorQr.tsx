@@ -17,7 +17,9 @@ export function LectorQr({ onDetectado }: { onDetectado: (token: string) => void
   // Ref para no capturar un callback viejo si el padre re-renderiza
   // mientras la cámara sigue abierta.
   const onDetectadoRef = useRef(onDetectado);
-  onDetectadoRef.current = onDetectado;
+  useEffect(() => {
+    onDetectadoRef.current = onDetectado;
+  }, [onDetectado]);
 
   useEffect(() => {
     let cancelado = false;

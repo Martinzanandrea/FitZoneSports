@@ -45,9 +45,9 @@ function armarNotificadores() {
     create: jest.fn((x: unknown) => x),
     save: jest.fn().mockResolvedValue(undefined),
   };
-  const mail = { enviarCorreo: jest.fn().mockResolvedValue(undefined) };
+  const mail = { enviar: jest.fn().mockResolvedValue(undefined) };
   const panel = new PanelNotificador(notifRepo as never);
-  const email = new EmailNotificador(mail as never);
+  const email = new EmailNotificador(mail);
   const factory = new NotificadorFactory(panel, email);
   return { notifRepo, mail, panel, email, factory };
 }
@@ -94,10 +94,10 @@ describe('EmailNotificador', () => {
   it('un mail por destinatario verificado', async () => {
     const { mail, email } = armarNotificadores();
     expect(await email.enviar(dest('a'), msg)).toBe(true);
-    expect(mail.enviarCorreo).toHaveBeenCalledTimes(1);
-    expect((mail.enviarCorreo.mock.calls as string[][])[0][0]).toBe(
-      'a@ejemplo.com',
-    );
+    expect(mail.enviar).toHaveBeenCalledTimes(1);
+    expect(
+      (mail.enviar.mock.calls as Array<[{ para: string }]>)[0][0].para,
+    ).toBe('a@ejemplo.com');
   });
 
   it('no envía a emails sin verificar ni a quienes no tienen email', async () => {
@@ -106,7 +106,7 @@ describe('EmailNotificador', () => {
       false,
     );
     expect(await email.enviar(dest('b', { email: null }), msg)).toBe(false);
-    expect(mail.enviarCorreo).not.toHaveBeenCalled();
+    expect(mail.enviar).not.toHaveBeenCalled();
   });
 
   it('escapa el contenido (no inyecta HTML)', async () => {
@@ -116,7 +116,8 @@ describe('EmailNotificador', () => {
       titulo: '<b>Hola</b>',
       mensaje: '<img src=x onerror=alert(1)>\nlínea 2',
     });
-    const html = (mail.enviarCorreo.mock.calls as string[][])[0][2];
+    const html = (mail.enviar.mock.calls as Array<[{ html: string }]>)[0][0]
+      .html;
     expect(html).not.toContain('<script>');
     expect(html).not.toContain('<img');
     expect(html).not.toContain('<b>Hola</b>');
@@ -126,7 +127,7 @@ describe('EmailNotificador', () => {
 
   it('ante un fallo del SMTP no lanza y no registra la dirección', async () => {
     const { mail, email } = armarNotificadores();
-    mail.enviarCorreo.mockRejectedValue(new Error('rechazó a a@ejemplo.com'));
+    mail.enviar.mockRejectedValue(new Error('rechazó a a@ejemplo.com'));
     const warn = jest
       .spyOn(
         (email as unknown as { logger: { warn: () => void } }).logger,
@@ -205,7 +206,7 @@ describe('NotificacionesService.notificar', () => {
       msg,
       [CanalNotificacion.EMAIL],
     );
-    expect(mail.enviarCorreo).toHaveBeenCalledTimes(2);
+    expect(mail.enviar).toHaveBeenCalledTimes(2);
     expect(esperar).toHaveBeenCalledTimes(1);
     expect(esperar).toHaveBeenCalledWith(PAUSA_ENTRE_EMAILS_MS);
     expect(r).toMatchObject({ emailsEnviados: 2, emailsFallidos: 0 });
@@ -213,7 +214,7 @@ describe('NotificacionesService.notificar', () => {
 
   it('un mail que falla no frena a los demás y se cuenta como fallido', async () => {
     const { service, mail } = armarServicio();
-    mail.enviarCorreo
+    mail.enviar
       .mockRejectedValueOnce(new Error('x'))
       .mockResolvedValue(undefined);
     const r = await service.notificar([dest('a'), dest('b')], msg, [

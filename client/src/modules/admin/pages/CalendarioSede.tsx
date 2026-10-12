@@ -24,6 +24,7 @@ import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
 import { colorPorTipo } from '../../../shared/utils/colorClase';
 import { NuevaClasePanel, nombreDia } from './NuevaClasePanel';
+import { useAhora } from '../../../shared/hooks/useAhora';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 // Columnas Lun-Dom (diaSemana JS: 0 = domingo).
@@ -123,6 +124,8 @@ export function CalendarioSede() {
     void cargar();
   }, [cargar]);
 
+  const ahora = useAhora();
+
   const clasePorId = useMemo(() => new Map(clases.map((c) => [c.id, c])), [clases]);
 
   const todasOcurrencias = useMemo(
@@ -141,8 +144,8 @@ export function CalendarioSede() {
 
   // Estadísticas del resumen (ventana cargada de 14 días).
   const stats = useMemo(() => {
-    const hoy = aYMD(new Date());
-    const limiteSemana = aYMD(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+    const hoy = aYMD(new Date(ahora));
+    const limiteSemana = aYMD(new Date(ahora + 7 * 24 * 60 * 60 * 1000));
     let clasesHoy = 0;
     let reservasActivas = 0;
     let estaSemana = 0;
@@ -158,15 +161,14 @@ export function CalendarioSede() {
       reservasActivas += ocupadasDe(o.id);
     }
     return { clasesHoy, reservasActivas, estaSemana, canceladas };
-  }, [todasOcurrencias, ocupadasDe]);
+  }, [todasOcurrencias, ocupadasDe, ahora]);
 
   const proximas = useMemo(() => {
-    const ahora = Date.now();
     return todasOcurrencias
       .filter((o) => o.estado === 'PROGRAMADA' && new Date(`${o.fecha}T${o.horaInicio}`).getTime() >= ahora)
       .sort((a, b) => (a.fecha === b.fecha ? a.horaInicio.localeCompare(b.horaInicio) : a.fecha.localeCompare(b.fecha)))
       .slice(0, 5);
-  }, [todasOcurrencias]);
+  }, [todasOcurrencias, ahora]);
 
   const populares = useMemo(() => {
     const mapa = new Map<string, number>();

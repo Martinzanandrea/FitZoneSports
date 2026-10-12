@@ -11,6 +11,7 @@ import { SectionHeader } from '../../../shared/components/molecules';;
 import { EmptyState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
+import { useAhora } from '../../../shared/hooks/useAhora';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 type Modo = 'camara' | 'manual' | 'codigo';
@@ -49,9 +50,11 @@ export function ControlAcceso() {
   const [egresandoId, setEgresandoId] = useState<string | null>(null);
   const [egresoMsg, setEgresoMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
+  const ahora = useAhora();
+
   // Tiempo transcurrido desde el ingreso ("hace 45 min", "hace 2 h 15 min").
   function haceCuanto(horaIngreso: string): string {
-    const mins = Math.max(0, Math.round((Date.now() - new Date(horaIngreso).getTime()) / 60000));
+    const mins = Math.max(0, Math.round((ahora - new Date(horaIngreso).getTime()) / 60000));
     if (mins < 60) return `hace ${mins} min`;
     const h = Math.floor(mins / 60);
     const m = mins % 60;

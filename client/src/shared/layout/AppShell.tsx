@@ -28,51 +28,19 @@ function inicialesDe(nombre: string, apellido: string): string {
   return `${nombre[0] ?? ''}${apellido[0] ?? ''}`.toUpperCase();
 }
 
-export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', logoutTo = '/login', topActions }: AppShellProps) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [drawer, setDrawer] = useState(false);
-  const [menuAbierto, setMenuAbierto] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+interface SidebarContentProps {
+  eyebrow: string;
+  roleLabel: string;
+  items: AppShellNavItem[];
+  actualTo: string;
+  iniciales: string;
+  nombreCompleto: string;
+  onClose?: () => void;
+  onNavegar: () => void;
+}
 
-  // Ítem activo: el de ruta más larga que prefija la ubicación actual
-  // (así /admin/clases/:id sigue marcando "Clases").
-  const actual =
-    items
-      .filter((i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`))
-      .sort((a, b) => b.to.length - a.to.length)[0] ?? items[0];
-  const iniciales = user ? inicialesDe(user.nombre, user.apellido) : '';
-
-  useEffect(() => {
-    setDrawer(false);
-    setMenuAbierto(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (!menuAbierto) return;
-    function alClickAfuera(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuAbierto(false);
-      }
-    }
-    function alEscape(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMenuAbierto(false);
-    }
-    document.addEventListener('mousedown', alClickAfuera);
-    document.addEventListener('keydown', alEscape);
-    return () => {
-      document.removeEventListener('mousedown', alClickAfuera);
-      document.removeEventListener('keydown', alEscape);
-    };
-  }, [menuAbierto]);
-
-  async function handleLogout() {
-    await logout();
-    navigate(logoutTo);
-  }
-
-  const SidebarContent = ({ onClose }: { onClose?: () => void }) => (
+function SidebarContent({ eyebrow, roleLabel, items, actualTo, iniciales, nombreCompleto, onClose, onNavegar }: SidebarContentProps) {
+  return (
     <div className="flex flex-col h-full">
       <div className="brand">
         <div className="brand-mark" aria-hidden>
@@ -98,12 +66,12 @@ export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', 
           <NavLink
             key={item.to}
             to={item.to}
-            onClick={() => setDrawer(false)}
-            className={actual.to === item.to ? 'active' : ''}
+            onClick={onNavegar}
+            className={actualTo === item.to ? 'active' : ''}
           >
             <item.icon size={19} aria-hidden />
             <span>{item.label}</span>
-            {actual.to === item.to && <i aria-hidden />}
+            {actualTo === item.to && <i aria-hidden />}
           </NavLink>
         ))}
       </nav>
@@ -115,7 +83,7 @@ export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', 
           </span>
           <span>
             <strong>
-              {user?.nombre} {user?.apellido}
+              {nombreCompleto}
             </strong>
             <small>{roleLabel}</small>
           </span>
@@ -123,11 +91,70 @@ export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', 
       </div>
     </div>
   );
+}
+
+export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', logoutTo = '/login', topActions }: AppShellProps) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [drawer, setDrawer] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Ítem activo: el de ruta más larga que prefija la ubicación actual
+  // (así /admin/clases/:id sigue marcando "Clases").
+  const actual =
+    items
+      .filter((i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`))
+      .sort((a, b) => b.to.length - a.to.length)[0] ?? items[0];
+  const iniciales = user ? inicialesDe(user.nombre, user.apellido) : '';
+  const nombreCompleto = `${user?.nombre ?? ''} ${user?.apellido ?? ''}`;
+
+  // Al navegar se cierran drawer y menú de usuario. Se ajusta durante el render
+  // (patrón recomendado por React) en lugar de un efecto con setState.
+  const [rutaPrevia, setRutaPrevia] = useState(location.pathname);
+  if (rutaPrevia !== location.pathname) {
+    setRutaPrevia(location.pathname);
+    setDrawer(false);
+    setMenuAbierto(false);
+  }
+
+  useEffect(() => {
+    if (!menuAbierto) return;
+    function alClickAfuera(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuAbierto(false);
+      }
+    }
+    function alEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuAbierto(false);
+    }
+    document.addEventListener('mousedown', alClickAfuera);
+    document.addEventListener('keydown', alEscape);
+    return () => {
+      document.removeEventListener('mousedown', alClickAfuera);
+      document.removeEventListener('keydown', alEscape);
+    };
+  }, [menuAbierto]);
+
+  async function handleLogout() {
+    await logout();
+    navigate(logoutTo);
+  }
 
   return (
     <div className="app-shell">
       <aside className={`sidebar ${drawer ? 'drawer-open' : ''}`} aria-label="Menú principal">
-        <SidebarContent onClose={() => setDrawer(false)} />
+        <SidebarContent
+          eyebrow={eyebrow}
+          roleLabel={roleLabel}
+          items={items}
+          actualTo={actual.to}
+          iniciales={iniciales}
+          nombreCompleto={nombreCompleto}
+          onClose={() => setDrawer(false)}
+          onNavegar={() => setDrawer(false)}
+        />
       </aside>
 
       {drawer && (

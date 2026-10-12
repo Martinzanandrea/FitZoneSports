@@ -13,6 +13,7 @@ import { EmptyState } from '../../../shared/components/molecules';;
 import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
+import { useAhora } from '../../../shared/hooks/useAhora';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 const DIAS_A_FUTURO = 14;
@@ -84,6 +85,7 @@ export function GestionReservasClases() {
   const [accionId, setAccionId] = useState<string | null>(null);
 
   const [diaSel, setDiaSel] = useState(() => new Date().getDay());
+  const ahora = useAhora();
   const [expandidas, setExpandidas] = useState<Record<string, boolean>>({});
 
   const [panelAbierto, setPanelAbierto] = useState(false);
@@ -130,7 +132,7 @@ export function GestionReservasClases() {
   );
 
   const statsHoy = useMemo(() => {
-    const hoy = aYMD(new Date());
+    const hoy = aYMD(new Date(ahora));
     const deHoy = ocurrenciasDeSede.filter((o) => o.fecha === hoy);
     let ocupadas = 0;
     let capacidad = 0;
@@ -143,13 +145,13 @@ export function GestionReservasClases() {
       if (cap > 0 && oc / cap >= 0.8) casiLlenas++;
     }
     return { clasesHoy: deHoy.length, ocupadas, capacidad, casiLlenas };
-  }, [ocurrenciasDeSede, reservasPorOcurrencia, clasePorId]);
+  }, [ocurrenciasDeSede, reservasPorOcurrencia, clasePorId, ahora]);
 
   // Se puede anotar hasta 30 minutos antes del inicio.
   const anotables = useMemo(() => {
-    const limite = Date.now() + 30 * 60 * 1000;
+    const limite = ahora + 30 * 60 * 1000;
     return ocurrenciasDeSede.filter((o) => inicioOcurrencia(o) >= limite);
-  }, [ocurrenciasDeSede]);
+  }, [ocurrenciasDeSede, ahora]);
 
   const anotablesPorDia = useMemo(() => {
     const grupos = new Map<string, ClaseOcurrencia[]>();
