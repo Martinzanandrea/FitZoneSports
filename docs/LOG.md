@@ -127,10 +127,10 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 ### Máximo Retamoso
 
 **Fecha:** 2026-10-05
-**Actividad:** Pantallas públicas del home/inicio y catálogos (FT1-48, En curso): landing multi-página (/, /clases, /canchas, /sedes, /nosotros) con nav compartido, estado de verificación local (npm run build) tras faltante de html5-qrcode en node_modules.
-**Decisión:** layout público único (PublicLayout) en vez de repetir nav en cada página.
-**Problema encontrado:** (En curso) el nav no vuelve a la posicion 0,0: react-router conserva el scroll y las páginas se abren a mitad de contenido; diagnosticado con reproducción (scroll + clic vs recarga) y búsqueda de manejo de scroll en client/src (inexistente). Fix en trabajo: componente ScrollToTop global.
-**Commit(s):** `9f46ceb`, `b3ec7c3` (fix en rama fix/scroll-nav)
+**Actividad:** Pantallas públicas del home/inicio y catálogos (FT1-48, Listo): landing multi-página (/, /clases, /canchas, /sedes, /nosotros) con nav compartido. Fix propio del nav que no volvía arriba al cambiar de ruta (ScrollToTop global), verificado con navegador automatizado y en producción.
+**Decisión:** layout público único (PublicLayout) en vez de repetir nav en cada página; fix global en vez de parchar página por página.
+**Problema encontrado:** react-router conserva el scroll entre rutas y no había ningún manejo de scroll en client/src; diagnosticado con reproducción (scroll + clic vs recarga).
+**Commit(s):** `9f46ceb`, `b3ec7c3` (mergeado a main, en producción)
 
 ### Máximo Retamoso
 
@@ -138,7 +138,15 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Actividad:** Reorganización con Atomic Design (FT1-32): átomos (10 piezas, un archivo por componente), moléculas (12), organismos (layouts) con barrels index.ts + README del sistema; formatMoney a shared/utils; eliminado código muerto (ui.tsx partido, Donut duplicado, Reveal/Layout sin uso). Rama refactor/atomic-design, build limpio.
 **Decisión:** un archivo por componente + barrels por nivel en vez de cajón único; mover sin cambiar comportamiento.
 **Problema encontrado:** mi script inicial duplicó bloques de imports (~50 archivos); se descartó todo con reset y se rehicieron los moves con corrección de profundidad de rutas relativas. Verificado con npm run build + render en local.
-**Commit(s):** `772b856` (rama refactor/atomic-design, pendiente merge)
+**Commit(s):** `772b856` (mergeado a main con PR #1)
+
+### Máximo Retamoso
+
+**Fecha:** 2026-10-11
+**Actividad:** Cierre de FT1-50 rol Gerente de Sede (FT1-53 pantallas): verificado punta a punta con cuenta de prueba (login, /admin/sede con resumen, personal, canchas, clases, reservas, reportes, pagos, membresías, instructores, acceso — 10/10 pantallas con datos de su sede, sin 403 ni blancos). Endpoints (FT1-51) y migración del enum (FT1-52) ya estaban en main.
+**Decisión:** cerrar como Listo; queda como limitación conocida que el GS no tiene pantalla para editar su sede (por API sí puede).
+**Problema encontrado:** ninguno bloqueante; las credenciales iniciales de gerente estaban desactualizadas, se usó la cuenta GG de prueba del equipo.
+**Commit(s):** sin cambios de código (solo verificación funcional)
 
 ## UNIDAD V
 
