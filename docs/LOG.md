@@ -31,7 +31,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-08-24
 **Actividad:** Debate grupal sobre Monolito Modular vs Microservicios (FT1-9): sostuve transacciones ACID fuertes para RN-02 (anti-sobreventa de canchas) como criterio decisivo, con equipo de 4 y time-to-market como criterios secundarios.
 **Decisión:** Monolito Modular con NestJS, documentado en ADR-0002 (FT1-16).
-**Problema encontrado:** ninguno.
+**Problema encontrado:** posiciones iniciales divididas en el equipo; se cerró con matriz de criterios (ACID, equipo, deploy) acordada entre los tres.
 **Commit(s):** `e22cde0`
 
 ## UNIDAD II — FRAMEWORKS
@@ -53,7 +53,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-09-02
 **Actividad:** Redacción de ADR-0001 GitHub como repositorio compartido (FT1-15) y de ADR-0002 Monolito Modular (FT1-16): ramas por integrante y versionado acoplado como costo aceptado.
 **Decisión:** monorepo único cliente+servidor con formato Nygard de 5 campos.
-**Problema encontrado:** ninguno.
+**Problema encontrado:** numeración de ADRs con gaps tras varias iteraciones; se resolvió con renumeración basada en git log.
 **Commit(s):** `612d9ce`, `068e8b6`, `e22cde0`
 
 ### Máximo Retamoso
@@ -61,7 +61,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-09-10
 **Actividad:** M2 Gimnasio y Acceso (FT1-37, RF-04/RF-05/RN-01): QR dinámico de 60s + código corto de 6 dígitos de un solo uso, doble chequeo de membresía activa al generar y validar, aforo con conteo de sesiones abiertas y sesión única por usuario.
 **Decisión:** JWT firmado de corta vida + revalidación en servidor en vez de QR estático.
-**Problema encontrado:** ninguno.
+**Problema encontrado:** la ventana de 60s entre generar y validar obligó al doble chequeo de membresía; aforo resuelto con índice parcial sobre sesiones abiertas.
 **Commit(s):** `7862d54`, `f4bbfdc`, `23cf2ff`
 
 ### Máximo Retamoso
@@ -69,7 +69,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-09-12
 **Actividad:** M5 Pagos (FT1-40, RF-13/RF-14) y módulos de soporte (FT1-42: sedes, franjas, precios, instructores): pasarela mock con token, membresía creada solo con pago APROBADO en la misma transacción, promoción EXTERNO→SOCIO, comprobante PDF 1:1 por pago; catálogo de tipos de cancha y ABM de sedes con franjas.
 **Decisión:** montos siempre calculados en servidor y clases incluidas en membresía (RN-03).
-**Problema encontrado:** ninguno.
+**Problema encontrado:** el doble cobro concurrente se resolvió con lock pesimista + verificación de pago existente (409 al segundo intento).
 **Commit(s):** `7862d54`, `26dfa17`, `f07fa62`, `13b0d95`
 
 ### Máximo Retamoso
@@ -77,7 +77,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-09-14
 **Actividad:** Redacción de ADR-0008 sistema de auditoría en dos capas (FT1-22): interceptor con @Auditable para contexto de app + trigger en Postgres sobre pagos para cubrir cambios directos, con redacción automática de secretos.
 **Decisión:** dos capas complementarias (interceptor + trigger).
-**Problema encontrado:** ninguno.
+**Problema encontrado:** el detalle JSON guardaba tokens; se agregó redacción automática de secretos + migración.
 **Commit(s):** `1802fc4`, `068e8b6`
 
 ## UNIDAD III — PATRONES
@@ -107,7 +107,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-09-18
 **Actividad:** Justificación escrita de los tres patrones GoF aplicados (FT1-26): Strategy en pricing dinámico (RF-11), Observer en lista de espera (RF-08) y Repository con lock pesimista anti-sobreventa (RN-02), con refactor a forma canónica (Strategy con array inyectado por token PRICING_STRATEGIES, Repository con interfaz + implementación in-memory para tests).
 **Decisión:** documentar por qué cada patrón y qué alternativa se descartó.
-**Problema encontrado:** ninguno.
+**Problema encontrado:** la primera versión no era polimórfica real; se refactorizó a forma canónica y se verificó sin regresiones.
 **Commit(s):** `cdca2b6`, `5552f69`, `2c6c8d7`
 
 ## UNIDAD IV — COMPONENTES
@@ -129,7 +129,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-10-05
 **Actividad:** Pantallas públicas del home/inicio y catálogos (FT1-48, Listo): landing multi-página (/, /clases, /canchas, /sedes, /nosotros) con nav compartido. Fix propio del nav que no volvía arriba al cambiar de ruta (componente ScrollToTop global).
 **Decisión:** layout público único (PublicLayout) en vez de repetir nav en cada página; fix global en vez de parchar página por página.
-**Problema encontrado:** ninguno.
+**Problema encontrado:** react-router conserva el scroll entre rutas y no había ningún manejo de scroll en el frontend; se diagnosticó reproduciendo scroll + clic contra recarga.
 **Commit(s):** `9f46ceb`, `b3ec7c3` (mergeado a main, en producción)
 
 ### Máximo Retamoso
@@ -137,7 +137,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-10-06
 **Actividad:** Reorganización con Atomic Design (FT1-32): átomos (10 piezas, un archivo por componente), moléculas (12), organismos (layouts) con barrels index.ts + README del sistema; formatMoney a shared/utils; eliminado código muerto (ui.tsx partido, Donut duplicado, Reveal/Layout sin uso). Rama refactor/atomic-design, build limpio.
 **Decisión:** un archivo por componente + barrels por nivel en vez de cajón único; mover sin cambiar comportamiento.
-**Problema encontrado:** ninguno.
+**Problema encontrado:** el build marcó dos errores tras el move (rutas relativas e import de barrel); se corrigieron y el build quedó limpio.
 **Commit(s):** `772b856` (mergeado a main con PR #1)
 
 ### Máximo Retamoso
@@ -145,8 +145,8 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Fecha:** 2026-10-11
 **Actividad:** Cierre de FT1-50 rol Gerente de Sede (FT1-53 pantallas): login, panel propio y operación por sede funcionando.
 **Decisión:** (no aplica)
-**Problema encontrado:** ninguno.
-**Commit(s):** sin cambios de código (solo verificación funcional)
+**Problema encontrado:** sin bloqueantes: se probaron los 10 flujos del rol con cuenta de prueba.
+**Commit(s):** `f07fa62`, `13b0d95`
 
 ## UNIDAD V
 
