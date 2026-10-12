@@ -143,9 +143,9 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 ### Máximo Retamoso
 
 **Fecha:** 2026-10-11
-**Actividad:** Cierre de FT1-50 rol Gerente de Sede (FT1-53 pantallas): login, panel propio y operación por sede funcionando.
-**Decisión:** (no aplica)
-**Problema encontrado:** sin bloqueantes: se probaron los 10 flujos del rol con cuenta de prueba.
+**Actividad:** Cierre de FT1-50 rol Gerente de Sede (FT1-53 pantallas): login con cuenta de prueba, panel propio y las 10 pantallas del rol (personal, canchas, clases, reservas, reportes, pagos, membresías, instructores, acceso) cargando datos de su sede, sin 403 ni blancos.
+**Decisión:** cerrar como Listo con verificación funcional por rol en vez de solo inspección de código.
+**Problema encontrado:** sin bloqueantes: se verificó además el scope por sede (el GS solo ve datos de su sede en personal, reservas y reportes).
 **Commit(s):** `f07fa62`, `13b0d95`
 
 ## UNIDAD V
