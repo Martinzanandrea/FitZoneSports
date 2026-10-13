@@ -160,7 +160,11 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Máximo Retamoso
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+**Fecha:** 2026-10-13
+**Actividad:** Pruebas manuales en producción (FT1-30/54/55: 20 ejecutadas, 2 parciales) con cuentas de prueba por rol, y reporte en docs/PRUEBAS.md con tablas por grupo, plantilla y hallazgos (FT1-56). Incluye registro con mail real verificado, compra en cuenta fresca, doble clic en cuenta propia sin duplicado y baja de clase TEST con aviso. Limpieza verificada en base: sin sesiones ni reservas abiertas.
+**Decisión:** probar contra producción (como pide el plan) con cuentas de prueba, cancelando/cerrando todo lo creado en el acto; no ejecutar mail masivo por riesgo a socios reales.
+**Problema encontrado:** sin clase casi llena no hay última plaza real (se probó carrera en paralelo sin duplicados); throttle de login confirmado al 6.º intento.
+**Commit(s):** `ca1c051` (rama qa/sprint5-pruebas, sin pushear)
 
 ## UNIDAD VI
 
