@@ -404,10 +404,10 @@ describe('Aviso de baja: una notificación por persona y clase', () => {
         : jest.fn().mockResolvedValue(undefined),
     };
     const notificaciones = new NotificacionesService(
-      new NotificadorFactory(
+      new NotificadorFactory([
         new PanelNotificador(notifRepo as never),
         new EmailNotificador(mail),
-      ),
+      ]),
       {} as never,
       {} as never,
       {} as never,

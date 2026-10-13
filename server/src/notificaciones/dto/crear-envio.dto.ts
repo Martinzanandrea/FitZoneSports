@@ -56,7 +56,7 @@ export class CrearEnvioDto {
   @ApiProperty({ enum: CanalNotificacion, isArray: true })
   @IsArray()
   @ArrayNotEmpty()
-  @ArrayMaxSize(2)
+  @ArrayMaxSize(Object.values(CanalNotificacion).length)
   @ArrayUnique()
   @IsEnum(CanalNotificacion, { each: true })
   canales!: CanalNotificacion[];

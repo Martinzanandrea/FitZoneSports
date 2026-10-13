@@ -1,7 +1,12 @@
 # ADR 0010: Verificación de email con Gmail SMTP, en vez de Resend o Auth0
 
+> **Nota de revisión.** Esta decisión fue revisada y reemplazada por el ADR 0012.
+> El servicio gratuito de Render bloquea el SMTP saliente (puertos 25, 465 y 587),
+> por lo que Gmail SMTP no funciona en producción. Gmail SMTP se conserva únicamente
+> para desarrollo local. El contenido original se mantiene sin cambios como registro histórico.
+
 ## Estado
-Aceptado (reemplaza la decisión anterior documentada en este mismo ADR, que usaba Resend)
+Reemplazado por ADR 0012 (antes: Aceptado; reemplazaba la decisión anterior documentada en este mismo ADR, que usaba Resend)
 
 ## Contexto
 La verificación de email obligatoria al registrarse (ver contexto completo en la versión anterior de este ADR: se descartó migrar a Auth0 por el costo de reemplazar el sistema de autenticación ya construido y documentado en el ADR 0005). La primera implementación usó Resend como proveedor de email transaccional, pero su plan gratuito solo permite enviar a la casilla propia del dueño de la cuenta mientras no se verifique un dominio propio — y el proyecto no tiene un dominio propio (vercel.app y onrender.com son subdominios de terceros, sin DNS propio editable).

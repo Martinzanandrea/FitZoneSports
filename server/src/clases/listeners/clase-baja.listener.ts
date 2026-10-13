@@ -6,7 +6,7 @@ import { Usuario } from '../../entities';
 import { TipoActor } from '../../entities/enums';
 import { NotificacionesService } from '../../notificaciones/notificaciones.service';
 import {
-  CanalNotificacion,
+  CANALES_POR_EVENTO,
   TipoNotificacion,
   type Destinatario,
   type MensajeNotificacion,
@@ -68,10 +68,10 @@ export class ClaseBajaListener {
           mensaje: this.armarMensaje(payload.tipoClase, afectado.ocurrencias),
         });
       }
-      await this.notificaciones.notificarPersonalizado(items, [
-        CanalNotificacion.PANEL,
-        CanalNotificacion.EMAIL,
-      ]);
+      await this.notificaciones.notificarPersonalizado(
+        items,
+        CANALES_POR_EVENTO[TipoNotificacion.CLASE_CANCELADA],
+      );
     } catch {
       this.logger.warn(
         'No se pudo avisar a los socios de una clase dada de baja',

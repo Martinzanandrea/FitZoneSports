@@ -5,10 +5,11 @@ import {
   type EnviadorCorreo,
 } from '../../common/mail/enviador-correo';
 import { renderEmailFitZone } from '../plantillas/email-fitzone';
-import type {
-  Destinatario,
-  MensajeNotificacion,
-  Notificador,
+import {
+  CanalNotificacion,
+  type Destinatario,
+  type MensajeNotificacion,
+  type Notificador,
 } from '../notificaciones.types';
 
 // Pausa entre mails consecutivos de un mismo lote (no saturar al proveedor).
@@ -18,15 +19,22 @@ export const PAUSA_ENTRE_EMAILS_MS = 300;
 // proveedor de correo configurado (MAIL_PROVIDER).
 @Injectable()
 export class EmailNotificador implements Notificador {
+  readonly canal = CanalNotificacion.EMAIL;
+  readonly pausaMs = PAUSA_ENTRE_EMAILS_MS;
   private readonly logger = new Logger(EmailNotificador.name);
 
   constructor(@Inject(ENVIADOR_CORREO) private readonly mail: EnviadorCorreo) {}
+
+  // Solo a emails verificados.
+  puedeNotificar(destinatario: Destinatario): boolean {
+    return !!destinatario.email && destinatario.emailVerificado;
+  }
 
   async enviar(
     destinatario: Destinatario,
     mensaje: MensajeNotificacion,
   ): Promise<boolean> {
-    if (!destinatario.email || !destinatario.emailVerificado) return false;
+    if (!this.puedeNotificar(destinatario) || !destinatario.email) return false;
     const inicio = Date.now();
     try {
       await this.mail.enviar({

@@ -42,15 +42,4 @@ Patrones de diseño aplicados:
 
 Monorepo con dos aplicaciones independientes: `server/` (API NestJS) y `client/` (SPA React). La documentación técnica y los Architecture Decision Records viven en `docs/`.
 
-
-## Envío de emails
-
-El transporte de correo se elige con la variable `MAIL_PROVIDER` (`brevo` o `gmail`; si no está definida, `gmail`).
-
-- **Render (producción):** `MAIL_PROVIDER=brevo`, junto con `BREVO_API_KEY` y `MAIL_FROM_EMAIL` (y opcionalmente `MAIL_FROM_NAME`). Render bloquea el SMTP saliente (puertos 25/465/587, error `ETIMEDOUT`), por eso se usa la API HTTPS de Brevo. El remitente (`MAIL_FROM_EMAIL`) tiene que estar validado en Brevo.
-- **Local:** `MAIL_PROVIDER=gmail`, con `GMAIL_USER` y `GMAIL_APP_PASSWORD`.
-- Si `MAIL_PROVIDER=brevo` y falta `BREVO_API_KEY` o `MAIL_FROM_EMAIL`, o si el valor es desconocido, el servidor no arranca.
-
 ## Licencia
-
-

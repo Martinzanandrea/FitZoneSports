@@ -48,7 +48,7 @@ function armarNotificadores() {
   const mail = { enviar: jest.fn().mockResolvedValue(undefined) };
   const panel = new PanelNotificador(notifRepo as never);
   const email = new EmailNotificador(mail);
-  const factory = new NotificadorFactory(panel, email);
+  const factory = new NotificadorFactory([panel, email]);
   return { notifRepo, mail, panel, email, factory };
 }
 
@@ -58,6 +58,18 @@ describe('NotificadorFactory', () => {
   it('devuelve el notificador de cada canal', () => {
     expect(factory.crear(CanalNotificacion.PANEL)).toBe(panel);
     expect(factory.crear(CanalNotificacion.EMAIL)).toBe(email);
+  });
+
+  it('canalesDisponibles lista los canales registrados', () => {
+    expect(factory.canalesDisponibles()).toEqual([
+      CanalNotificacion.PANEL,
+      CanalNotificacion.EMAIL,
+    ]);
+  });
+
+  it('dos notificadores del mismo canal: falla al construirse (arranque)', () => {
+    const { panel } = armarNotificadores();
+    expect(() => new NotificadorFactory([panel, panel])).toThrow(/mismo canal/);
   });
 
   it('canal desconocido: error claro', () => {
@@ -125,7 +137,7 @@ describe('EmailNotificador', () => {
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;<br>línea 2');
   });
 
-  it('ante un fallo del SMTP no lanza y no registra la dirección', async () => {
+  it('ante un fallo del proveedor de correo no lanza y no registra la dirección', async () => {
     const { mail, email } = armarNotificadores();
     mail.enviar.mockRejectedValue(new Error('rechazó a a@ejemplo.com'));
     const warn = jest
@@ -196,7 +208,11 @@ describe('NotificacionesService.notificar', () => {
       CanalNotificacion.PANEL,
     ]);
     expect(notifRepo.save).toHaveBeenCalledTimes(3);
-    expect(r.panelGuardadas).toBe(3);
+    expect(r.porCanal[CanalNotificacion.PANEL]).toEqual({
+      enviados: 3,
+      fallidos: 0,
+      omitidos: 0,
+    });
   });
 
   it('EMAIL: solo verificados, con pausa entre envíos y sin contar a los omitidos', async () => {
@@ -209,7 +225,11 @@ describe('NotificacionesService.notificar', () => {
     expect(mail.enviar).toHaveBeenCalledTimes(2);
     expect(esperar).toHaveBeenCalledTimes(1);
     expect(esperar).toHaveBeenCalledWith(PAUSA_ENTRE_EMAILS_MS);
-    expect(r).toMatchObject({ emailsEnviados: 2, emailsFallidos: 0 });
+    expect(r.porCanal[CanalNotificacion.EMAIL]).toEqual({
+      enviados: 2,
+      fallidos: 0,
+      omitidos: 1,
+    });
   });
 
   it('un mail que falla no frena a los demás y se cuenta como fallido', async () => {
@@ -220,7 +240,11 @@ describe('NotificacionesService.notificar', () => {
     const r = await service.notificar([dest('a'), dest('b')], msg, [
       CanalNotificacion.EMAIL,
     ]);
-    expect(r).toMatchObject({ emailsEnviados: 1, emailsFallidos: 1 });
+    expect(r.porCanal[CanalNotificacion.EMAIL]).toEqual({
+      enviados: 1,
+      fallidos: 1,
+      omitidos: 0,
+    });
   });
 
   it('un canal desconocido se ignora y el resto sigue', async () => {
@@ -230,7 +254,8 @@ describe('NotificacionesService.notificar', () => {
       CanalNotificacion.PANEL,
     ]);
     expect(notifRepo.save).toHaveBeenCalledTimes(1);
-    expect(r.panelGuardadas).toBe(1);
+    expect(r.porCanal[CanalNotificacion.PANEL]?.enviados).toBe(1);
+    expect(Object.keys(r.porCanal)).toEqual([CanalNotificacion.PANEL]);
   });
 
   it('un notificador que lanza no rompe el servicio', async () => {
@@ -238,7 +263,9 @@ describe('NotificacionesService.notificar', () => {
     jest.spyOn(panel, 'enviar').mockRejectedValue(new Error('boom'));
     await expect(
       service.notificar([dest('a')], msg, [CanalNotificacion.PANEL]),
-    ).resolves.toMatchObject({ panelGuardadas: 0 });
+    ).resolves.toMatchObject({
+      porCanal: { [CanalNotificacion.PANEL]: { enviados: 0, fallidos: 1 } },
+    });
   });
 });
 
@@ -362,9 +389,13 @@ describe('NotificacionesService.crearEnvio', () => {
         terminar = () =>
           res({
             destinatarios: 1,
-            panelGuardadas: 1,
-            emailsEnviados: 1,
-            emailsFallidos: 0,
+            porCanal: {
+              [CanalNotificacion.EMAIL]: {
+                enviados: 1,
+                fallidos: 0,
+                omitidos: 0,
+              },
+            },
           });
       }),
     );
@@ -378,9 +409,10 @@ describe('NotificacionesService.crearEnvio', () => {
     const { service, enviosRepo } = armarServicio();
     jest.spyOn(service, 'notificar').mockResolvedValue({
       destinatarios: 3,
-      panelGuardadas: 3,
-      emailsEnviados: 2,
-      emailsFallidos: 1,
+      porCanal: {
+        [CanalNotificacion.PANEL]: { enviados: 3, fallidos: 0, omitidos: 0 },
+        [CanalNotificacion.EMAIL]: { enviados: 2, fallidos: 1, omitidos: 0 },
+      },
     });
     await service.procesarEnvio('envio1', [dest('a')], msg, [
       CanalNotificacion.EMAIL,
@@ -397,6 +429,14 @@ describe('NotificacionesService.crearEnvio', () => {
     await expect(
       service.procesarEnvio('envio1', [], msg, []),
     ).resolves.toBeUndefined();
+  });
+
+  it('canal del enum sin notificador registrado: 400 y no registra el envío', async () => {
+    const { service, enviosRepo } = armarServicio({ usuarios: [socioA] });
+    await expect(
+      service.crearEnvio({ ...dto, canales: ['SMS' as CanalNotificacion] }, gg),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(enviosRepo.save).not.toHaveBeenCalled();
   });
 
   it('sin destinatarios: 400 y no registra el envío', async () => {

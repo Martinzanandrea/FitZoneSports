@@ -9,7 +9,7 @@ import {
 } from '../events/clase.events';
 import { NotificacionesService } from '../../notificaciones/notificaciones.service';
 import {
-  CanalNotificacion,
+  CANALES_POR_EVENTO,
   TipoNotificacion,
 } from '../../notificaciones/notificaciones.types';
 
@@ -45,7 +45,7 @@ export class ListaEsperaListener {
           titulo: 'Se liberó un cupo y ya estás anotado',
           mensaje: `Pasaste de la lista de espera a la clase ${ocurrencia.clase.tipoClase} del ${fechaLarga(ocurrencia.fecha)} a las ${ocurrencia.horaInicio.slice(0, 5)}. Tu lugar está confirmado.`,
         },
-        [CanalNotificacion.PANEL, CanalNotificacion.EMAIL],
+        CANALES_POR_EVENTO[TipoNotificacion.LISTA_ESPERA_PROMOVIDA],
       );
     } catch {
       this.logger.warn('No se pudo notificar una promoción de lista de espera');

@@ -11,14 +11,15 @@ import { TipoActor } from '../entities/enums';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { NotificadorFactory } from './notificadores/notificador.factory';
-import { PAUSA_ENTRE_EMAILS_MS } from './notificadores/email.notificador';
 import {
   AudienciaEnvio,
-  CanalNotificacion,
+  CANAL_CON_CONTADORES_PERSISTIDOS,
   TipoNotificacion,
+  type CanalNotificacion,
   type Destinatario,
   type MensajeNotificacion,
   type Notificador,
+  type ResultadoCanal,
   type ResultadoNotificacion,
 } from './notificaciones.types';
 import type { CrearEnvioDto } from './dto/crear-envio.dto';
@@ -54,10 +55,6 @@ interface FiltroAudiencia {
   usuarioId?: string;
 }
 
-function puedeRecibirEmail(d: Destinatario): boolean {
-  return !!d.email && d.emailVerificado;
-}
-
 // Orquesta los canales. Quienes emiten eventos de dominio (listeners) y el
 // controlador de envíos usan SOLO este servicio: no conocen los canales.
 @Injectable()
@@ -81,7 +78,7 @@ export class NotificacionesService {
   async notificar(
     destinatarios: Destinatario[],
     mensaje: MensajeNotificacion,
-    canales: CanalNotificacion[],
+    canales: readonly CanalNotificacion[],
   ): Promise<ResultadoNotificacion> {
     return this.enviarLote(
       destinatarios.map((destinatario) => ({ destinatario, mensaje })),
@@ -94,22 +91,21 @@ export class NotificacionesService {
   // aislamiento de fallos.
   notificarPersonalizado(
     items: Array<{ destinatario: Destinatario; mensaje: MensajeNotificacion }>,
-    canales: CanalNotificacion[],
+    canales: readonly CanalNotificacion[],
   ): Promise<ResultadoNotificacion> {
     return this.enviarLote(items, canales);
   }
 
+  // Sin ramas por canal: cada notificador declara su elegibilidad y su pausa.
   private async enviarLote(
     items: Array<{ destinatario: Destinatario; mensaje: MensajeNotificacion }>,
-    canales: CanalNotificacion[],
+    canales: readonly CanalNotificacion[],
   ): Promise<ResultadoNotificacion> {
     const resultado: ResultadoNotificacion = {
       destinatarios: items.length,
-      panelGuardadas: 0,
-      emailsEnviados: 0,
-      emailsFallidos: 0,
+      porCanal: {},
     };
-    for (const canal of [...new Set(canales)]) {
+    for (const canal of new Set(canales)) {
       let notificador: Notificador;
       try {
         notificador = this.factory.crear(canal);
@@ -117,27 +113,31 @@ export class NotificacionesService {
         this.logger.warn('Se ignoró un canal de notificación desconocido');
         continue;
       }
-      let hayEmailPrevio = false;
+      const delCanal: ResultadoCanal = {
+        enviados: 0,
+        fallidos: 0,
+        omitidos: 0,
+      };
+      resultado.porCanal[canal] = delCanal;
+      let hayEnvioPrevio = false;
       for (const { destinatario, mensaje } of items) {
-        if (canal === CanalNotificacion.EMAIL) {
-          // Solo emails verificados; los demás ni se intentan ni cuentan.
-          if (!puedeRecibirEmail(destinatario)) continue;
-          if (hayEmailPrevio) await this.esperar(PAUSA_ENTRE_EMAILS_MS);
-          hayEmailPrevio = true;
+        // Los no elegibles ni se intentan ni cuentan como fallidos.
+        if (!notificador.puedeNotificar(destinatario)) {
+          delCanal.omitidos++;
+          continue;
         }
+        if (hayEnvioPrevio && notificador.pausaMs > 0) {
+          await this.esperar(notificador.pausaMs);
+        }
+        hayEnvioPrevio = true;
         let ok = false;
         try {
           ok = await notificador.enviar(destinatario, mensaje);
         } catch {
           ok = false;
         }
-        if (canal === CanalNotificacion.PANEL) {
-          if (ok) resultado.panelGuardadas++;
-        } else if (ok) {
-          resultado.emailsEnviados++;
-        } else {
-          resultado.emailsFallidos++;
-        }
+        if (ok) delCanal.enviados++;
+        else delCanal.fallidos++;
       }
     }
     return resultado;
@@ -147,7 +147,7 @@ export class NotificacionesService {
   notificarUsuario(
     usuario: Pick<Usuario, 'id' | 'nombre' | 'email' | 'emailVerificado'>,
     mensaje: MensajeNotificacion,
-    canales: CanalNotificacion[],
+    canales: readonly CanalNotificacion[],
   ): Promise<ResultadoNotificacion> {
     return this.notificar([this.aDestinatario(usuario)], mensaje, canales);
   }
@@ -218,9 +218,11 @@ export class NotificacionesService {
     filtro: FiltroAudiencia,
   ): Promise<{ cantidad: number; conEmailVerificado: number }> {
     const dest = await this.resolverAudiencia(filtro);
+    const notificador = this.factory.crear(CANAL_CON_CONTADORES_PERSISTIDOS);
     return {
       cantidad: dest.length,
-      conEmailVerificado: dest.filter(puedeRecibirEmail).length,
+      conEmailVerificado: dest.filter((d) => notificador.puedeNotificar(d))
+        .length,
     };
   }
 
@@ -232,6 +234,9 @@ export class NotificacionesService {
     dto: CrearEnvioDto,
     currentUser: UsuarioAutenticado,
   ): Promise<EnvioVista> {
+    // Un canal del enum sin notificador registrado falla acá con 400, antes de
+    // guardar nada (la fábrica lanza BadRequestException).
+    for (const canal of dto.canales) this.factory.crear(canal);
     const destinatarios = await this.resolverAudiencia(dto);
     if (!destinatarios.length) {
       throw new BadRequestException(
@@ -292,9 +297,11 @@ export class NotificacionesService {
   ): Promise<void> {
     try {
       const r = await this.notificar(destinatarios, mensaje, canales);
+      // Las columnas existentes llevan los contadores de un solo canal.
+      const contadores = r.porCanal[CANAL_CON_CONTADORES_PERSISTIDOS];
       await this.enviosRepo.update(envioId, {
-        emailsEnviados: r.emailsEnviados,
-        emailsFallidos: r.emailsFallidos,
+        emailsEnviados: contadores?.enviados ?? 0,
+        emailsFallidos: contadores?.fallidos ?? 0,
       });
     } catch {
       this.logger.warn('Falló el procesamiento de un envío de notificaciones');
