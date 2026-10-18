@@ -4,14 +4,15 @@ Probado en **producción** (https://fit-zone-sports.vercel.app) por Máximo Reta
 
 ## Pruebas de uso
 
-| # | Rol | Prueba | Esperado | Resultado |
-| --- | --- | --- | --- | --- |
-| U1 | Todos | Registrar usuario nuevo con mail propio | Llega el mail y verifica | OK — registro 201 como EXTERNO; mail real recibido (Brevo) y cuenta verificada con el link ("¡Email verificado!"). Gates validados: login bloquea sin verificar, token inválido → 400 |
-| U2 | Todos | Login, recargar, logout y reabrir | Sesión persiste; al cerrar no se entra con Atrás | OK — dashboard tras recarga; logout redirige a /login y `/auth/me` da 401 |
-| U3 | Externo | Comprar membresía con pago aprobado (incl. doble clic) | Pasa a Socio; con doble clic, un solo cobro | OK — con cuenta fresca de prueba: pago 201, pasó a SOCIO, MENSUAL 13/10→13/11, un solo cobro de $12.500. Cuenta dada de baja al cerrar (baja lógica). Doble clic probado en cuenta propia con plan vigente: sin cobro duplicado (solo los 2 pagos viejos de agosto) |
-| U4 | Externo | Pago rechazado con simulación | Mensaje claro, nada persiste | OK — botón "Simular pago rechazado (solo testing)" visible; mensaje "El pago fue rechazado..."; pagos 3=3 y vigencia intacta |
-| U5 | Socio | Mis pagos + comprobante PDF | Monto/fecha/DNI correctos, abre en celular | OK — historial con 3 pagos; PDF descarga 200 (`application/pdf`, 2644 bytes). Nota: `POST /:id/comprobante` como socio da 403 (solo staff genera); la descarga del existente funciona |
-| U6 | Socio | Reservar clase, cancelarla, lista de espera | Cupos se actualizan; al liberarse avisa | OK — reserva 201 (Spinning 2026-10-19) + cancelación 201; sin restos. Lista de espera no testeable solo (requiere clase llena + 2 personas) |
+| #   | Rol     | Prueba                                                 | Esperado                                         | Resultado                                                                                                                                                                                                                                                           |
+| --- | ------- | ------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U1  | Todos   | Registrar usuario nuevo con mail propio                | Llega el mail y verifica                         | OK — registro 201 como EXTERNO; mail real recibido (Brevo) y cuenta verificada con el link ("¡Email verificado!"). Gates validados: login bloquea sin verificar, token inválido → 400                                                                               |
+| U2  | Todos   | Login, recargar, logout y reabrir                      | Sesión persiste; al cerrar no se entra con Atrás | OK — dashboard tras recarga; logout redirige a /login y `/auth/me` da 401                                                                                                                                                                                           |
+| U3  | Externo | Comprar membresía con pago aprobado (incl. doble clic) | Pasa a Socio; con doble clic, un solo cobro      | OK — con cuenta fresca de prueba: pago 201, pasó a SOCIO, MENSUAL 13/10→13/11, un solo cobro de $12.500. Cuenta dada de baja al cerrar (baja lógica). Doble clic probado en cuenta propia con plan vigente: sin cobro duplicado (solo los 2 pagos viejos de agosto) |
+| U4  | Externo | Pago rechazado con simulación                          | Mensaje claro, nada persiste                     | OK — botón "Simular pago rechazado (solo testing)" visible; mensaje "El pago fue rechazado..."; pagos 3=3 y vigencia intacta                                                                                                                                        |
+| U5  | Socio   | Mis pagos + comprobante PDF                            | Monto/fecha/DNI correctos, abre en celular       | OK — historial con 3 pagos; PDF descarga 200 (`application/pdf`, 2644 bytes). Nota: `POST /:id/comprobante` como socio da 403 (solo staff genera); la descarga del existente funciona                                                                               |
+| U6  | Socio   | Reservar clase, cancelarla, lista de espera            | Cupos se actualizan; al liberarse avisa          | OK — reserva 201 (Spinning 2026-10-19) + cancelación 201; sin restos. Lista de espera no testeable solo (requiere clase llena + 2 personas)                                                                                                                         |
+
 | U7 | Socio | Reservar cancha en horario libre | Ocupado no elegible, precio esperado | OK — cotización $25.500 `SOCIO_DESCUENTO` (base $30.000 −15%); reserva 201 + cancelación 201, nada ocupado |
 | U8 | Recep. | Escanear QR de socio activo y vencido + egreso | Autoriza/deniega según membresía; aforo live | OK — QR 200 + código corto; sesión vieja abierta rechazada con 409 (RN-01); ingreso 201, aforo 1/30 en vivo, egreso 201. Caso "vencido" cubierto por código (doble chequeo) |
 | U9 | GG | Aviso masivo + dar de baja clase con reservas | Avisados por ambos medios | OK en sandbox (masivo real no ejecutado a propósito): clase TEST creada, reservada y dada de baja → 4 ocurrencias + 1 reserva canceladas, socio avisado ("Clase cancelada"). Aviso individual a 1 usuario: panel recibido + mail aceptado |
@@ -20,24 +21,24 @@ Probado en **producción** (https://fit-zone-sports.vercel.app) por Máximo Reta
 
 ## Pruebas de seguridad
 
-| # | Rol | Prueba | Esperado | Resultado |
-| --- | --- | --- | --- | --- |
-| S1 | Sin sesión | Pegar URL privada | Redirige a login | OK — `/admin/gerente` → `/admin/login` |
-| S2 | Socio | Pegar URL de gerente/recepción | Bloqueado | OK — rebota a `/login` (mejorable: ideal `/dashboard`) |
-| S3 | GS | Ver pagos/usuarios de otra sede | Solo su sede | OK — 13/13 de FitZone Central + totales coherentes |
-| S4 | Socio | Comprobante ajeno cambiando el ID | 404, no se muestra | OK — UUID aleatorio → 404 |
-| S5 | Todos | Texto raro (`<b>hola</b>`, comillas) en buscadores | Se muestra como texto | OK vía API (LIKE escapado, 200 sin ejecución) y en UI (tipado en buscador, 0 tags renderizados) |
-| S6 | Todos | Débiles/muy largas + muchos intentos | Mensajes claros + límite | OK — 400 claros; al 6.º intento seguido: 429 (throttle activo) |
-| S7 | Todos | Provocar errores (URL mala, datos inválidos) | Sin rutas SQL ni stack | OK — 404 propia, sin fugas |
-| S8 | Avanzado | F12: respuestas de sesión/usuario, cookie HttpOnly+Secure | Sin secretos; cookie no visible en JS | OK — `document.cookie` no expone `token` (HttpOnly); Secure por código en prod |
-| S9 | Avanzado | Swagger en producción | No accesible | OK — `/api` → 404 |
+| #   | Rol        | Prueba                                                    | Esperado                              | Resultado                                                                                       |
+| --- | ---------- | --------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| S1  | Sin sesión | Pegar URL privada                                         | Redirige a login                      | OK — `/admin/gerente` → `/admin/login`                                                          |
+| S2  | Socio      | Pegar URL de gerente/recepción                            | Bloqueado                             | OK — rebota a `/login` (mejorable: ideal `/dashboard`)                                          |
+| S3  | GS         | Ver pagos/usuarios de otra sede                           | Solo su sede                          | OK — 13/13 de FitZone Central + totales coherentes                                              |
+| S4  | Socio      | Comprobante ajeno cambiando el ID                         | 404, no se muestra                    | OK — UUID aleatorio → 404                                                                       |
+| S5  | Todos      | Texto raro (`<b>hola</b>`, comillas) en buscadores        | Se muestra como texto                 | OK vía API (LIKE escapado, 200 sin ejecución) y en UI (tipado en buscador, 0 tags renderizados) |
+| S6  | Todos      | Débiles/muy largas + muchos intentos                      | Mensajes claros + límite              | OK — 400 claros; al 6.º intento seguido: 429 (throttle activo)                                  |
+| S7  | Todos      | Provocar errores (URL mala, datos inválidos)              | Sin rutas SQL ni stack                | OK — 404 propia, sin fugas                                                                      |
+| S8  | Avanzado   | F12: respuestas de sesión/usuario, cookie HttpOnly+Secure | Sin secretos; cookie no visible en JS | OK — `document.cookie` no expone `token` (HttpOnly); Secure por código en prod                  |
+| S9  | Avanzado   | Swagger en producción                                     | No accesible                          | OK — `/api` → 404                                                                               |
 
 ## Casos simultáneos y fechas
 
-| #   | Prueba                                      | Esperado                         | Resultado                                      |
-| --- | ------------------------------------------- | -------------------------------- | ---------------------------------------------- |
-| C1 | Dos socios, última plaza (cuenta regresiva) | Solo una confirma, sin sobrecupo | PARCIAL — sin clase casi llena no hay última plaza real. Variante ejecutada: 2 reservas en paralelo a la misma ocurrencia (2 sesiones) → ambas RESERVADA, sin duplicados; ambas canceladas. Última plaza real requiere coordinación |
-| C2  | Clases entre 21:00 y 24:00                  | No aparecen / horario argentino  | OK — la más tardía es 16:30; nada en 21–24     |
+| #   | Prueba                                      | Esperado                         | Resultado                                                                                                                                                                                                                           |
+| --- | ------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | Dos socios, última plaza (cuenta regresiva) | Solo una confirma, sin sobrecupo | PARCIAL — sin clase casi llena no hay última plaza real. Variante ejecutada: 2 reservas en paralelo a la misma ocurrencia (2 sesiones) → ambas RESERVADA, sin duplicados; ambas canceladas. Última plaza real requiere coordinación |
+| C2  | Clases entre 21:00 y 24:00                  | No aparecen / horario argentino  | OK — la más tardía es 16:30; nada en 21–24                                                                                                                                                                                          |
 
 ## Limpieza post-pruebas (verificada en base el 13/10)
 
