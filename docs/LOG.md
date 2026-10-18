@@ -24,7 +24,11 @@ vinculado por registro a los commits del repositorio. Los hashes y fechas provie
 
 ### Teo Ava
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+**Fecha:** 2026-09-04 a 2026-09-09
+**Actividad:** Modelado C4 en 3 niveles (FT1-10): Contexto (actores y sistemas externos), Contenedores (web Vercel, API Render, Postgres + Storage en Supabase) y Componentes (módulos Nest), con diagramas en draw.io exportados a PNG.
+**Decisión:** C4 en vez de UML clásico: 4 zooms legibles por cualquier lector, del negocio al código.
+**Problema encontrado:** primera versión mezclaba niveles (componentes dentro del diagrama de contexto); se separó en un archivo por nivel.
+**Commit(s):** `612d9ce`, `7a06627`
 
 ### Máximo Retamoso
 
@@ -46,7 +50,27 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Teo Ava
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+**Fecha:** 2026-09-06 a 2026-09-08
+**Actividad:** Redacción de ADR-0005 autenticación JWT con autorización por rol/dueño/sede (FT1-19) y ADR-0007 cálculo de montos server-side (FT1-21): cookie httpOnly, guards + scope fail-closed, y montos siempre recalculados en servidor ignorando el body.
+**Decisión:** documentar ambas decisiones con alternativas descartadas (Bearer en localStorage, montos del front).
+**Problema encontrado:** correcciones de redacción en ADR-0005 tras revisión.
+**Commit(s):** `068e8b6`, `d10d478`
+
+### Teo Ava
+
+**Fecha:** 2026-09-07
+**Actividad:** Documentación de la API con Swagger (FT1-14): disponible en /api solo en desarrollo, con auth por cookie documentada.
+**Decisión:** Swagger en vez de colección Postman suelta: vive con el código y no se desactualiza.
+**Problema encontrado:** ninguno relevante.
+**Commit(s):** `48c3add`
+
+### Teo Ava
+
+**Fecha:** 2026-10-09
+**Actividad:** M3 Clases Grupales (FT1-38, RF-06/RF-07): plantillas recurrentes semanales, generación automática de ocurrencias (ventana de 4 semanas por cron) y reservas con ventanas 48h/30min/2h.
+**Decisión:** plantilla + ocurrencias generadas en vez de eventos sueltos (así opera un gimnasio real).
+**Problema encontrado:** endpoint del dashboard referenciaba una columna del modelo viejo y devolvía 500; detectado y corregido tras el refactor.
+**Commit(s):** `26dfa17`, `98f7645`
 
 ### Máximo Retamoso
 
@@ -122,7 +146,19 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Teo Ava
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+**Fecha:** 2026-08-24 a 2026-10-08
+**Actividad:** Estado global y comunicación entre componentes (FT1-28): AuthContext como estado global de sesión (usuario, login/logout) consumido vía hook useAuth() sin prop-drilling, y ProtectedRoute como guardia que lee ese estado para redirigir por rol y sede.
+**Decisión:** Context en vez de librería externa: el estado global real es solo la sesión.
+**Problema encontrado:** loop de redirección infinita al recargar /login por el interceptor de 401; se excluyó /auth/me y la propia página de login.
+**Commit(s):** `71c2f71`, `6e4ed9a`
+
+### Teo Ava
+
+**Fecha:** 2026-09-23 a 2026-10-09
+**Actividad:** Pantallas del socio/cliente (FT1-47, En curso): Dashboard con reparto Socio/Externo, Mi QR, membresía, reservas de clases y canchas, pagos, notificaciones y cuenta.
+**Decisión:** (no aplica — en curso según diseño existente)
+**Problema encontrado:** (En curso) detalles pendientes: texto de auto-actualización del QR, link de reservar-clases en menú de externo y shell de /mi-cuenta para staff.
+**Commit(s):** `98f7645`, `9f46ceb` (tarea En curso al 2026-10-11)
 
 ### Máximo Retamoso
 
