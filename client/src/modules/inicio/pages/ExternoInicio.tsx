@@ -8,6 +8,7 @@ import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
 import { IconButton } from '../../../shared/components/atoms';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { motivoDeError, useAlVolverConexion } from '../../../shared/hooks/useEstadoConexion';
 import { formatearFechaCorta, useProximasReservas } from '../hooks/useProximasReservas';
 
 export function ExternoInicio() {
@@ -15,8 +16,12 @@ export function ExternoInicio() {
   const { user } = useAuth();
   const navigate = useNavigate();
   // El externo solo puede reservar canchas: sus próximas son solo de ese tipo.
-  const { proximas, cargando, error } = useProximasReservas(user?.id, 4, false);
+  const { proximas, cargando, error, reintentar } = useProximasReservas(user?.id, 4, false);
   const canchas = proximas.filter((p) => p.kind === 'cancha');
+
+  useAlVolverConexion(() => {
+    if (error) reintentar();
+  });
 
   return (
     <>
@@ -49,10 +54,11 @@ export function ExternoInicio() {
               title="No pudimos cargar tus reservas"
               description={
                 error === 'red'
-                  ? 'Revisá tu conexión e intentá de nuevo en unos segundos.'
+                  ? motivoDeError()
                   : 'Ocurrió un problema al mostrar tus reservas. Intentá de nuevo más tarde.'
               }
-              onRetry={() => window.location.reload()}
+              retryLabel="Reintentar"
+              onRetry={reintentar}
             />
           ) : canchas.length === 0 ? (
             <EmptyState

@@ -16,6 +16,12 @@ import { EmptyState } from '../../../shared/components/molecules';;
 import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import {
+  motivoDeError,
+  TEXTO_REQUIERE_CONEXION,
+  useAlVolverConexion,
+  useEstadoConexion,
+} from '../../../shared/hooks/useEstadoConexion';
 import { AuthLayout } from '../../auth/AuthLayout';
 import { TipoActor } from '../../../shared/types/enums';
 import { invalidarUnaVez } from '../../../shared/utils/unaVez';
@@ -53,6 +59,9 @@ export function CompletarMembresia() {
   const [simularRechazo, setSimularRechazo] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
+  const [errorEstado, setErrorEstado] = useState(false);
+  const [intento, setIntento] = useState(0);
+  const online = useEstadoConexion();
   const [estado, setEstado] = useState<EstadoSocio | null>(null);
   // Guard contra doble envío: evita un segundo pago antes de que el estado
   // (loading/deshabilitado) se vuelva a renderizar.
@@ -66,26 +75,47 @@ export function CompletarMembresia() {
     let viva = true;
     membresiasApi
       .getVigente(usuarioId)
-      .then((m) => viva && setEstado(m))
-      .catch(() => viva && setEstado(null))
+      .then((m) => {
+        if (!viva) return;
+        setEstado(m);
+        setErrorEstado(false);
+      })
+      // Sin saber si ya hay una membresía programada no se puede dejar pagar:
+      // se muestra error y no se asume "sin membresía".
+      .catch(() => viva && setErrorEstado(true))
       .finally(() => viva && setCargandoEstado(false));
     return () => {
       viva = false;
     };
-  }, [usuarioId, esExterno]);
+  }, [usuarioId, esExterno, intento]);
 
   useEffect(() => {
-    Promise.all([
-      sedesApi.getAllPublico().catch(() => [] as Sede[]),
-      preciosApi.getMembresiasPublico().catch(() => [] as PrecioPlan[]),
-    ])
+    let viva = true;
+    Promise.all([sedesApi.getAllPublico(), preciosApi.getMembresiasPublico()])
       .then(([s, p]) => {
+        if (!viva) return;
         setSedes(s);
         setPrecios(p);
+        setErrorCarga(false);
       })
-      .catch(() => setErrorCarga(true))
-      .finally(() => setCargando(false));
-  }, []);
+      .catch(() => viva && setErrorCarga(true))
+      .finally(() => viva && setCargando(false));
+    return () => {
+      viva = false;
+    };
+  }, [intento]);
+
+  const hayErrorCarga = errorCarga || errorEstado;
+
+  function reintentar() {
+    setCargando(true);
+    if (!esExterno) setCargandoEstado(true);
+    setIntento((n) => n + 1);
+  }
+
+  useAlVolverConexion(() => {
+    if (hayErrorCarga) reintentar();
+  });
 
   // Reemplaza al array PLANES hardcodeado: ahora sale de precios_plan
   // (backend), editable por el Gerente sin tocar código.
@@ -154,13 +184,14 @@ export function CompletarMembresia() {
         <LoadingState rows={3} label="Cargando planes" />
       </AuthLayout>
     );
-  if (errorCarga)
+  if (hayErrorCarga)
     return (
       <AuthLayout>
         <ErrorState
           title="No pudimos cargar los planes"
-          description="Revisá tu conexión e intentá de nuevo en unos segundos."
-          onRetry={() => window.location.reload()}
+          description={motivoDeError()}
+          retryLabel="Reintentar"
+          onRetry={reintentar}
         />
       </AuthLayout>
     );
@@ -263,7 +294,7 @@ export function CompletarMembresia() {
           className="btn btn-primary"
           style={{ width: '100%' }}
           onClick={() => void handleConfirmar()}
-          disabled={loading || bloqueado || !planSeleccionado || !sedeId}
+          disabled={loading || bloqueado || !online || !planSeleccionado || !sedeId}
         >
           {loading
             ? 'Procesando pago…'
@@ -271,6 +302,11 @@ export function CompletarMembresia() {
               ? 'Membresía ya programada'
               : `Pagar $${(planSeleccionado?.precio ?? 0).toLocaleString('es-AR')}`}
         </button>
+        {!online && (
+          <p role="status" style={{ fontSize: 11, marginTop: 8, textAlign: 'center' }}>
+            {TEXTO_REQUIERE_CONEXION} El pago se habilita al reconectarte.
+          </p>
+        )}
       </div>
     </AuthLayout>
   );

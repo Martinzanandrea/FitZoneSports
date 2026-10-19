@@ -10,6 +10,11 @@ import { TarjetaProxima } from '../../membresias/components/TarjetaProxima';
 import { Badge } from '../../../shared/components/atoms';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import {
+  motivoDeError,
+  useAlVolverConexion,
+  useEstadoConexion,
+} from '../../../shared/hooks/useEstadoConexion';
+import {
   diasRestantes,
   fechaValidaHasta,
   formatearDDMMAAAA,
@@ -64,6 +69,9 @@ export function MiQr() {
   const [error, setError] = useState(false);
   const [membresia, setMembresia] = useState<EstadoSocio | null>(null);
   const [cargandoMembresia, setCargandoMembresia] = useState(true);
+  const [errorMembresia, setErrorMembresia] = useState(false);
+  const [intento, setIntento] = useState(0);
+  const online = useEstadoConexion();
 
   const vigente =
     !!membresia && membresia.estado === 'ACTIVO' && diasRestantes(membresia.fechaFin) > 0;
@@ -72,6 +80,8 @@ export function MiQr() {
     if (!user) return;
     try {
       const { qrToken, codigoCorto, expiraEn } = await accesoApi.generarQr(user.id);
+      // Si la red se cayó mientras llegaba la respuesta, el código no se muestra.
+      if (!navigator.onLine) return;
       setQrToken(qrToken);
       setCodigoCorto(codigoCorto ?? null);
       setSeconds(expiraEn);
@@ -84,9 +94,17 @@ export function MiQr() {
 
   useEffect(() => {
     if (!vigente) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!online) {
+      // Sin conexión no se conserva ni se muestra ningún código (el token solo
+      // vive en el estado de React, nunca en almacenamiento ni caché).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setQrToken(null);
+      setCodigoCorto(null);
+      return;
+    }
+    // Al volver la conexión este efecto se re-ejecuta y genera un código nuevo.
     void generar();
-  }, [generar, vigente]);
+  }, [generar, vigente, online]);
 
   useEffect(() => {
     if (!user) return;
@@ -95,16 +113,25 @@ export function MiQr() {
     setCargandoMembresia(true);
     membresiasApi
       .getVigente(user.id)
-      .then((m) => viva && setMembresia(m))
-      .catch(() => viva && setMembresia(null))
+      .then((m) => {
+        if (!viva) return;
+        setMembresia(m);
+        setErrorMembresia(false);
+      })
+      // Un fallo no es "sin membresía": se deja el estado de error aparte.
+      .catch(() => viva && setErrorMembresia(true))
       .finally(() => viva && setCargandoMembresia(false));
     return () => {
       viva = false;
     };
-  }, [user]);
+  }, [user, intento]);
+
+  useAlVolverConexion(() => {
+    if (errorMembresia) setIntento((n) => n + 1);
+  });
 
   useEffect(() => {
-    if (expired || !qrToken) return;
+    if (!online || expired || !qrToken) return;
     if (seconds <= 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpired(true);
@@ -112,7 +139,7 @@ export function MiQr() {
     }
     const t = setTimeout(() => setSeconds((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [seconds, expired, qrToken]);
+  }, [seconds, expired, qrToken, online]);
 
   const urgente = seconds <= 10 && !expired;
   const dias = membresia ? Math.max(0, diasRestantes(membresia.fechaFin)) : null;
@@ -133,15 +160,32 @@ export function MiQr() {
           <div style={{ padding: '28px 0 8px' }}>
             <p style={{ fontSize: 12 }}>Cargando tu membresía…</p>
           </div>
+        ) : errorMembresia ? (
+          <div style={{ padding: '28px 0 8px' }}>
+            <h2>No pudimos cargar tu membresía</h2>
+            <p>{motivoDeError()}.</p>
+            <button
+              className="btn btn-secondary"
+              style={{ marginTop: 16 }}
+              onClick={() => setIntento((n) => n + 1)}
+            >
+              <RotateCw size={17} aria-hidden /> Reintentar
+            </button>
+          </div>
+        ) : vigente && !online ? (
+          <div style={{ padding: '28px 0 8px' }}>
+            <h2>Sin conexión a internet</h2>
+            <p>El código de acceso necesita conexión a internet para generarse y validarse.</p>
+          </div>
         ) : vigente ? (
           <>
             <h2>Acercá tu QR al lector</h2>
             <p>Se actualiza automáticamente para proteger tu cuenta.</p>
             {error ? (
               <div style={{ padding: '28px 0 8px' }}>
-                <p style={{ fontSize: 12, marginBottom: 16 }}>No se pudo generar el código.</p>
+                <p style={{ fontSize: 12, marginBottom: 16 }}>No se pudo generar el código. {motivoDeError()}.</p>
                 <button className="btn btn-secondary" onClick={() => void generar()}>
-                  <RotateCw size={17} aria-hidden /> Volver a intentar
+                  <RotateCw size={17} aria-hidden /> Reintentar
                 </button>
               </div>
             ) : (

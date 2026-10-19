@@ -12,8 +12,11 @@ export const membresiasApi = {
     api.get<PaginatedResponse<Membresia>>("/membresias", { params: { page, limit } }).then((res) => res.data),
   // Estado de membresía de un usuario: la vigente (o la última terminada o
   // suspendida) más la próxima programada, si existe. Puede venir null.
+  // Un null del backend llega como 200 con cuerpo vacío (axios lo da como ""):
+  // se normaliza a null. Un fallo de red o del servidor RECHAZA la promesa; quien
+  // llama no debe convertir ese rechazo en null, porque null significa "sin membresía".
   getVigente: (usuarioId: string) =>
     api
       .get<EstadoSocio | null>(`/membresias/vigente/${usuarioId}`)
-      .then((res) => res.data),
+      .then((res) => res.data || null),
 };

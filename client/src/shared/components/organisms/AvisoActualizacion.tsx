@@ -1,4 +1,5 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useEstadoConexion } from '../../hooks/useEstadoConexion';
 
 // Aviso discreto cuando hay una versión nueva de la app. El usuario decide cuándo
 // actualizar: el service worker nuevo queda en espera hasta que toca "Actualizar".
@@ -7,6 +8,8 @@ export function AvisoActualizacion() {
     needRefresh: [hayNuevaVersion, setHayNuevaVersion],
     updateServiceWorker,
   } = useRegisterSW();
+
+  const online = useEstadoConexion();
 
   if (!hayNuevaVersion) return null;
 
@@ -17,7 +20,8 @@ export function AvisoActualizacion() {
       className="glass"
       style={{
         position: 'fixed',
-        top: 'max(12px, env(safe-area-inset-top))',
+        // Con el banner de sin conexión arriba, el aviso baja para no taparlo.
+        top: online ? 'max(12px, env(safe-area-inset-top))' : 'calc(max(8px, env(safe-area-inset-top)) + 52px)',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 'var(--z-toast)',

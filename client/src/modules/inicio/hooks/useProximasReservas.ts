@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { clasesApi } from '../../clases/clases.api';
 import { canchasApi } from '../../canchas/canchas.api';
@@ -27,6 +27,13 @@ export function useProximasReservas(usuarioId: string | undefined, limite = 3, c
   const [proximas, setProximas] = useState<ProximaReserva[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<ErrorProximas>(null);
+  const [intento, setIntento] = useState(0);
+
+  const reintentar = useCallback(() => {
+    setCargando(true);
+    setError(null);
+    setIntento((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     if (!usuarioId) {
@@ -92,9 +99,9 @@ export function useProximasReservas(usuarioId: string | undefined, limite = 3, c
     return () => {
       viva = false;
     };
-  }, [usuarioId, limite, conClases]);
+  }, [usuarioId, limite, conClases, intento]);
 
-  return { proximas, cargando, error };
+  return { proximas, cargando, error, reintentar };
 }
 
 function fechaLocalYMD(d: Date): string {

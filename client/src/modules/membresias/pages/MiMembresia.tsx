@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CalendarDays, Check, Dumbbell, MapPin, Sparkles } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
@@ -13,6 +13,7 @@ import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { useAlVolverConexion, motivoDeError } from '../../../shared/hooks/useEstadoConexion';
 import {
   diasRestantes,
   duracionDias,
@@ -50,19 +51,36 @@ export function MiMembresia() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    Promise.all([
-      membresiasApi.getVigente(user.id).catch(() => null),
+  // Solo el fallo de getVigente cuenta como error: null significa "sin membresía".
+  // Los precios son complementarios; si fallan, simplemente no se muestran.
+  const cargar = useCallback(() => {
+    if (!user) return Promise.resolve();
+    return Promise.all([
+      membresiasApi.getVigente(user.id),
       preciosApi.getMembresiasPublico().catch(() => [] as PrecioPlan[]),
     ])
       .then(([m, p]) => {
         setMembresia(m);
         setPrecios(p);
+        setError(false);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [user]);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
+
+  const reintentar = useCallback(() => {
+    setLoading(true);
+    void cargar();
+  }, [cargar]);
+
+  // Al volver la red se reintenta solo si la carga había fallado.
+  useAlVolverConexion(() => {
+    if (error) reintentar();
+  });
 
   return (
     <>
@@ -78,8 +96,9 @@ export function MiMembresia() {
       ) : error ? (
         <ErrorState
           title="No pudimos cargar tu membresía"
-          description="Revisá tu conexión e intentá de nuevo en unos segundos."
-          onRetry={() => window.location.reload()}
+          description={motivoDeError()}
+          retryLabel="Reintentar"
+          onRetry={reintentar}
         />
       ) : !membresia ? (
         <EmptyState

@@ -8,6 +8,7 @@ import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { motivoDeError, useAlVolverConexion } from '../../../shared/hooks/useEstadoConexion';
 import { BotonComprobante } from '../components/BotonComprobante';
 
 const metodoIcono: Record<string, { icon: LucideIcon; color: string }> = {
@@ -59,6 +60,10 @@ export function MisPagos() {
     };
   }, [page, recarga]);
 
+  useAlVolverConexion(() => {
+    if (error) setRecarga((n) => n + 1);
+  });
+
   const aprobados = pagos.filter((p) => p.estado === 'APROBADO');
   const total = aprobados.reduce((s, p) => s + Number(p.monto), 0);
 
@@ -76,7 +81,8 @@ export function MisPagos() {
       ) : error ? (
         <ErrorState
           title="No pudimos cargar los pagos"
-          description="Revisá tu conexión e intentá de nuevo en unos segundos."
+          description={motivoDeError()}
+          retryLabel="Reintentar"
           onRetry={() => setRecarga((n) => n + 1)}
         />
       ) : (

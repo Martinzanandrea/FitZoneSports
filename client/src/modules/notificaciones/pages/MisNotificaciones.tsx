@@ -7,6 +7,7 @@ import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { motivoDeError, useAlVolverConexion } from '../../../shared/hooks/useEstadoConexion';
 import { formatearFechaHora } from '../utils';
 
 const POR_PAGINA = 20;
@@ -52,6 +53,10 @@ export function MisNotificaciones() {
     notificacionesApi.leerTodas().catch(() => setRecarga((v) => v + 1));
   }
 
+  useAlVolverConexion(() => {
+    if (error) setRecarga((n) => n + 1);
+  });
+
   const hayNoLeidas = items.some((n) => !n.leidaEn);
 
   return (
@@ -72,7 +77,12 @@ export function MisNotificaciones() {
         {cargando ? (
           <LoadingState rows={4} label="Cargando notificaciones" />
         ) : error ? (
-          <ErrorState title="No pudimos cargar tus notificaciones" onRetry={() => setRecarga((n) => n + 1)} />
+          <ErrorState
+            title="No pudimos cargar tus notificaciones"
+            description={motivoDeError()}
+            retryLabel="Reintentar"
+            onRetry={() => setRecarga((n) => n + 1)}
+          />
         ) : items.length === 0 ? (
           <EmptyState icon={BellOff} title="No tenés notificaciones" description="Cuando haya novedades de tus clases o avisos, aparecen acá." />
         ) : (

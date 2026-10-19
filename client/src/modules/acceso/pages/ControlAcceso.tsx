@@ -13,6 +13,7 @@ import { LoadingState } from '../../../shared/components/molecules';;
 import { TipoActor } from '../../../shared/types/enums';
 import { useAhora } from '../../../shared/hooks/useAhora';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { TEXTO_REQUIERE_CONEXION, useEstadoConexion } from '../../../shared/hooks/useEstadoConexion';
 
 type Modo = 'camara' | 'manual' | 'codigo';
 
@@ -20,6 +21,7 @@ export function ControlAcceso() {
   useTitulo('Control de acceso');
   const { user } = useAuth();
   const navigate = useNavigate();
+  const online = useEstadoConexion();
   const [searchParams] = useSearchParams();
   const sedeId = user?.sedeId ?? null;
   // Escanear/validar y registrar egresos: solo el Recepcionista. El Gerente de Sede
@@ -110,6 +112,10 @@ export function ControlAcceso() {
       setResultado({ type: 'err', text: 'Ingresá el token QR.' });
       return;
     }
+    if (!navigator.onLine) {
+      setResultado({ type: 'err', text: `Sin conexión a internet. ${TEXTO_REQUIERE_CONEXION}` });
+      return;
+    }
     setValidando(true);
     setResultado(null);
     try {
@@ -140,6 +146,10 @@ export function ControlAcceso() {
     }
     if (!/^\d{6}$/.test(valor)) {
       setResultado({ type: 'err', text: 'Ingresá los 6 dígitos del código.' });
+      return;
+    }
+    if (!navigator.onLine) {
+      setResultado({ type: 'err', text: `Sin conexión a internet. ${TEXTO_REQUIERE_CONEXION}` });
       return;
     }
     setValidandoCodigo(true);
@@ -247,6 +257,12 @@ export function ControlAcceso() {
               ))}
             </div>
 
+            {!online && (
+              <p role="status" style={{ fontSize: 11, marginTop: 10 }}>
+                {TEXTO_REQUIERE_CONEXION} Validar ingresos y registrar egresos se habilita al reconectarte.
+              </p>
+            )}
+
             {tab === 'camara' && (
               <div className="stack-gap">
                 <LectorQr key={escanKey} onDetectado={(token) => void handleValidar(token)} />
@@ -282,7 +298,7 @@ export function ControlAcceso() {
                   type="button"
                   className="btn btn-primary"
                   onClick={() => void handleValidar(qrToken)}
-                  disabled={validando}
+                  disabled={validando || !online}
                 >
                   {validando ? 'Validando...' : 'Validar ingreso'}
                 </button>
@@ -310,7 +326,7 @@ export function ControlAcceso() {
                   type="button"
                   className="btn btn-primary"
                   onClick={() => void handleValidarCodigo(codigo)}
-                  disabled={validandoCodigo || codigo.length !== 6}
+                  disabled={validandoCodigo || !online || codigo.length !== 6}
                 >
                   {validandoCodigo ? 'Validando...' : 'Validar código'}
                 </button>
@@ -375,7 +391,7 @@ export function ControlAcceso() {
                         <button
                           className="btn btn-secondary"
                           onClick={() => void handleEgresoDirecto(s.usuario.id, nombre)}
-                          disabled={ocupado}
+                          disabled={ocupado || !online}
                         >
                           {ocupado ? 'Registrando...' : 'Egreso'}
                         </button>

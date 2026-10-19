@@ -7,11 +7,18 @@ import { clasesApi, fetchMapaClases } from '../clases.api';
 import type { Clase, ClaseOcurrencia, MiReservaClase } from '../clases.types';
 import { Badge } from '../../../shared/components/atoms';
 import { Select } from '../../../shared/components/atoms';;
+import { ErrorState } from '../../../shared/components/molecules';
 import { EmptyState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
 import { useAhora } from '../../../shared/hooks/useAhora';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import {
+  motivoDeError,
+  TEXTO_REQUIERE_CONEXION,
+  useAlVolverConexion,
+  useEstadoConexion,
+} from '../../../shared/hooks/useEstadoConexion';
 
 const DIAS_A_FUTURO = 14;
 
@@ -55,6 +62,8 @@ export function ReservarClases() {
   const [diaFiltro, setDiaFiltro] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCarga, setErrorCarga] = useState(false);
+  const online = useEstadoConexion();
   const [accionId, setAccionId] = useState<string | null>(null);
 
   const sedes = useMemo(() => {
@@ -80,6 +89,7 @@ export function ReservarClases() {
   async function cargar(silencioso = false) {
     if (!silencioso) setLoading(true);
     setError(null);
+    setErrorCarga(false);
     try {
       // Cupos: conteo agregado por ocurrencia. Mis reservas: endpoint propio
       // (el backend toma el usuario del token y no expone reservas ajenas).
@@ -91,7 +101,10 @@ export function ReservarClases() {
       setOcurrenciasPorClase(mapa.occMap);
       setMisReservas(mias.data);
     } catch {
-      setError('No se pudieron cargar las clases.');
+      // Carga inicial fallida: estado de error (no "sin clases"). Si falla el
+      // refresco posterior a una acción, se conservan los datos y se avisa.
+      if (silencioso) setError(`No se pudo actualizar la información. ${motivoDeError()}.`);
+      else setErrorCarga(true);
     } finally {
       setLoading(false);
     }
@@ -101,6 +114,11 @@ export function ReservarClases() {
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Al volver la red se reintenta solo si la carga había fallado.
+  useAlVolverConexion(() => {
+    if (errorCarga) void cargar();
+  });
 
   const limiteReserva = ahora + 48 * 60 * 60 * 1000;
   const filtradas = clases.filter(
@@ -196,8 +214,21 @@ export function ReservarClases() {
         </p>
       )}
 
+      {!online && (
+        <p role="status" style={{ fontSize: 11, marginBottom: 13 }}>
+          {TEXTO_REQUIERE_CONEXION} Reservar y cancelar se habilita al reconectarte.
+        </p>
+      )}
+
       {loading ? (
         <LoadingState rows={4} label="Cargando clases" />
+      ) : errorCarga ? (
+        <ErrorState
+          title="No pudimos cargar las clases"
+          description={motivoDeError()}
+          retryLabel="Reintentar"
+          onRetry={() => void cargar()}
+        />
       ) : (
         <section aria-label="Clases disponibles">
           <div className="filters glass">
@@ -271,6 +302,7 @@ export function ReservarClases() {
                       ocurrencias={proximas}
                       misReservas={misReservas}
                       accionId={accionId}
+                      online={online}
                       onReservar={handleReservar}
                     />
                   </article>
@@ -281,6 +313,7 @@ export function ReservarClases() {
         </section>
       )}
 
+      {!errorCarga && (
       <section className="glass panel" style={{ marginTop: 14 }} aria-label="Mis reservas de clases">
         <SectionHeader title="Mis reservas" description="Cancelá sin cargo hasta 6 h antes." />
         {reservasMostrables.length === 0 ? (
@@ -305,7 +338,7 @@ export function ReservarClases() {
                 <button
                   className="btn btn-secondary"
                   onClick={() => void handleCancelar(r.id)}
-                  disabled={accionId === r.id}
+                  disabled={accionId === r.id || !online}
                   style={{ minHeight: 44 }}
                 >
                   {accionId === r.id ? '...' : 'Cancelar'}
@@ -315,6 +348,7 @@ export function ReservarClases() {
           </div>
         )}
       </section>
+      )}
     </>
   );
 }
@@ -324,12 +358,14 @@ function TurnoBoton({
   ocurrencias,
   misReservas,
   accionId,
+  online,
   onReservar,
 }: {
   clase: Clase;
   ocurrencias: ClaseOcurrencia[];
   misReservas: MiReservaClase[];
   accionId: string | null;
+  online: boolean;
   onReservar: (ocurrenciaId: string) => void;
 }) {
   // Muestra el primer turno con lugar (o el primero si todos están llenos).
@@ -350,7 +386,7 @@ function TurnoBoton({
       <Badge variant={llena ? "danger" : ocupadas + 1 >= clase.capacidad ? "warning" : "success"}>{lugares}</Badge>
       <button
         className="btn btn-primary"
-        disabled={llena || accionId === conLugar.id}
+        disabled={llena || !online || accionId === conLugar.id}
         onClick={() => onReservar(conLugar.id)}
         aria-label={llena ? `Sin cupo en ${clase.tipoClase}` : `Reservar ${clase.tipoClase} el ${formatearFecha(conLugar.fecha)} a las ${conLugar.horaInicio.slice(0, 5)}`}
       >

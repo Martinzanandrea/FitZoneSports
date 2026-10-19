@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Volleyball } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { canchasApi } from '../canchas.api';
@@ -10,6 +10,12 @@ import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import {
+  motivoDeError,
+  TEXTO_REQUIERE_CONEXION,
+  useAlVolverConexion,
+  useEstadoConexion,
+} from '../../../shared/hooks/useEstadoConexion';
 
 const HORAS = Array.from({ length: 15 }, (_, i) => 8 + i); // 8..22
 
@@ -43,6 +49,9 @@ export function ReservarCanchas() {
   const [recarga, setRecarga] = useState(0);
   const [loading, setLoading] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
+  const [errorDia, setErrorDia] = useState(false);
+  const [intentoCanchas, setIntentoCanchas] = useState(0);
+  const online = useEstadoConexion();
   const [reservando, setReservando] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [ultimaReserva, setUltimaReserva] = useState<ReservaCancha | null>(null);
@@ -75,18 +84,35 @@ export function ReservarCanchas() {
   );
 
   useEffect(() => {
+    let viva = true;
     canchasApi
       .getAll(1, 100)
       .then((res) => {
+        if (!viva) return;
         setCanchas(res.data);
         if (res.data.length) setCanchaId(res.data[0].id);
+        setErrorCarga(false);
         setLoading(false);
       })
       .catch(() => {
+        if (!viva) return;
         setErrorCarga(true);
         setLoading(false);
       });
+    return () => {
+      viva = false;
+    };
+  }, [intentoCanchas]);
+
+  const reintentarCanchas = useCallback(() => {
+    setLoading(true);
+    setIntentoCanchas((n) => n + 1);
   }, []);
+
+  useAlVolverConexion(() => {
+    if (errorCarga) reintentarCanchas();
+    else if (errorDia) setRecarga((n) => n + 1);
+  });
 
   useEffect(() => {
     if (tipos.length > 0 && (tipoSel === '' || !tipos.some((t) => t.id === tipoSel))) setTipoSel(tipos[0].id);
@@ -100,15 +126,25 @@ export function ReservarCanchas() {
 
   useEffect(() => {
     if (!canchaId) return;
+    let viva = true;
     Promise.all([canchasApi.getOcupacion(canchaId, fecha), canchasApi.getMisReservas({ fecha })])
       .then(([ocup, mias]) => {
+        if (!viva) return;
         setOcupacion(ocup);
         setMisReservasDia(mias.data);
+        setErrorDia(false);
       })
+      // Si falla, no se sabe qué horarios están ocupados: no se muestran como
+      // libres, se bloquea la grilla y se ofrece reintentar.
       .catch(() => {
+        if (!viva) return;
         setOcupacion([]);
         setMisReservasDia([]);
+        setErrorDia(true);
       });
+    return () => {
+      viva = false;
+    };
   }, [canchaId, fecha, recarga]);
 
   const ocupadas = useMemo(
@@ -175,8 +211,9 @@ export function ReservarCanchas() {
     return (
       <ErrorState
         title="No pudimos cargar las canchas"
-        description="Revisá tu conexión e intentá de nuevo en unos segundos."
-        onRetry={() => window.location.reload()}
+        description={motivoDeError()}
+        retryLabel="Reintentar"
+        onRetry={reintentarCanchas}
       />
     );
 
@@ -295,6 +332,21 @@ export function ReservarCanchas() {
           </div>
 
           <h3>Horarios disponibles</h3>
+          {errorDia && (
+            <div role="alert" style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: 12, marginBottom: 10 }}>
+                No se pudieron cargar los horarios. {motivoDeError()}.
+              </p>
+              <button className="btn btn-secondary" onClick={() => setRecarga((n) => n + 1)}>
+                Reintentar
+              </button>
+            </div>
+          )}
+          {!online && (
+            <p role="status" style={{ fontSize: 11, marginBottom: 12 }}>
+              {TEXTO_REQUIERE_CONEXION} Reservar y cancelar se habilita al reconectarte.
+            </p>
+          )}
           <div className="time-grid">
             {HORAS.map((h) => {
               const hi = `${String(h).padStart(2, '0')}:00`;
@@ -304,7 +356,7 @@ export function ReservarCanchas() {
               return (
                 <button
                   key={hi}
-                  disabled={!libre || reservando !== null}
+                  disabled={!libre || errorDia || !online || reservando !== null}
                   onClick={() => void handleReservar(h)}
                   aria-label={libre ? `Reservar ${hi}` : ocupado ? `Ocupado ${hi}` : `Vencido ${hi}`}
                 >
@@ -340,7 +392,7 @@ export function ReservarCanchas() {
           </dl>
           <button
             className="btn btn-primary"
-            disabled={!cotizacion || reservando !== null}
+            disabled={!cotizacion || !online || reservando !== null}
             onClick={() => void confirmarReserva()}
           >
             {reservando ? 'Reservando...' : 'Confirmar reserva'} <ArrowRight size={17} aria-hidden />
@@ -382,7 +434,7 @@ export function ReservarCanchas() {
                     ${r.precioFinal} · {r.estrategiaPrecio}
                   </span>
                 </div>
-                <button className="btn btn-secondary" onClick={() => void handleCancelar(r.id)} disabled={reservando === r.id}>
+                <button className="btn btn-secondary" onClick={() => void handleCancelar(r.id)} disabled={reservando === r.id || !online}>
                   {reservando === r.id ? '...' : 'Cancelar'}
                 </button>
               </div>

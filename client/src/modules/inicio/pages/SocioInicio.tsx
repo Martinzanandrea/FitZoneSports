@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
@@ -23,6 +23,7 @@ import { SectionHeader } from '../../../shared/components/molecules';;
 import { IconButton } from '../../../shared/components/atoms';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { unaVez } from '../../../shared/utils/unaVez';
+import { useAlVolverConexion, motivoDeError } from '../../../shared/hooks/useEstadoConexion';
 import { formatearFechaCorta, useProximasReservas, type ProximaReserva } from '../hooks/useProximasReservas';
 
 const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -150,20 +151,35 @@ export function SocioInicio() {
   const [membresia, setMembresia] = useState<EstadoSocio | null>(null);
   const [cargandoMembresia, setCargandoMembresia] = useState(true);
   const [errorMembresia, setErrorMembresia] = useState(false);
-  const { proximas, cargando, error } = useProximasReservas(user?.id, 4);
+  const { proximas, cargando, error, reintentar: reintentarReservas } = useProximasReservas(user?.id, 4);
 
   const usuarioId = user?.id;
+  const [intento, setIntento] = useState(0);
   useEffect(() => {
     if (!usuarioId) return;
     let viva = true;
     unaVez(`vigente:${usuarioId}`, () => membresiasApi.getVigente(usuarioId))
-      .then((m) => viva && setMembresia(m))
+      .then((m) => {
+        if (!viva) return;
+        setMembresia(m);
+        setErrorMembresia(false);
+      })
       .catch(() => viva && setErrorMembresia(true))
       .finally(() => viva && setCargandoMembresia(false));
     return () => {
       viva = false;
     };
-  }, [usuarioId]);
+  }, [usuarioId, intento]);
+
+  const reintentarMembresia = useCallback(() => {
+    setCargandoMembresia(true);
+    setIntento((n) => n + 1);
+  }, []);
+
+  useAlVolverConexion(() => {
+    if (errorMembresia) reintentarMembresia();
+    if (error) reintentarReservas();
+  });
 
   const nombreCompleto = `${user?.nombre ?? ''} ${user?.apellido ?? ''}`.trim().toUpperCase();
 
@@ -187,9 +203,9 @@ export function SocioInicio() {
           </div>
         ) : errorMembresia ? (
           <div className="glass panel">
-            <p style={{ fontSize: 12 }}>No pudimos cargar tu membresía.</p>
-            <button className="btn btn-secondary" style={{ marginTop: 12 }} onClick={() => window.location.reload()}>
-              Volver a intentar
+            <p style={{ fontSize: 12 }}>No pudimos cargar tu membresía. {motivoDeError()}.</p>
+            <button className="btn btn-secondary" style={{ marginTop: 12 }} onClick={reintentarMembresia}>
+              Reintentar
             </button>
           </div>
         ) : membresia ? (
@@ -246,10 +262,11 @@ export function SocioInicio() {
               title="No pudimos cargar tus reservas"
               description={
                 error === 'red'
-                  ? 'Revisá tu conexión e intentá de nuevo en unos segundos.'
+                  ? motivoDeError()
                   : 'Ocurrió un problema al mostrar tus reservas. Intentá de nuevo más tarde.'
               }
-              onRetry={() => window.location.reload()}
+              retryLabel="Reintentar"
+              onRetry={reintentarReservas}
             />
           ) : proximas.length === 0 ? (
             <EmptyState
