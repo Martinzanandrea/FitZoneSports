@@ -11,12 +11,12 @@ import { In, MoreThanOrEqual, Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ReservaClase, ClaseOcurrencia, Membresia, Usuario } from '../entities';
 import {
-  EstadoMembresia,
   EstadoOcurrenciaClase,
   EstadoResClase,
   TipoActor,
 } from '../entities/enums';
 import { estadoDesde } from '../membresias/estado-membresia';
+import { obtenerVigente } from '../membresias/vigencia';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
@@ -135,12 +135,7 @@ export class ReservasClaseService {
 
     // RN-03: solo socios con membresía activa reservan clases. Vale para
     // el usuario destino (usuarioId), también cuando el staff anota a otro.
-    const membresia = await this.membresiasRepo.findOne({
-      where: {
-        usuario: { id: usuarioId },
-        estado: EstadoMembresia.ACTIVO,
-      },
-    });
+    const membresia = await obtenerVigente(this.membresiasRepo, usuarioId);
     if (!membresia || !estadoDesde(membresia).puedeReservarClases()) {
       throw new BadRequestException(
         'Necesitás una membresía activa para reservar clases',

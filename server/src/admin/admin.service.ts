@@ -15,6 +15,7 @@ import {
   ReservaClase,
 } from '../entities';
 import { EstadoOcurrenciaClase, TipoActor } from '../entities/enums';
+import { esVigente, esProxima, estadoEfectivo, hoyArgentina, sqlVigente } from '../membresias/vigencia';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
@@ -68,9 +69,12 @@ export interface ReporteFinanciero {
 export interface MembresiaPorSede {
   sedeId: string;
   sede: string;
+  /** Vigentes hoy (fecha_inicio <= hoy < fecha_fin). */
   activas: number;
   vencidas: number;
   suspendidas: number;
+  /** Compradas que todavía no empezaron (próximas). */
+  programadas: number;
   socios: Array<{
     usuarioId: string;
     nombre: string;
@@ -78,6 +82,11 @@ export interface MembresiaPorSede {
     plan: string;
     estado: EstadoMembresia;
     fechaFin: string;
+    fechaInicio: string;
+    /** Vigente hoy. */
+    vigente: boolean;
+    /** Todavía no empezó. */
+    proxima: boolean;
   }>;
 }
 
@@ -389,6 +398,7 @@ export class AdminService {
       : await this.sedesRepo.find();
 
     const resultado: MembresiaPorSede[] = [];
+    const hoy = hoyArgentina();
 
     for (const sede of sedes) {
       const membresias = await this.membresiasRepo.find({
@@ -400,20 +410,24 @@ export class AdminService {
       resultado.push({
         sedeId: sede.id,
         sede: sede.nombre,
-        activas: membresias.filter((m) => m.estado === EstadoMembresia.ACTIVO)
-          .length,
-        vencidas: membresias.filter((m) => m.estado === EstadoMembresia.VENCIDO)
-          .length,
+        activas: membresias.filter((m) => esVigente(m, hoy)).length,
+        vencidas: membresias.filter(
+          (m) => estadoEfectivo(m, hoy) === EstadoMembresia.VENCIDO,
+        ).length,
         suspendidas: membresias.filter(
           (m) => m.estado === EstadoMembresia.SUSPENDIDO,
         ).length,
+        programadas: membresias.filter((m) => esProxima(m, hoy)).length,
         socios: membresias.map((m) => ({
           usuarioId: m.usuario.id,
           nombre: `${m.usuario.nombre} ${m.usuario.apellido}`,
           dni: m.usuario.dni ?? null,
           plan: m.plan,
-          estado: m.estado,
+          estado: estadoEfectivo(m, hoy),
           fechaFin: m.fechaFin,
+          fechaInicio: m.fechaInicio,
+          vigente: esVigente(m, hoy),
+          proxima: esProxima(m, hoy),
         })),
       });
     }
@@ -429,7 +443,7 @@ export class AdminService {
       .createQueryBuilder('m')
       .select('m.plan', 'plan')
       .addSelect('COUNT(*)', 'socios')
-      .where('m.estado = :estado', { estado: EstadoMembresia.ACTIVO });
+      .where(sqlVigente('m', ':hoy'), { hoy: hoyArgentina() });
     if (sedeId) {
       qb.innerJoin('m.sedeAlta', 'sede').andWhere('sede.id = :sedeId', {
         sedeId,

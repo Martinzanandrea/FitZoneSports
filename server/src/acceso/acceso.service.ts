@@ -9,8 +9,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
-import { EstadoMembresia, TipoActor } from '../entities/enums';
+import { TipoActor } from '../entities/enums';
 import { estadoDesde } from '../membresias/estado-membresia';
+import { obtenerVigente } from '../membresias/vigencia';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -66,12 +67,8 @@ export class AccesoService {
     if (usuario.tipoActor !== TipoActor.SOCIO) {
       throw new ForbiddenException('El acceso por QR es exclusivo de socios');
     }
-    const membresia = await this.membresiasRepo.findOne({
-      where: {
-        usuario: { id: usuario.id },
-        estado: EstadoMembresia.ACTIVO,
-      },
-    });
+    // Vigente HOY por fechas (hora argentina), no solo por estado.
+    const membresia = await obtenerVigente(this.membresiasRepo, usuario.id);
     if (!membresia || !estadoDesde(membresia).puedeGenerarQr()) {
       throw new ForbiddenException(
         'Necesitás una membresía activa para generar tu código de acceso',

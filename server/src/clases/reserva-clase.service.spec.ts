@@ -27,10 +27,9 @@ function armar(reservaPrevia: unknown) {
       .mockResolvedValue({ id: 'u1', tipoActor: TipoActor.SOCIO }),
   };
   const membresiasRepo = {
-    findOne: jest.fn().mockResolvedValue({
-      estado: 'ACTIVO',
-      fechaVencimiento: enDias(30).fecha,
-    }),
+    find: jest.fn().mockResolvedValue([
+      { estado: 'ACTIVO', fechaInicio: '2020-01-01', fechaFin: '2999-12-31' },
+    ]),
   };
   const bookingRepo = {
     reservarSegura: jest.fn().mockResolvedValue({ id: 'nueva' }),

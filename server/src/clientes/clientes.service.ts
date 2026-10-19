@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import { escaparLike } from '../common/helpers/like.helper';
 import { ClientesQueryDto } from './dto/clientes-query.dto';
+import { hoyArgentina } from '../membresias/vigencia';
 
 export interface ClienteAfiliado {
   id: string;
@@ -14,7 +15,10 @@ export interface ClienteAfiliado {
   telefono: string | null;
   activo: boolean;
   sede: { id: string; nombre: string } | null;
-  /** Solo socios con alguna membresía: plan y fecha de vencimiento de la más reciente. */
+  /**
+   * Solo socios con alguna membresía: plan y vencimiento (fecha_fin, exclusiva)
+   * de la vigente hoy; sin vigente, de la más reciente que no sea una próxima.
+   */
   membresia: { plan: string; vencimiento: string } | null;
 }
 
@@ -22,7 +26,11 @@ export interface ClienteAfiliado {
 // (sin apellido, DNI, email ni sede). Se unifican en una sola consulta para
 // filtrar, ordenar y paginar en la base sobre el conjunto completo.
 // Solo se seleccionan columnas explícitas: nunca password_hash.
-const BASE = `
+// `hoy` es la fecha argentina generada por el servidor (formato validado), nunca
+// texto del usuario.
+export function baseClientes(hoy: string): string {
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(hoy)) throw new Error('Fecha inválida');
+  return `
   SELECT u.id, u.tipo_actor::text AS tipo, u.nombre, u.apellido, u.dni, u.email,
          u.telefono, u.activo, s.id AS sede_id, s.nombre AS sede_nombre,
          m.plan AS plan, m.fecha_fin AS vencimiento
@@ -32,7 +40,9 @@ const BASE = `
     SELECT mm.plan::text AS plan, mm.fecha_fin::text AS fecha_fin
     FROM membresias mm
     WHERE mm.usuario_id = u.id
-    ORDER BY mm.fecha_fin DESC
+      AND NOT (mm.estado = 'ACTIVO' AND mm.fecha_inicio > '${hoy}'::date)
+    ORDER BY (mm.estado = 'ACTIVO' AND mm.fecha_inicio <= '${hoy}'::date AND mm.fecha_fin > '${hoy}'::date) DESC,
+             mm.fecha_fin DESC
     LIMIT 1
   ) m ON u.tipo_actor = 'SOCIO'
   WHERE u.tipo_actor IN ('SOCIO', 'EXTERNO')
@@ -41,6 +51,7 @@ const BASE = `
          i.telefono, i.activo, NULL::uuid, NULL::text, NULL::text, NULL::text
   FROM instructores i
 `;
+}
 
 export function armarConsultaClientes(query: ClientesQueryDto): {
   where: string;
@@ -99,6 +110,7 @@ export class ClientesService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const { where, params } = armarConsultaClientes(query);
+    const BASE = baseClientes(hoyArgentina());
 
     const [{ total }] = await this.dataSource.query<{ total: string }[]>(
       `SELECT COUNT(*)::text AS total FROM (${BASE}) c ${where}`,

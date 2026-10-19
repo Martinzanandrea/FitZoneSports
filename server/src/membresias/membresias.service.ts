@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Membresia, Usuario, Sede } from '../entities';
@@ -7,8 +13,18 @@ import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type'
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
+import { esViolacionExclusion } from '../common/helpers/db-errors.helper';
 import { CreateMembresiaDto } from './dto/create-membresia.dto';
 import { UpdateMembresiaDto } from './dto/update-membresia.dto';
+import {
+  estadoEfectivo,
+  esProxima,
+  hoyArgentina,
+  obtenerCadena,
+  obtenerProxima,
+  obtenerVigente,
+  sumarMeses,
+} from './vigencia';
 import { Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -17,6 +33,11 @@ const DURACION_MESES: Record<TipoPlan, number> = {
   [TipoPlan.TRIMESTRAL]: 3,
   [TipoPlan.ANUAL]: 12,
 };
+
+export const MENSAJE_YA_PROGRAMADA =
+  'Ya tenés una membresía programada. Podrás comprar otra cuando comience';
+export const MENSAJE_SUPERPUESTA =
+  'Esa membresía se superpone con otra que ya tenés. Revisá tus fechas e intentá de nuevo';
 
 // Una membresía huérfana (sin titular o sede válidos) rompe reservas, precios
 // y reportes: se valida acá, además de las FK de la base.
@@ -53,14 +74,19 @@ export class MembresiasService {
     private readonly sedesRepo: Repository<Sede>,
   ) {}
 
+  // Marca VENCIDO las membresías ACTIVO cuyo período terminó (fecha_fin <= hoy;
+  // fecha_fin es exclusiva). Es solo higiene del dato: la corrección del
+  // sistema NO depende de que este cron se ejecute (en el hosting gratuito
+  // puede no correr). Toda decisión de vigencia se toma por fechas en
+  // vigencia.ts, así que una fila ACTIVO ya terminada nunca cuenta como vigente.
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async marcarVencidasSiCorresponde(): Promise<number> {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = hoyArgentina();
     const result = await this.membresiasRepo
       .createQueryBuilder()
       .update(Membresia)
       .set({ estado: EstadoMembresia.VENCIDO })
-      .where('fecha_fin < :hoy', { hoy })
+      .where('fecha_fin <= :hoy', { hoy })
       .andWhere('estado = :estado', { estado: EstadoMembresia.ACTIVO })
       .execute();
 
@@ -73,24 +99,27 @@ export class MembresiasService {
     return cantidad;
   }
 
-  // `manager` es obligatorio: una membresía ACTIVO solo se crea dentro de la
-  // transacción del pago aprobado (PagosService); no hay camino sin pago.
-  async create(dto: CreateMembresiaDto, manager: EntityManager): Promise<Membresia> {
+  // Única vía de alta (compra y renovación): solo dentro de la transacción de
+  // un pago aprobado (PagosService); no hay camino sin pago. Nunca pisa una
+  // membresía existente: la nueva empieza en el MAYOR fecha_fin entre las
+  // ACTIVO que no terminaron, o hoy (hora argentina) si no hay ninguna.
+  // Máximo una vigente y una próxima.
+  async alta(
+    dto: CreateMembresiaDto,
+    manager: EntityManager,
+    hoy: string = hoyArgentina(),
+  ): Promise<Membresia> {
     const usuariosRepo = manager.getRepository(Usuario);
     const sedesRepo = manager.getRepository(Sede);
     const membresiasRepo = manager.getRepository(Membresia);
+    // Bloqueo de la fila del usuario: serializa compras simultáneas del mismo
+    // usuario antes de calcular el inicio (la segunda ve lo que dejó la primera).
     const usuario = await usuariosRepo.findOne({
       where: { id: dto.usuarioId },
+      lock: { mode: 'pessimistic_write' },
     });
     if (!usuario) {
       throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
-    }
-
-    const existente = await membresiasRepo.findOne({
-      where: { usuario: { id: dto.usuarioId }, estado: EstadoMembresia.ACTIVO },
-    });
-    if (existente) {
-      throw new BadRequestException('El usuario ya tiene una membresía activa');
     }
 
     const sedeAlta = await sedesRepo.findOne({
@@ -101,9 +130,15 @@ export class MembresiasService {
     }
     validarTitularYSede(usuario, sedeAlta);
 
-    const fechaInicio = new Date();
-    const fechaFin = new Date(fechaInicio);
-    fechaFin.setMonth(fechaFin.getMonth() + DURACION_MESES[dto.plan]);
+    const { proxima, mayorFin } = await obtenerCadena(
+      membresiasRepo,
+      usuario.id,
+      hoy,
+    );
+    if (proxima) throw new ConflictException(MENSAJE_YA_PROGRAMADA);
+
+    const fechaInicio = mayorFin ?? hoy;
+    const fechaFin = sumarMeses(fechaInicio, DURACION_MESES[dto.plan]);
 
     const membresia = membresiasRepo.create({
       usuario,
@@ -111,11 +146,32 @@ export class MembresiasService {
       plan: dto.plan,
       renovacionAuto: dto.renovacionAuto ?? false,
       estado: EstadoMembresia.ACTIVO,
-      fechaInicio: fechaInicio.toISOString().split('T')[0],
-      fechaFin: fechaFin.toISOString().split('T')[0],
+      fechaInicio,
+      fechaFin,
     });
+    return this.guardarTraduciendoSuperposicion(membresiasRepo, membresia);
+  }
 
-    return membresiasRepo.save(membresia);
+  // Chequeo previo (sin bloqueo) para rechazar ANTES de cobrar en la pasarela.
+  // El chequeo autoritativo, con bloqueo, es el de alta().
+  async asegurarSinProxima(usuarioId: string): Promise<void> {
+    const proxima = await obtenerProxima(this.membresiasRepo, usuarioId);
+    if (proxima) throw new ConflictException(MENSAJE_YA_PROGRAMADA);
+  }
+
+  // 23P01 (restricción de exclusión) -> 409 claro, nunca 500.
+  private async guardarTraduciendoSuperposicion(
+    repo: Repository<Membresia>,
+    membresia: Membresia,
+  ): Promise<Membresia> {
+    try {
+      return await repo.save(membresia);
+    } catch (err) {
+      if (esViolacionExclusion(err)) {
+        throw new ConflictException(MENSAJE_SUPERPUESTA);
+      }
+      throw err;
+    }
   }
 
   async findAll(
@@ -159,51 +215,65 @@ export class MembresiasService {
     return membresia;
   }
 
-  // Usado por otros módulos (canchas, clases) para RN03, y por el
-  // endpoint GET /membresias/vigente/:usuarioId. Incluye sedeAlta para
-  // que el frontend pueda mostrar dónde se dio de alta sin otra llamada.
-  // Prefiere una fila ACTIVO (ordenada por fechaFin DESC) antes que
-  // cualquier otro estado: un plan viejo SUSPENDIDO no debe tapar al
-  // MENSUAL ACTIVO que define la tarifa real.
-  async obtenerMembresiaVigente(usuarioId: string): Promise<Membresia | null> {
-    const activa = await this.membresiasRepo.findOne({
-      where: { usuario: { id: usuarioId }, estado: EstadoMembresia.ACTIVO },
-      relations: { sedeAlta: true },
-      order: { fechaFin: 'DESC' },
+  // Membresía vigente HOY (fecha_inicio <= hoy < fecha_fin, estado ACTIVO), o
+  // null. La usan otros módulos (canchas) para RN03 y el descuento de socio.
+  async obtenerMembresiaVigente(
+    usuarioId: string,
+    hoy: string = hoyArgentina(),
+  ): Promise<Membresia | null> {
+    return obtenerVigente(this.membresiasRepo, usuarioId, hoy, {
+      sedeAlta: true,
     });
-    if (activa) return activa;
-    return this.membresiasRepo.findOne({
+  }
+
+  // La más reciente que no es "próxima" (para recordar la sede de alta o
+  // mostrar una membresía ya terminada o suspendida).
+  async obtenerUltimaMembresia(
+    usuarioId: string,
+    hoy: string = hoyArgentina(),
+  ): Promise<Membresia | null> {
+    const filas = await this.membresiasRepo.find({
       where: { usuario: { id: usuarioId } },
       relations: { sedeAlta: true },
       order: { fechaFin: 'DESC' },
     });
+    return filas.find((m) => !esProxima(m, hoy)) ?? null;
   }
 
-  // Vista recortada para consulta en mostrador (recepción/gerencia):
-  // solo plan, estado y fechas, sin datos de pago. La sede de alta se
-  // incluye porque el frontend la muestra ("Sede alta: ...").
-  async obtenerEstadoSocio(usuarioId: string): Promise<{
-    plan: TipoPlan;
-    estado: EstadoMembresia;
-    fechaInicio: string;
-    fechaFin: string;
-    sedeAlta: { id: string; nombre: string };
-  } | null> {
-    const membresia = await this.obtenerMembresiaVigente(usuarioId);
-    if (!membresia) return null;
-    return {
-      plan: membresia.plan,
-      estado: membresia.estado,
-      fechaInicio: membresia.fechaInicio,
-      fechaFin: membresia.fechaFin,
-      sedeAlta: { id: membresia.sedeAlta.id, nombre: membresia.sedeAlta.nombre },
-    };
+  // Vista recortada para consulta en mostrador y "mi membresía": plan, estado y
+  // fechas, sin datos de pago. Los campos de siempre salen de la vigente (si no
+  // hay, de la última terminada o suspendida); `proxima` se agrega.
+  async obtenerEstadoSocio(
+    usuarioId: string,
+    hoy: string = hoyArgentina(),
+  ): Promise<EstadoSocio | null> {
+    const vigente = await obtenerVigente(this.membresiasRepo, usuarioId, hoy, {
+      sedeAlta: true,
+    });
+    const principal =
+      vigente ?? (await this.obtenerUltimaMembresia(usuarioId, hoy));
+    if (!principal) return null;
+    const proxima = await obtenerProxima(this.membresiasRepo, usuarioId, hoy, {
+      sedeAlta: true,
+    });
+    const resumen = (m: Membresia): ResumenMembresia => ({
+      plan: m.plan,
+      estado: estadoEfectivo(m, hoy),
+      fechaInicio: m.fechaInicio,
+      fechaFin: m.fechaFin,
+      sedeAlta: { id: m.sedeAlta.id, nombre: m.sedeAlta.nombre },
+    });
+    return { ...resumen(principal), proxima: proxima ? resumen(proxima) : null };
   }
 
+  // PATCH: solo renovacionAuto y un cambio de estado acotado (ACTIVO <->
+  // SUSPENDIDO). VENCIDO lo pone el sistema. Reactivar no puede generar
+  // superposición ni más de una vigente + una próxima.
   async update(
     id: string,
     dto: UpdateMembresiaDto,
     currentUser: UsuarioAutenticado,
+    hoy: string = hoyArgentina(),
   ): Promise<Membresia> {
     const membresia = await this.findOne(id);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
@@ -213,8 +283,71 @@ export class MembresiasService {
       }
       assertSedeScope(currentUser, membresia.sedeAlta.id);
     }
-    Object.assign(membresia, dto);
-    return this.membresiasRepo.save(membresia);
+    return this.membresiasRepo.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(Membresia);
+      // Mismo bloqueo por usuario que el alta.
+      await manager.getRepository(Usuario).findOne({
+        where: { id: membresia.usuario.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (dto.renovacionAuto !== undefined) {
+        membresia.renovacionAuto = dto.renovacionAuto;
+      }
+      if (dto.estado !== undefined && dto.estado !== membresia.estado) {
+        await this.aplicarCambioDeEstado(repo, membresia, dto.estado, hoy);
+      }
+      return this.guardarTraduciendoSuperposicion(repo, membresia);
+    });
+  }
+
+  private async aplicarCambioDeEstado(
+    repo: Repository<Membresia>,
+    membresia: Membresia,
+    nuevo: EstadoMembresia,
+    hoy: string,
+  ): Promise<void> {
+    if (nuevo === EstadoMembresia.SUSPENDIDO) {
+      if (membresia.estado !== EstadoMembresia.ACTIVO) {
+        throw new BadRequestException(
+          'Solo se puede suspender una membresía activa',
+        );
+      }
+      membresia.estado = EstadoMembresia.SUSPENDIDO;
+      return;
+    }
+    if (nuevo !== EstadoMembresia.ACTIVO) {
+      throw new BadRequestException(
+        'Estado no permitido: lo vencido lo marca el sistema',
+      );
+    }
+    if (membresia.estado !== EstadoMembresia.SUSPENDIDO) {
+      throw new BadRequestException(
+        'Solo se puede reactivar una membresía suspendida',
+      );
+    }
+    if (membresia.fechaFin <= hoy) {
+      throw new ConflictException(
+        'El período de esa membresía ya terminó: no se puede reactivar',
+      );
+    }
+    const delUsuario = await repo.find({
+      where: { usuario: { id: membresia.usuario.id } },
+    });
+    const vivas = delUsuario.filter(
+      (o) => o.id !== membresia.id && o.estado !== EstadoMembresia.SUSPENDIDO,
+    );
+    const seSuperpone = vivas.some(
+      (o) =>
+        o.fechaInicio < membresia.fechaFin && membresia.fechaInicio < o.fechaFin,
+    );
+    if (seSuperpone) throw new ConflictException(MENSAJE_SUPERPUESTA);
+    const sinTerminar = vivas.filter(
+      (o) => o.estado === EstadoMembresia.ACTIVO && o.fechaFin > hoy,
+    );
+    if (sinTerminar.length >= 2) {
+      throw new ConflictException(MENSAJE_YA_PROGRAMADA);
+    }
+    membresia.estado = EstadoMembresia.ACTIVO;
   }
 
   async cancelar(id: string, actor?: UsuarioAutenticado): Promise<Membresia> {
@@ -241,38 +374,16 @@ export class MembresiasService {
     membresia.estado = EstadoMembresia.SUSPENDIDO;
     return this.membresiasRepo.save(membresia);
   }
-
-  // Igual que create: solo dentro de la transacción de un pago aprobado.
-  async renovar(dto: CreateMembresiaDto, manager: EntityManager): Promise<Membresia> {
-    const usuariosRepo = manager.getRepository(Usuario);
-    const sedesRepo = manager.getRepository(Sede);
-    const membresiasRepo = manager.getRepository(Membresia);
-    const usuario = await usuariosRepo.findOne({ where: { id: dto.usuarioId } });
-    if (!usuario) throw new NotFoundException(`Usuario ${dto.usuarioId} no encontrado`);
-
-    const actual = await membresiasRepo.findOne({
-      where: { usuario: { id: dto.usuarioId }, estado: EstadoMembresia.ACTIVO },
-    });
-    if (!actual) throw new BadRequestException('No tenés una membresía activa para renovar');
-
-    const sedeAlta = await sedesRepo.findOne({ where: { id: dto.sedeAltaId } });
-    if (!sedeAlta) throw new NotFoundException(`Sede ${dto.sedeAltaId} no encontrada`);
-    validarTitularYSede(usuario, sedeAlta);
-
-    const fechaInicio = new Date(actual.fechaFin);
-    const fechaFin = new Date(fechaInicio);
-    fechaFin.setMonth(fechaFin.getMonth() + DURACION_MESES[dto.plan]);
-
-    const nueva = membresiasRepo.create({
-      usuario,
-      sedeAlta,
-      plan: dto.plan,
-      renovacionAuto: dto.renovacionAuto ?? false,
-      estado: EstadoMembresia.ACTIVO,
-      fechaInicio: fechaInicio.toISOString().split('T')[0],
-      fechaFin: fechaFin.toISOString().split('T')[0],
-    });
-
-    return membresiasRepo.save(nueva);
-  }
 }
+
+export interface ResumenMembresia {
+  plan: TipoPlan;
+  estado: EstadoMembresia;
+  fechaInicio: string;
+  fechaFin: string;
+  sedeAlta: { id: string; nombre: string };
+}
+
+export type EstadoSocio = ResumenMembresia & {
+  proxima: ResumenMembresia | null;
+};

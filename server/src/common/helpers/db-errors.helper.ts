@@ -14,6 +14,13 @@ export function esViolacionUnique(err: unknown): boolean {
   return (e?.driverError?.code ?? e?.code) === '23505';
 }
 
+// Violación de una restricción de exclusión de Postgres (23P01), p. ej. dos
+// membresías del mismo usuario con períodos superpuestos.
+export function esViolacionExclusion(err: unknown): boolean {
+  const e = err as ErrorDeBase | null;
+  return (e?.driverError?.code ?? e?.code) === '23P01';
+}
+
 // Traduce una violación de UNIQUE a 409 con un mensaje claro, según la
 // columna involucrada. NUNCA copia el `detail` de Postgres al mensaje (trae el
 // valor duplicado, es decir el DNI o el email). Devuelve null si el error no es

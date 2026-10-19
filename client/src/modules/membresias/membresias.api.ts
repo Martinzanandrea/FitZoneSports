@@ -6,7 +6,7 @@ export const membresiasApi = {
   // No hay alta ni renovación sin pago: la membresía nace al aprobarse el pago
   // (pagosApi.pagarConPasarela con plan + sedeAltaId).
   // Trae las membresías que le corresponde ver al usuario logueado
-  // (el backend ya las filtra por sede si es recepcionista).
+  // (el backend ya las filtra por sede si es gerente de sede).
   // Viene paginado: page arranca en 1 y limit trae 20 por defecto.
   getAll: (page = 1, limit = 20) =>
     api.get<PaginatedResponse<Membresia>>("/membresias", { params: { page, limit } }).then((res) => res.data),

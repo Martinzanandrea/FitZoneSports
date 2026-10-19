@@ -130,7 +130,9 @@ describe('ReservasClaseService: límites de reserva/cancelación en hora Argenti
           .mockResolvedValue({ id: 'u1', tipoActor: TipoActor.SOCIO }),
       } as never,
       {
-        findOne: jest.fn().mockResolvedValue({ estado: 'ACTIVO' }),
+        find: jest.fn().mockResolvedValue([
+          { estado: 'ACTIVO', fechaInicio: '2020-01-01', fechaFin: '2999-12-31' },
+        ]),
       } as never,
       bookingRepo as never,
       { emit: jest.fn() } as never,

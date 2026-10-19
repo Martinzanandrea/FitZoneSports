@@ -26,7 +26,6 @@ import {
   TipoActor,
   TipoPlan,
   EstadoResCancha,
-  EstadoMembresia,
 } from '../entities/enums';
 import { PASARELA_PAGO, type PasarelaPago } from './pasarela-pago.interface';
 import { ComprobantesService } from './comprobantes.service';
@@ -344,13 +343,19 @@ export class PagosService {
     }
     const plan = referencia.plan as TipoPlan;
     const monto = await this.calcularMonto(dto.monto, referencia);
+    // Con una membresía ya programada se rechaza ANTES de cobrar (409).
+    await this.membresiasService.asegurarSinProxima(usuario.id);
+    // Con una vigente, la nueva queda en la misma sede; sin vigente, la sede
+    // elegida o la de la última membresía.
     const vigente = await this.membresiasService.obtenerMembresiaVigente(
       usuario.id,
     );
-    const esRenovacion = vigente?.estado === EstadoMembresia.ACTIVO;
-    const sedeAltaId = esRenovacion
-      ? vigente!.sedeAlta.id
-      : (dto.sedeAltaId ?? vigente?.sedeAlta.id ?? null);
+    const previa =
+      vigente ??
+      (await this.membresiasService.obtenerUltimaMembresia(usuario.id));
+    const sedeAltaId = vigente
+      ? vigente.sedeAlta.id
+      : (dto.sedeAltaId ?? previa?.sedeAlta.id ?? null);
     if (!sedeAltaId) {
       throw new BadRequestException('Indicá la sede de alta (sedeAltaId)');
     }
@@ -385,7 +390,6 @@ export class PagosService {
           usuario,
           plan,
           sedeAltaId,
-          esRenovacion,
           monto,
           metodo: dto.metodo,
           tokenPasarela: token,
@@ -407,7 +411,6 @@ export class PagosService {
       usuario: Usuario;
       plan: TipoPlan;
       sedeAltaId: string;
-      esRenovacion: boolean;
       monto: number;
       metodo: MetodoPago;
       registradoPor?: Usuario;
@@ -419,9 +422,7 @@ export class PagosService {
       sedeAltaId: d.sedeAltaId,
       plan: d.plan,
     };
-    const membresia = d.esRenovacion
-      ? await this.membresiasService.renovar(dtoMembresia, manager)
-      : await this.membresiasService.create(dtoMembresia, manager);
+    const membresia = await this.membresiasService.alta(dtoMembresia, manager);
     const pagosRepoTx = manager.getRepository(Pago);
     const guardado = await pagosRepoTx.save(
       pagosRepoTx.create({
@@ -720,17 +721,20 @@ export class PagosService {
     // Flujo membresía: el precio sale del servidor según el plan.
     const plan = referencia.plan as TipoPlan;
     const monto = await this.preciosService.obtenerPrecio(plan);
+    await this.membresiasService.asegurarSinProxima(dto.usuarioId);
     const vigente = await this.membresiasService.obtenerMembresiaVigente(
       dto.usuarioId,
     );
-    const esRenovacion = vigente?.estado === EstadoMembresia.ACTIVO;
+    const previa =
+      vigente ??
+      (await this.membresiasService.obtenerUltimaMembresia(dto.usuarioId));
 
     // Sede de alta de la membresía resultante: la del que cobra; si es
     // GG (sin sede), la de la membresía anterior. Sin ninguna fuente,
     // no se puede inventar una sede: se rechaza explícito.
-    const sedeAltaId = esRenovacion
-      ? vigente!.sedeAlta.id
-      : (registradoPor.sede?.id ?? vigente?.sedeAlta.id ?? null);
+    const sedeAltaId = vigente
+      ? vigente.sedeAlta.id
+      : (registradoPor.sede?.id ?? previa?.sedeAlta.id ?? null);
     if (!sedeAltaId) {
       throw new BadRequestException(
         'No se pudo determinar la sede de alta: indicá una sede para el cobro',
@@ -760,7 +764,6 @@ export class PagosService {
           usuario,
           plan,
           sedeAltaId,
-          esRenovacion,
           monto,
           metodo: MetodoPago.EFECTIVO,
           registradoPor,

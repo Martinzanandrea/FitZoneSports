@@ -54,7 +54,7 @@ import { TerminosCondiciones } from '../modules/legal/pages/TerminosCondiciones'
 import { NoEncontrado } from '../modules/inicio/pages/NoEncontrado';
 
 
-import { ROLES_GERENTES, ROLES_STAFF } from '../shared/types/roles';
+import { ROLES_CLIENTE, ROLES_GERENTES, ROLES_STAFF } from '../shared/types/roles';
 
 
 export function AppRoutes() {
@@ -83,7 +83,7 @@ export function AppRoutes() {
       />
       <Route
         element={
-          <ProtectedRoute loginPath="/login">
+          <ProtectedRoute allowedRoles={ROLES_CLIENTE} loginPath="/login">
             <ClienteShell />
           </ProtectedRoute>
         }
@@ -93,7 +93,7 @@ export function AppRoutes() {
         <Route
           path="/mi-qr"
           element={
-            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login" fallbackPath="/dashboard">
+            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login">
               <MiQr />
             </ProtectedRoute>
           }
@@ -101,7 +101,7 @@ export function AppRoutes() {
         <Route
           path="/qr"
           element={
-            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login" fallbackPath="/dashboard">
+            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login">
               <MiQr />
             </ProtectedRoute>
           }
@@ -110,7 +110,7 @@ export function AppRoutes() {
         <Route
           path="/membresia"
           element={
-            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login" fallbackPath="/dashboard">
+            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login">
               <MiMembresia />
             </ProtectedRoute>
           }
@@ -120,7 +120,7 @@ export function AppRoutes() {
         <Route
           path="/notificaciones"
           element={
-            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login" fallbackPath="/dashboard">
+            <ProtectedRoute allowedRoles={[TipoActor.SOCIO]} loginPath="/login">
               <MisNotificaciones />
             </ProtectedRoute>
           }
@@ -149,7 +149,6 @@ export function AppRoutes() {
           <ProtectedRoute
             allowedRoles={ROLES_STAFF}
             loginPath="/admin/login"
-            fallbackPath="/login"
           >
             <AdminLayout />
           </ProtectedRoute>
@@ -236,7 +235,7 @@ export function AppRoutes() {
         <Route path="cobrar" element={<ProtectedRoute allowedRoles={[TipoActor.RECEPCIONISTA]} loginPath="/admin/login"><CobrarEfectivo /></ProtectedRoute>} />
         <Route path="pagos" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><HistorialPagos /></ProtectedRoute>} />
         <Route path="reportes" element={<ProtectedRoute allowedRoles={ROLES_GERENTES} loginPath="/admin/login"><Reportes /></ProtectedRoute>} />
-        <Route path="membresias" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><ListadoMembresias /></ProtectedRoute>} />
+        <Route path="membresias" element={<ProtectedRoute allowedRoles={ROLES_GERENTES} loginPath="/admin/login"><ListadoMembresias /></ProtectedRoute>} />
         <Route path="sedes/:id" element={<ProtectedRoute allowedRoles={[TipoActor.GERENTE_GENERAL]} loginPath="/admin/login"><SedeDetalle /></ProtectedRoute>} />
         <Route path="instructores/:id" element={<ProtectedRoute allowedRoles={ROLES_STAFF} loginPath="/admin/login"><InstructorDetalle /></ProtectedRoute>} />
       </Route>

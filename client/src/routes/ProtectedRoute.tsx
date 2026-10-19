@@ -1,20 +1,18 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
 import { TipoActor } from '../shared/types/enums';
-import { rutaPanelStaff } from '../shared/utils/rutaPanel';
+import { rutaPanelPorRol } from '../shared/utils/rutaPanel';
 
 interface Props {
   children: React.ReactNode;
   allowedRoles?: TipoActor[];
   loginPath?: string; // a dónde mandar si no está logueado (default: /login)
-  fallbackPath?: string; // a dónde mandar si el rol no matchea (default: /)
 }
 
 export function ProtectedRoute({
   children,
   allowedRoles,
   loginPath = '/login',
-  fallbackPath = '/',
 }: Props) {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -22,8 +20,8 @@ export function ProtectedRoute({
   if (loading) return <div className="flex items-center justify-center h-screen text-[#6B7280]">Cargando…</div>;
   if (!user) return <Navigate to={loginPath} replace />;
   if (allowedRoles && !allowedRoles.includes(user.tipoActor)) {
-    // Con el usuario ya sincronizado, el staff va a su propio panel.
-    return <Navigate to={rutaPanelStaff(user.tipoActor) ?? fallbackPath} replace />;
+    // Con el usuario ya sincronizado, cada rol va a su propio panel.
+    return <Navigate to={rutaPanelPorRol(user.tipoActor)} replace />;
   }
   // Un Recepcionista o Gerente de Sede sin sede asignada no puede operar
   // (el backend responde 403): va a la pantalla de bloqueo en cualquier
