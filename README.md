@@ -42,4 +42,8 @@ Patrones de diseño aplicados:
 
 Monorepo con dos aplicaciones independientes: `server/` (API NestJS) y `client/` (SPA React). La documentación técnica y los Architecture Decision Records viven en `docs/`.
 
+## Notificaciones
+
+Los avisos salen por canales independientes (Factory/Strategy en `server/src/notificaciones/`): `PANEL` (campanita), `EMAIL` y `PUSH` (Web Push con VAPID).
+
 ## Licencia

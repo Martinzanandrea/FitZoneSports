@@ -2,7 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EnvioNotificacion, Notificacion, Sede, Usuario } from '../entities';
+import {
+  EnvioNotificacion,
+  Notificacion,
+  PushSuscripcion,
+  Sede,
+  Usuario,
+} from '../entities';
 import { ENVIADOR_CORREO } from '../common/mail/enviador-correo';
 import { MailModule } from '../common/mail/mail.module';
 import { NotificacionesModule } from './notificaciones.module';
@@ -10,6 +16,7 @@ import { NotificacionesService } from './notificaciones.service';
 import { EmailNotificador } from './notificadores/email.notificador';
 import { NotificadorFactory } from './notificadores/notificador.factory';
 import { PanelNotificador } from './notificadores/panel.notificador';
+import { PushNotificador } from './notificadores/push.notificador';
 import {
   CanalNotificacion,
   NOTIFICADORES,
@@ -32,7 +39,7 @@ class SmsNotificadorFalso implements Notificador {
   readonly enviados: string[] = [];
 
   // Elegible solo si el nombre empieza con "Con" (simula "tiene celular").
-  puedeNotificar(d: Destinatario): boolean {
+  puedeNotificar(d: Destinatario): boolean | Promise<boolean> {
     return d.nombre.startsWith('Con');
   }
 
@@ -127,6 +134,25 @@ describe('Extensibilidad: un canal nuevo sin tocar fábrica ni servicio', () => 
     expect(esperar).toHaveBeenCalledWith(PAUSA_SMS_MS);
   });
 
+  it('acepta un canal cuya elegibilidad es asíncrona (como PUSH) y aísla sus errores', async () => {
+    const { service, sms } = await armar();
+    sms.puedeNotificar = (d: Destinatario) =>
+      d.id === 'explota'
+        ? Promise.reject(new Error('db'))
+        : Promise.resolve(d.id === 'a');
+    const r = await service.notificar(
+      [dest('a', 'Ana'), dest('b', 'Beto'), dest('explota', 'Eva')],
+      msg,
+      [CANAL_SMS],
+    );
+    expect(sms.enviados).toEqual(['a']);
+    expect(r.porCanal[CANAL_SMS]).toEqual({
+      enviados: 1,
+      fallidos: 0,
+      omitidos: 2,
+    });
+  });
+
   it('convive con los canales existentes en el mismo lote', async () => {
     const { service, sms } = await armar();
     const r = await service.notificar([dest('a', 'Con celular A')], msg, [
@@ -154,6 +180,8 @@ describe('NotificacionesModule: el grafo de inyección resuelve', () => {
       .useValue({ create: jest.fn(), save: jest.fn() })
       .overrideProvider(getRepositoryToken(EnvioNotificacion))
       .useValue({})
+      .overrideProvider(getRepositoryToken(PushSuscripcion))
+      .useValue({ count: jest.fn() })
       .overrideProvider(getRepositoryToken(Usuario))
       .useValue({})
       .overrideProvider(getRepositoryToken(Sede))
@@ -170,16 +198,58 @@ describe('NotificacionesModule: el grafo de inyección resuelve', () => {
     expect(factory.canalesDisponibles()).toEqual([
       CanalNotificacion.PANEL,
       CanalNotificacion.EMAIL,
+      CanalNotificacion.PUSH,
     ]);
     const email = factory.crear(CanalNotificacion.EMAIL);
     expect(email).toBeInstanceOf(EmailNotificador);
-    expect(modulo.get(NOTIFICADORES)).toHaveLength(2);
+    expect(modulo.get(NOTIFICADORES)).toHaveLength(3);
+    expect(factory.crear(CanalNotificacion.PUSH)).toBeInstanceOf(
+      PushNotificador,
+    );
 
     // El EmailNotificador del módulo usa el EnviadorCorreo inyectado.
     await email.enviar(dest('a', 'Ana'), msg);
     expect(enviar).toHaveBeenCalledWith(
       expect.objectContaining({ para: 'a@ejemplo.com' }),
     );
+  });
+
+  it('arranca sin variables VAPID: el canal PUSH queda deshabilitado y no toca la base', async () => {
+    const count = jest.fn();
+    const modulo = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          ignoreEnvFile: true,
+          // Fija las variables VAPID vacías aunque el entorno las tenga.
+          load: [
+            () => ({
+              VAPID_PUBLIC_KEY: '',
+              VAPID_PRIVATE_KEY: '',
+              VAPID_SUBJECT: '',
+            }),
+          ],
+        }),
+        NotificacionesModule,
+      ],
+    })
+      .overrideProvider(getRepositoryToken(Notificacion))
+      .useValue({})
+      .overrideProvider(getRepositoryToken(EnvioNotificacion))
+      .useValue({})
+      .overrideProvider(getRepositoryToken(PushSuscripcion))
+      .useValue({ count })
+      .overrideProvider(getRepositoryToken(Usuario))
+      .useValue({})
+      .overrideProvider(getRepositoryToken(Sede))
+      .useValue({})
+      .overrideProvider(ENVIADOR_CORREO)
+      .useValue({ enviar: jest.fn() })
+      .compile();
+
+    const push = modulo.get(NotificadorFactory).crear(CanalNotificacion.PUSH);
+    await expect(push.puedeNotificar(dest('a', 'Ana'))).resolves.toBe(false);
+    expect(count).not.toHaveBeenCalled();
   });
 
   it('MailModule real forma parte del grafo (importado, sin ciclos)', () => {

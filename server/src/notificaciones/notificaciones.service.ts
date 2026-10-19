@@ -122,7 +122,13 @@ export class NotificacionesService {
       let hayEnvioPrevio = false;
       for (const { destinatario, mensaje } of items) {
         // Los no elegibles ni se intentan ni cuentan como fallidos.
-        if (!notificador.puedeNotificar(destinatario)) {
+        let elegible = false;
+        try {
+          elegible = await notificador.puedeNotificar(destinatario);
+        } catch {
+          elegible = false;
+        }
+        if (!elegible) {
           delCanal.omitidos++;
           continue;
         }
@@ -219,10 +225,12 @@ export class NotificacionesService {
   ): Promise<{ cantidad: number; conEmailVerificado: number }> {
     const dest = await this.resolverAudiencia(filtro);
     const notificador = this.factory.crear(CANAL_CON_CONTADORES_PERSISTIDOS);
+    const elegibles = await Promise.all(
+      dest.map(async (d) => await notificador.puedeNotificar(d)),
+    );
     return {
       cantidad: dest.length,
-      conEmailVerificado: dest.filter((d) => notificador.puedeNotificar(d))
-        .length,
+      conEmailVerificado: elegibles.filter(Boolean).length,
     };
   }
 

@@ -76,7 +76,11 @@ describe('ListaEsperaListener', () => {
         tipo: TipoNotificacion.LISTA_ESPERA_PROMOVIDA,
         mensaje: expect.stringContaining('Yoga') as unknown,
       }),
-      [CanalNotificacion.PANEL, CanalNotificacion.EMAIL],
+      [
+        CanalNotificacion.PANEL,
+        CanalNotificacion.EMAIL,
+        CanalNotificacion.PUSH,
+      ],
     );
     // la notificación sale una vez terminada la transacción
     expect(dataSource.transaction.mock.invocationCallOrder[0]).toBeLessThan(

@@ -1,6 +1,7 @@
 export enum CanalNotificacion {
   PANEL = 'PANEL',
   EMAIL = 'EMAIL',
+  PUSH = 'PUSH',
 }
 
 export enum TipoNotificacion {
@@ -38,8 +39,11 @@ export interface Notificador {
   readonly canal: CanalNotificacion;
   /** Pausa en ms entre dos envíos consecutivos de un mismo lote (0 = sin pausa). */
   readonly pausaMs: number;
-  /** Elegibilidad: si el destinatario puede recibir por este canal. */
-  puedeNotificar(destinatario: Destinatario): boolean;
+  /**
+   * Elegibilidad: si el destinatario puede recibir por este canal. Puede ser
+   * asíncrona (p. ej. PUSH consulta si el usuario tiene suscripciones).
+   */
+  puedeNotificar(destinatario: Destinatario): boolean | Promise<boolean>;
   /**
    * Devuelve true si entregó/guardó, false si no pudo o no correspondía;
    * NUNCA lanza, para que un destinatario o un canal con problemas no frene
@@ -80,10 +84,12 @@ export const CANALES_POR_EVENTO: Record<
   [TipoNotificacion.CLASE_CANCELADA]: [
     CanalNotificacion.PANEL,
     CanalNotificacion.EMAIL,
+    CanalNotificacion.PUSH,
   ],
   [TipoNotificacion.LISTA_ESPERA_PROMOVIDA]: [
     CanalNotificacion.PANEL,
     CanalNotificacion.EMAIL,
+    CanalNotificacion.PUSH,
   ],
 };
 

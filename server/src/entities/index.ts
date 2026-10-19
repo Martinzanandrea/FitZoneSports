@@ -19,6 +19,7 @@ export * from './precio-plan-entity';
 export * from './auditoria.entity';
 export * from './notificacion.entity';
 export * from './envio-notificacion.entity';
+export * from './push-suscripcion.entity';
 
 import { Sede } from './sede.entity';
 import { Usuario } from './usuario.entity';
@@ -40,6 +41,7 @@ import { PrecioPlan } from './precio-plan-entity';
 import { Auditoria } from './auditoria.entity';
 import { Notificacion } from './notificacion.entity';
 import { EnvioNotificacion } from './envio-notificacion.entity';
+import { PushSuscripcion } from './push-suscripcion.entity';
 export const ALL_ENTITIES = [
   Sede,
   Usuario,
@@ -61,4 +63,5 @@ export const ALL_ENTITIES = [
   Auditoria,
   Notificacion,
   EnvioNotificacion,
+  PushSuscripcion,
 ];
