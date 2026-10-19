@@ -2,6 +2,12 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Dumbbell, LogOut, Menu, UserRound, X, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../../modules/auth/AuthContext';
+import { BotonInstalar } from '../components/organisms/BotonInstalar';
+import { BotonVolverApp } from '../components/organisms/BotonVolverApp';
+import { useMediaQuery, useModoStandalone } from '../hooks/useModoStandalone';
+import { rutaPanelPorRol } from '../utils/rutaPanel';
+import { guardarUltimoAcceso } from '../utils/ultimoAcceso';
+import { ROLES_STAFF } from '../types/roles';
 
 export interface AppShellNavItem {
   to: string;
@@ -88,6 +94,7 @@ function SidebarContent({ eyebrow, roleLabel, items, actualTo, iniciales, nombre
             <small>{roleLabel}</small>
           </span>
         </div>
+        <BotonInstalar variante="panel" className="w-full mt-2" />
       </div>
     </div>
   );
@@ -99,6 +106,8 @@ export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', 
   const location = useLocation();
   const [drawer, setDrawer] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const esMovil = useMediaQuery('(max-width: 1024px)');
+  const standalone = useModoStandalone();
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Ítem activo: el de ruta más larga que prefija la ubicación actual
@@ -107,6 +116,9 @@ export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', 
     items
       .filter((i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`))
       .sort((a, b) => b.to.length - a.to.length)[0] ?? items[0];
+  // Volver: en celular o instalada, en todas las pantallas salvo la raíz del panel del rol.
+  const rutaRaiz = user ? rutaPanelPorRol(user.tipoActor) : items[0].to;
+  const mostrarVolver = (esMovil || standalone) && location.pathname !== rutaRaiz;
   const iniciales = user ? inicialesDe(user.nombre, user.apellido) : '';
   const nombreCompleto = `${user?.nombre ?? ''} ${user?.apellido ?? ''}`;
 
@@ -137,6 +149,12 @@ export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', 
     };
   }, [menuAbierto]);
 
+  // Sesiones anteriores a esta función: se recuerda el tipo de acceso al abrir el panel.
+  const tipoActor = user?.tipoActor;
+  useEffect(() => {
+    if (tipoActor) guardarUltimoAcceso(ROLES_STAFF.includes(tipoActor) ? 'staff' : 'cliente');
+  }, [tipoActor]);
+
   async function handleLogout() {
     await logout();
     navigate(logoutTo);
@@ -166,6 +184,7 @@ export function AppShell({ eyebrow, roleLabel, items, accountTo = '/mi-cuenta', 
           <button className="icon-button" aria-label="Abrir menú" onClick={() => setDrawer(true)}>
             <Menu size={20} />
           </button>
+          {mostrarVolver && <BotonVolverApp />}
           <div className="page-title">
             <span>{eyebrow}</span>
             <h1>{actual.label}</h1>

@@ -7,6 +7,8 @@ import { TipoActor } from '../../../shared/types/enums';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthInput, AuthLayout } from '../AuthLayout';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import { useModoStandalone } from '../../../shared/hooks/useModoStandalone';
+import { guardarUltimoAcceso } from '../../../shared/utils/ultimoAcceso';
 import { ROLES_CLIENTE, ROLES_STAFF } from '../../../shared/types/roles';
 
 interface LoginProps {
@@ -18,6 +20,7 @@ interface LoginProps {
 export function Login({ audience, redirectTo }: LoginProps) {
   useTitulo('Iniciar sesión');
   const { login, logout } = useAuth();
+  const standalone = useModoStandalone();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,6 +57,8 @@ export function Login({ audience, redirectTo }: LoginProps) {
         );
         return;
       }
+
+      guardarUltimoAcceso(esStaff ? 'staff' : 'cliente');
 
       // Un Socio con membresía vencida o suspendida entra igual: su panel le
       // muestra el estado y el botón para renovar (paga tarifa de externo).
@@ -100,10 +105,13 @@ export function Login({ audience, redirectTo }: LoginProps) {
       subheadline={esStaff ? 'Gestioná socios, turnos y métricas en tiempo real.' : 'Tu gimnasio favorito, en la palma de tu mano.'}
       tag={esStaff ? 'Acceso operarios' : undefined}
     >
-      <Link to="/" className="back-link">
-        <ArrowLeft size={15} />
-        Volver al inicio
-      </Link>
+      {/* Instalada no hay web pública a la que volver. */}
+      {!standalone && (
+        <Link to="/" className="back-link">
+          <ArrowLeft size={15} />
+          Volver al inicio
+        </Link>
+      )}
 
       <span className="eyebrow">{esStaff ? 'ACCESO OPERARIOS' : 'BIENVENIDO DE NUEVO'}</span>
       <h1>{esStaff ? 'Acceso restringido' : 'Bienvenido de nuevo'}</h1>
@@ -175,11 +183,11 @@ export function Login({ audience, redirectTo }: LoginProps) {
         <div className="auth-switch">
           <span>¿No tenés cuenta?</span>
           <Link to="/registro">Registrate</Link>
-          <Link to="/admin/login">Operarios y administradores →</Link>
+          <Link to="/admin/login">Acceso del personal</Link>
         </div>
       ) : (
         <div className="auth-switch">
-          <Link to="/login">← Volver al acceso de socios</Link>
+          <Link to="/login">Acceso de clientes</Link>
         </div>
       )}
     </AuthLayout>

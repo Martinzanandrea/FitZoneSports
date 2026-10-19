@@ -1,0 +1,51 @@
+/* Instalación como aplicación y botón Volver. Usa los tokens de theme.css. */
+
+.boton-volver {
+  width: 44px;
+  height: 44px;
+  margin-right: 9px;
+}
+
+.instalar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  background: rgba(3, 12, 14, 0.7);
+}
+
+.instalar-card {
+  position: relative;
+  width: min(420px, 100%);
+  padding: 24px 20px 20px;
+  border-radius: 20px;
+  background: var(--layer, #0b2428);
+}
+
+.instalar-card h2 {
+  margin: 0 0 14px;
+  padding-right: 48px;
+  font-size: 18px;
+}
+
+.instalar-card ol {
+  margin: 0 0 18px;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.instalar-cerrar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+}

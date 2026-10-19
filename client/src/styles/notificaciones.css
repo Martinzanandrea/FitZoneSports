@@ -153,3 +153,49 @@
     transform: none;
   }
 }
+
+/* Invitación a activar notificaciones push (inicio) y fila dentro de la campanita. */
+.push-invitacion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  color: var(--aqua);
+}
+
+.push-invitacion p {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.push-invitacion-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.push-invitacion .btn {
+  min-height: 44px;
+}
+
+.notif-push {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.notif-push a {
+  color: var(--aqua);
+  font-weight: 600;
+  white-space: nowrap;
+}

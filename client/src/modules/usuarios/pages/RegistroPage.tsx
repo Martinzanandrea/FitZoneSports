@@ -4,9 +4,11 @@ import { ArrowLeft, ArrowRight, Camera, Eye, EyeOff, Fingerprint, Lock, Mail, Ph
 import { usuariosApi } from '../usuarios.api';
 import { TipoActor } from '../../../shared/types/enums';
 import { AuthInput, AuthLayout } from '../../auth/AuthLayout';
+import { useModoStandalone } from '../../../shared/hooks/useModoStandalone';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function RegistroPage() {
+  const standalone = useModoStandalone();
   useTitulo('Creá tu cuenta');
   const [registradoEmail, setRegistradoEmail] = useState<string | null>(null);
 
@@ -150,9 +152,9 @@ export function RegistroPage() {
       headline={'Empezá hoy.\nTu primera clase\nes gratis.'}
       subheadline="Unite a la comunidad FitZone y accedé a clases, canchas y seguimiento personalizado."
     >
-      <Link to="/" className="back-link">
+      <Link to={standalone ? '/login' : '/'} className="back-link">
         <ArrowLeft size={15} />
-        Volver al inicio
+        {standalone ? 'Volver a iniciar sesión' : 'Volver al inicio'}
       </Link>
 
       <span className="eyebrow">CREÁ TU CUENTA</span>

@@ -7,6 +7,7 @@ import {
   QrCode,
   Volleyball,
 } from 'lucide-react';
+import { InvitacionPush } from '../../notificaciones/components/InvitacionPush';
 import { useAuth } from '../../auth/AuthContext';
 import { membresiasApi } from '../../membresias/membresias.api';
 import type { EstadoSocio } from '../../membresias/membresias.types';
@@ -191,6 +192,8 @@ export function SocioInicio() {
           <p>Tu actividad, membresía y próximas reservas.</p>
         </div>
       </div>
+
+      <InvitacionPush />
 
       <div className="hero-grid">
         {cargandoMembresia ? (

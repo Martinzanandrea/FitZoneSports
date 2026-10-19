@@ -7,6 +7,8 @@ import { EmptyState } from '../../../shared/components/molecules';;
 import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { formatearFechaHora } from '../utils';
+import { usePushNotificaciones } from '../hooks/usePushNotificaciones';
+import { useEstadoConexion } from '../../../shared/hooks/useEstadoConexion';
 import '../../../styles/notificaciones.css';
 
 // Sin websockets: se refresca al montar, al volver a la pestaña y cada tanto.
@@ -14,6 +16,32 @@ const INTERVALO_REFRESCO_MS = 60_000;
 const ITEMS_EN_PANEL = 8;
 const ANCHO_PANEL = 360;
 const MARGEN = 8;
+
+// Fila superior del panel: invita a activar el push o indica dónde desbloquearlo.
+// Sin soporte, con suscripción activa o en iPhone sin instalar no muestra nada.
+function FilaPush({ alNavegar }: { alNavegar: () => void }) {
+  const push = usePushNotificaciones();
+  const enLinea = useEstadoConexion();
+  if (!push.soportado || push.verificando || push.requiereInstalar || push.suscrito) return null;
+  if (push.permiso === 'denied') {
+    return (
+      <div className="notif-push">
+        <span>Las notificaciones están bloqueadas en este dispositivo.</span>
+        <Link to="/mi-cuenta" onClick={alNavegar}>
+          Ver cómo habilitarlas
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="notif-push">
+      <span>Activá las notificaciones en este dispositivo</span>
+      <button type="button" className="btn btn-primary" disabled={!enLinea || push.trabajando} onClick={() => void push.activar()}>
+        {push.trabajando ? 'Activando...' : 'Activar'}
+      </button>
+    </div>
+  );
+}
 
 export function CampanitaNotificaciones() {
   const [noLeidas, setNoLeidas] = useState(0);
@@ -170,6 +198,8 @@ export function CampanitaNotificaciones() {
                 <CheckCheck size={14} aria-hidden /> Marcar todas
               </button>
             </div>
+
+            <FilaPush alNavegar={() => setAbierto(false)} />
 
             <div className="notif-body">
               {cargando && items.length === 0 ? (

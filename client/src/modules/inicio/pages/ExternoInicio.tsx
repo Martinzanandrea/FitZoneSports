@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, ChevronRight, Sparkles, Volleyball } from 'lucide-react';
+import { InvitacionPush } from '../../notificaciones/components/InvitacionPush';
 import { useAuth } from '../../auth/AuthContext';
 import { Badge } from '../../../shared/components/atoms';
 import { EmptyState } from '../../../shared/components/molecules';;
@@ -31,6 +32,8 @@ export function ExternoInicio() {
           <p>Organizá tu próxima fecha y gestioná tus reservas.</p>
         </div>
       </div>
+
+      <InvitacionPush />
 
       <section className="external-hero" aria-label="Reservar cancha">
         <div>

@@ -2,6 +2,7 @@ import { CalendarDays, CreditCard, LayoutDashboard, QrCode, UserRound, Volleybal
 import { useAuth } from '../../modules/auth/AuthContext';
 import { TipoActor } from '../types/enums';
 import { AppShell, type AppShellNavItem } from './AppShell';
+import { PushProvider } from '../../modules/notificaciones/components/PushProvider';
 import { CampanitaNotificaciones } from '../../modules/notificaciones/components/CampanitaNotificaciones';
 
 const MENU_SOCIO: AppShellNavItem[] = [
@@ -27,8 +28,16 @@ const MENU_EXTERNO: AppShellNavItem[] = [
 export function ClienteShell() {
   const { user } = useAuth();
   if (user?.tipoActor === TipoActor.EXTERNO) {
-    return <AppShell eyebrow="FITZONE PLAY" roleLabel="Externo" items={MENU_EXTERNO} />;
+    return (
+      <PushProvider>
+        <AppShell eyebrow="FITZONE PLAY" roleLabel="Externo" items={MENU_EXTERNO} />
+      </PushProvider>
+    );
   }
   // La campanita es solo del Socio: los externos no reciben notificaciones.
-  return <AppShell eyebrow="MI FITZONE" roleLabel="Socio" items={MENU_SOCIO} topActions={<CampanitaNotificaciones />} />;
+  return (
+    <PushProvider>
+      <AppShell eyebrow="MI FITZONE" roleLabel="Socio" items={MENU_SOCIO} topActions={<CampanitaNotificaciones />} />
+    </PushProvider>
+  );
 }

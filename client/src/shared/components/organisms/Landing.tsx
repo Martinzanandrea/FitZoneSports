@@ -1,5 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useAuth } from '../../../modules/auth/AuthContext';
+import { useModoStandalone } from '../../hooks/useModoStandalone';
+import { destinoInicioApp } from '../../utils/rutaPanel';
+import { BotonInstalar } from './BotonInstalar';
+import { BotonVolverApp } from './BotonVolverApp';
 import '../../../styles/publico.css';
 
 // Estructura pública (barra, drawer, pie, encabezados y CTA) con el estilo
@@ -34,8 +39,12 @@ export function PinIcon() {
 }
 
 export function Brand() {
+  const standalone = useModoStandalone();
+  const { user } = useAuth();
+  // Instalada, la marca nunca lleva a la landing: va al panel (con sesión) o al login.
+  const destino = standalone ? destinoInicioApp(user?.tipoActor) : '/';
   return (
-    <Link aria-label="FitZone Sports, inicio" className="lp-brand" to="/">
+    <Link aria-label="FitZone Sports, inicio" className="lp-brand" to={destino}>
       <span aria-hidden="true" className="lp-brand-mark">
         FZ
       </span>
@@ -84,6 +93,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="lp-actions">
+          <BotonInstalar variante="landing" className="lp-hide-sm" />
           <Link className="lp-btn lp-btn-secondary lp-btn-sm lp-hide-sm" to="/login">
             Ingresar
           </Link>
@@ -136,6 +146,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="lp-drawer-cta">
+          <BotonInstalar variante="landing" />
           <Link className="lp-btn lp-btn-secondary" onClick={cerrar} to="/login">
             Ingresar
           </Link>
@@ -196,6 +207,24 @@ export function Footer() {
 
 // Estructura común de toda página pública: ambiente, barra, contenido y pie.
 export function PublicShell({ children }: { children: ReactNode }) {
+  const standalone = useModoStandalone();
+  // Instalada, las páginas públicas que quedan (términos, 404) van sin barra ni pie de la web.
+  if (standalone) {
+    return (
+      <div className="lp-shell">
+        <div aria-hidden="true" className="ambient ambient-lime" />
+        <div aria-hidden="true" className="ambient ambient-aqua" />
+        <div aria-hidden="true" className="ambient ambient-coral" />
+        <header className="lp-header glass" style={{ justifyContent: 'flex-start' }}>
+          <BotonVolverApp />
+          <Brand />
+        </header>
+        <main className="lp-main" id="contenido" tabIndex={-1}>
+          {children}
+        </main>
+      </div>
+    );
+  }
   return (
     <div className="lp-shell">
       <a className="lp-skip" href="#contenido">

@@ -67,7 +67,7 @@ export function TarjetaPush() {
         </p>
         <button
           className="btn btn-primary"
-          onClick={() => void push.activar()}
+          onClick={() => void push.activar("tarjeta")}
           disabled={!enLinea || push.trabajando}
         >
           <Bell size={16} aria-hidden />{" "}
