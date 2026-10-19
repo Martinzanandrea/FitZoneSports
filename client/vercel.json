@@ -1,7 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://fitzonesports.onrender.com/:path*" },
-    { "source": "/((?!sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|assets/|images/|pwa-.*\\.png|apple-touch-icon\\.png|favicon\\.svg|robots\\.txt|sitemap\\.xml).*)", "destination": "/index.html" }
+    { "source": "/((?!_vercel/|sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|assets/|images/|pwa-.*\\.png|apple-touch-icon\\.png|favicon\\.svg|robots\\.txt|sitemap\\.xml).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/AuthContext';
 import { AppRoutes } from './routes/AppRoutes';
@@ -16,6 +17,7 @@ export default function App() {
         <BannerCookies />
         <BannerSinConexion />
         <AvisoActualizacion />
+        <Analytics />
       </AuthProvider>
     </BrowserRouter>
   );

@@ -42,6 +42,7 @@ export default defineConfig({
           /^\/workbox-.*\.js$/,
           /^\/manifest\.webmanifest$/,
           /^\/api\//,
+          /^\/_vercel\//,
           /\/[^/?]+\.[^/]+$/,
         ],
         cleanupOutdatedCaches: true,
@@ -50,6 +51,11 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: ({ url, sameOrigin }) => !sameOrigin || url.pathname.startsWith('/api/'),
+            handler: 'NetworkOnly',
+          },
+          {
+            // Script y envíos de Vercel Web Analytics (mismo origen): siempre a red.
+            urlPattern: ({ url }) => url.pathname.startsWith('/_vercel/'),
             handler: 'NetworkOnly',
           },
         ],
