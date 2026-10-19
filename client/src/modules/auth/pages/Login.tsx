@@ -4,7 +4,6 @@ import { leerAvisoSesionVencida, limpiarAvisoSesionVencida } from '../../../api/
 import { useAuth } from '../AuthContext';
 import { usuariosApi } from '../../usuarios/usuarios.api';
 import { TipoActor } from '../../../shared/types/enums';
-import { membresiasApi } from '../../membresias/membresias.api';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthInput, AuthLayout } from '../AuthLayout';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
@@ -56,19 +55,9 @@ export function Login({ audience, redirectTo }: LoginProps) {
         return;
       }
 
-      // ADR 0011: un Socio sin membresía ACTIVA (nuevo, vencido o
-      // suspendido por pago rechazado) debe completar plan+pago antes
-      // de usar la app. Solo SOCIO pasa por este chequeo.
-      if (usuario.tipoActor === TipoActor.SOCIO) {
-        const vigente = await membresiasApi
-          .getVigente(usuario.id)
-          .catch(() => null);
-        if (!vigente || vigente.estado !== 'ACTIVO') {
-          navigate('/completar-membresia');
-          return;
-        }
-      }
-
+      // Un Socio con membresía vencida o suspendida entra igual: su panel le
+      // muestra el estado y el botón para renovar (paga tarifa de externo).
+      // Solo se exige membresía vigente si el backend lo pide en otro flujo.
       // El Gerente de Sede tiene su propio panel; el resto va a redirectTo.
       navigate(esStaff && usuario.tipoActor === TipoActor.GERENTE_SEDE ? '/admin/sede' : redirectTo);
     } catch (err: unknown) {

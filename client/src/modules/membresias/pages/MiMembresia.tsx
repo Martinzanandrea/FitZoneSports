@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CalendarDays, Check, Dumbbell, MapPin, Sparkles } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { membresiasApi } from '../membresias.api';
-import type { Membresia } from '../membresias.types';
+import type { EstadoSocio } from '../membresias.types';
+import { TarjetaProxima } from '../components/TarjetaProxima';
 import { preciosApi } from '../../precios/precios.api';
 import type { PrecioPlan } from '../../precios/precios.types';
 import { Badge } from '../../../shared/components/atoms';
@@ -12,6 +13,12 @@ import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import {
+  diasRestantes,
+  duracionDias,
+  fechaValidaHasta,
+  formatearDDMMAAAA,
+} from '../../../shared/utils/fechasMembresia';
 
 const BENEFICIOS = [
   { icon: Dumbbell, titulo: 'Acceso libre todo el día', detalle: 'Según las franjas de tu sede, sin límites' },
@@ -26,23 +33,19 @@ const DESCRIPCIONES_PLAN: Record<string, string> = {
   ANUAL: 'Máximo beneficio',
 };
 
-function tonoMembresia(estado: Membresia['estado']): 'success' | 'warning' | 'danger' {
+function tonoMembresia(estado: EstadoSocio['estado']): 'success' | 'warning' | 'danger' {
   return estado === 'ACTIVO' ? 'success' : estado === 'SUSPENDIDO' ? 'warning' : 'danger';
 }
 
-function etiquetaMembresia(estado: Membresia['estado']): string {
+function etiquetaMembresia(estado: EstadoSocio['estado']): string {
   return estado === 'ACTIVO' ? 'Activo' : estado === 'SUSPENDIDO' ? 'Suspendido' : 'Vencido';
-}
-
-function fechaCorta(fechaYMD: string): string {
-  return new Date(`${fechaYMD}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function MiMembresia() {
   useTitulo('Mi membresía');
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [membresia, setMembresia] = useState<Membresia | null>(null);
+  const [membresia, setMembresia] = useState<EstadoSocio | null>(null);
   const [precios, setPrecios] = useState<PrecioPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -115,17 +118,14 @@ export function MiMembresia() {
   );
 }
 
-function MembresiaDetalle({ membresia }: { membresia: Membresia }) {
-  const inicio = new Date(`${membresia.fechaInicio}T00:00:00`).getTime();
-  const fin = new Date(`${membresia.fechaFin}T00:00:00`).getTime();
-  const totalDias = Math.max(1, Math.round((fin - inicio) / (24 * 60 * 60 * 1000)));
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const restantes = Math.ceil((fin - hoy.getTime()) / (24 * 60 * 60 * 1000));
+function MembresiaDetalle({ membresia }: { membresia: EstadoSocio }) {
+  const totalDias = Math.max(1, duracionDias(membresia.fechaInicio, membresia.fechaFin));
+  const restantes = diasRestantes(membresia.fechaFin);
   const usados = Math.min(totalDias, Math.max(0, totalDias - restantes));
   const progreso = (usados / totalDias) * 100;
-  const vencida = membresia.estado === 'VENCIDO' || restantes < 0;
+  const vencida = restantes <= 0;
   const porVencer = !vencida && restantes <= 15;
+  const validaHasta = formatearDDMMAAAA(fechaValidaHasta(membresia.fechaFin));
 
   return (
     <div>
@@ -137,15 +137,21 @@ function MembresiaDetalle({ membresia }: { membresia: Membresia }) {
         </div>
         <div className="membership-plan">PLAN {membresia.plan}</div>
         <div className="membership-name">
-          {fechaCorta(membresia.fechaInicio)} → {fechaCorta(membresia.fechaFin)}
+          {formatearDDMMAAAA(membresia.fechaInicio)} → {validaHasta}
         </div>
         <div className="membership-bottom">
           <span>
-            {usados} de {totalDias} días · {membresia.sedeAlta.nombre}
+            {usados} de {totalDias} días · Válida hasta {validaHasta} · {membresia.sedeAlta.nombre}
           </span>
           <Badge variant={tonoMembresia(membresia.estado)}>{etiquetaMembresia(membresia.estado)}</Badge>
         </div>
       </Link>
+
+      {membresia.proxima && (
+        <div style={{ marginTop: 14 }}>
+          <TarjetaProxima proxima={membresia.proxima} />
+        </div>
+      )}
 
       <div className="glass panel" style={{ marginTop: 14 }}>
         <div className="stack-list">

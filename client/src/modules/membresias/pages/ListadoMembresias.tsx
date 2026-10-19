@@ -14,6 +14,11 @@ import { EmptyState } from '../../../shared/components/molecules';;
 import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
+import {
+  diasRestantes,
+  fechaValidaHasta,
+  formatearDDMMAAAA,
+} from '../../../shared/utils/fechasMembresia';
 
 type Semaforo = 'ACTIVO' | 'POR_VENCER' | 'VENCIDO' | 'SUSPENDIDO';
 type Filtro = 'TODOS' | Semaforo;
@@ -35,25 +40,18 @@ const VARIANTE: Record<Semaforo, 'success' | 'warning' | 'danger' | 'neutral'> =
   SUSPENDIDO: 'neutral',
 };
 
-function diasHasta(fechaFin: string): number {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const fin = new Date(`${fechaFin}T00:00:00`);
-  return Math.round((fin.getTime() - hoy.getTime()) / (24 * 60 * 60 * 1000));
-}
-
 function semaforoDe(m: Membresia): Semaforo {
   if (m.estado === 'VENCIDO') return 'VENCIDO';
   if (m.estado === 'SUSPENDIDO') return 'SUSPENDIDO';
-  const dias = diasHasta(m.fechaFin);
-  if (dias < 0) return 'VENCIDO';
+  const dias = diasRestantes(m.fechaFin);
+  if (dias <= 0) return 'VENCIDO';
   return dias <= DIAS_POR_VENCER ? 'POR_VENCER' : 'ACTIVO';
 }
 
 function textoVencimiento(m: Membresia, s: Semaforo): string {
-  const dias = diasHasta(m.fechaFin);
-  if (s === 'POR_VENCER') return dias === 0 ? 'vence hoy' : `en ${dias} ${dias === 1 ? 'día' : 'días'}`;
-  if (s === 'VENCIDO' && dias < 0) return `hace ${-dias} ${dias === -1 ? 'día' : 'días'}`;
+  const dias = diasRestantes(m.fechaFin);
+  if (s === 'POR_VENCER') return `en ${dias} ${dias === 1 ? 'día' : 'días'}`;
+  if (s === 'VENCIDO') return dias === 0 ? 'venció hoy' : `hace ${-dias} ${dias === -1 ? 'día' : 'días'}`;
   return '';
 }
 
@@ -199,7 +197,7 @@ export function ListadoMembresias() {
               <span>SOCIO</span>
               <span>PLAN</span>
               {esGG && <span>SEDE</span>}
-              <span>VENCIMIENTO</span>
+              <span>VÁLIDA HASTA</span>
               <span>ESTADO</span>
             </div>
             {filtradas.map((m) => {
@@ -217,8 +215,8 @@ export function ListadoMembresias() {
                   </div>
                   <span data-label="PLAN">{m.plan}</span>
                   {esGG && <span data-label="SEDE">{m.sedeAlta.nombre}</span>}
-                  <span data-label="VENCE">
-                    <span className="ops-strong">{m.fechaFin}</span>
+                  <span data-label="VÁLIDA HASTA">
+                    <span className="ops-strong">{formatearDDMMAAAA(fechaValidaHasta(m.fechaFin))}</span>
                     {aviso && ` · ${aviso}`}
                   </span>
                   <span>

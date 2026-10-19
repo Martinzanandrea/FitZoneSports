@@ -5,7 +5,12 @@ import { pagosApi, type ReservaCanchaCobro } from '../pagos.api';
 import type { Pago } from '../pagos.types';
 import { usuariosApi, type ClienteBuscado } from '../../usuarios/usuarios.api';
 import { membresiasApi } from '../../membresias/membresias.api';
-import type { Membresia } from '../../membresias/membresias.types';
+import type { EstadoSocio } from '../../membresias/membresias.types';
+import { TarjetaProxima } from '../../membresias/components/TarjetaProxima';
+import {
+  fechaValidaHasta,
+  formatearDDMMAAAA,
+} from '../../../shared/utils/fechasMembresia';
 import { preciosApi } from '../../precios/precios.api';
 import type { PrecioPlan } from '../../precios/precios.types';
 import { CobroCanchaMostrador } from '../components/CobroCanchaMostrador';
@@ -27,11 +32,7 @@ type ReservaCancha = ReservaCanchaCobro;
 
 const MIN_BUSQUEDA = 3;
 
-function fechaCorta(ymd: string): string {
-  return new Date(`${ymd}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function tonoEstado(estado: Membresia['estado']): 'success' | 'warning' | 'danger' {
+function tonoEstado(estado: EstadoSocio['estado']): 'success' | 'warning' | 'danger' {
   return estado === 'ACTIVO' ? 'success' : estado === 'SUSPENDIDO' ? 'warning' : 'danger';
 }
 
@@ -61,7 +62,7 @@ export function CobrarEfectivo() {
   const [recargaLista, setRecargaLista] = useState(0);
   const [cliente, setCliente] = useState<ClienteBuscado | null>(null);
 
-  const [membresia, setMembresia] = useState<Membresia | null>(null);
+  const [membresia, setMembresia] = useState<EstadoSocio | null>(null);
   const [cargandoMembresia, setCargandoMembresia] = useState(false);
 
   const [tipo, setTipo] = useState<Tipo>('plan');
@@ -409,7 +410,7 @@ export function CobrarEfectivo() {
                               {r.cancha.nombre}
                               <br />
                               <small>
-                                {fechaCorta(r.fecha)} · {r.horaInicio.slice(0, 5)}
+                                {formatearDDMMAAAA(r.fecha)} · {r.horaInicio.slice(0, 5)}
                               </small>
                             </span>
                             <strong>${Number(r.precioFinal).toLocaleString('es-AR')}</strong>
@@ -469,26 +470,33 @@ export function CobrarEfectivo() {
           ) : !membresia ? (
             <p style={{ fontSize: 12 }}>Este cliente no tiene membresía.</p>
           ) : (
-            <div className="stack-list">
-              <div className="list-row">
-                <div className="row-main">
-                  <strong>Plan {membresia.plan}</strong>
-                  <span>
-                    {fechaCorta(membresia.fechaInicio)} → {fechaCorta(membresia.fechaFin)}
+            <>
+              <div className="stack-list">
+                <div className="list-row">
+                  <div className="row-main">
+                    <strong>Plan {membresia.plan}</strong>
+                    <span>
+                      Válida hasta {formatearDDMMAAAA(fechaValidaHasta(membresia.fechaFin))}
+                    </span>
+                  </div>
+                  <span className={`badge badge-${tonoEstado(membresia.estado)}`}>
+                    <i />
+                    {membresia.estado === 'ACTIVO' ? 'Activo' : membresia.estado === 'SUSPENDIDO' ? 'Suspendido' : 'Vencido'}
                   </span>
                 </div>
-                <span className={`badge badge-${tonoEstado(membresia.estado)}`}>
-                  <i />
-                  {membresia.estado === 'ACTIVO' ? 'Activo' : membresia.estado === 'SUSPENDIDO' ? 'Suspendido' : 'Vencido'}
-                </span>
-              </div>
-              <div className="list-row">
-                <div className="row-main">
-                  <strong>Sede de alta</strong>
-                  <span>{membresia.sedeAlta.nombre}</span>
+                <div className="list-row">
+                  <div className="row-main">
+                    <strong>Sede de alta</strong>
+                    <span>{membresia.sedeAlta.nombre}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+              {membresia.proxima && (
+                <div style={{ marginTop: 12 }}>
+                  <TarjetaProxima proxima={membresia.proxima} />
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>

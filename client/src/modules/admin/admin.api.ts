@@ -64,7 +64,22 @@ export interface MembresiaPorSedeItem {
   activas: number;
   vencidas: number;
   suspendidas: number;
-  socios: Array<{ usuarioId: string; nombre: string; dni: string | null; plan: string; estado: string; fechaFin: string }>;
+  /** Compradas que todavía no empezaron (próximas). */
+  programadas: number;
+  socios: Array<{
+    usuarioId: string;
+    nombre: string;
+    dni: string | null;
+    plan: string;
+    estado: string;
+    fechaInicio: string;
+    /** Exclusiva: primer día en que ya no vale. */
+    fechaFin: string;
+    /** Vigente hoy. */
+    vigente: boolean;
+    /** Todavía no empezó. */
+    proxima: boolean;
+  }>;
 }
 
 export interface PlanPopularidad {

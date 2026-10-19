@@ -9,7 +9,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { membresiasApi } from '../../membresias/membresias.api';
-import type { Membresia } from '../../membresias/membresias.types';
+import type { EstadoSocio } from '../../membresias/membresias.types';
+import { TarjetaProxima } from '../../membresias/components/TarjetaProxima';
+import {
+  fechaValidaHasta,
+  formatearDDMMAAAA,
+} from '../../../shared/utils/fechasMembresia';
 import { Badge } from '../../../shared/components/atoms';
 import { EmptyState } from '../../../shared/components/molecules';;
 import { ErrorState } from '../../../shared/components/molecules';;
@@ -22,23 +27,16 @@ import { formatearFechaCorta, useProximasReservas, type ProximaReserva } from '.
 
 const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
 
-function tonoMembresia(estado: Membresia['estado']): 'success' | 'warning' | 'danger' {
+function tonoMembresia(estado: EstadoSocio['estado']): 'success' | 'warning' | 'danger' {
   return estado === 'ACTIVO' ? 'success' : estado === 'SUSPENDIDO' ? 'warning' : 'danger';
 }
 
-function etiquetaMembresia(estado: Membresia['estado']): string {
+function etiquetaMembresia(estado: EstadoSocio['estado']): string {
   return estado === 'ACTIVO' ? 'Activo' : estado === 'SUSPENDIDO' ? 'Suspendido' : 'Vencido';
 }
 
-function fechaVencimiento(fechaFin: string): string {
-  return new Date(`${fechaFin}T00:00:00`).toLocaleDateString('es-AR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-function TarjetaMembresia({ membresia, nombre }: { membresia: Membresia; nombre: string }) {
+function TarjetaMembresia({ membresia, nombre }: { membresia: EstadoSocio; nombre: string }) {
+  const validaHasta = formatearDDMMAAAA(fechaValidaHasta(membresia.fechaFin));
   return (
     <Link to="/membresia" className="membership-card" aria-label={`Mi membresía: plan ${membresia.plan}, ${etiquetaMembresia(membresia.estado)}`}>
       <div className="membership-orb" aria-hidden />
@@ -50,7 +48,7 @@ function TarjetaMembresia({ membresia, nombre }: { membresia: Membresia; nombre:
       <div className="membership-name">{nombre}</div>
       <div className="membership-bottom">
         <span>
-          Vence {fechaVencimiento(membresia.fechaFin)} · {membresia.sedeAlta.nombre}
+          Válida hasta {validaHasta} · {membresia.sedeAlta.nombre}
         </span>
         <Badge variant={tonoMembresia(membresia.estado)}>{etiquetaMembresia(membresia.estado)}</Badge>
       </div>
@@ -149,7 +147,7 @@ export function SocioInicio() {
   useTitulo('Mi panel');
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [membresia, setMembresia] = useState<Membresia | null>(null);
+  const [membresia, setMembresia] = useState<EstadoSocio | null>(null);
   const [cargandoMembresia, setCargandoMembresia] = useState(true);
   const [errorMembresia, setErrorMembresia] = useState(false);
   const { proximas, cargando, error } = useProximasReservas(user?.id, 4);
@@ -223,6 +221,12 @@ export function SocioInicio() {
           </article>
         )}
       </div>
+
+      {membresia?.proxima && (
+        <div style={{ marginTop: 14 }}>
+          <TarjetaProxima proxima={membresia.proxima} />
+        </div>
+      )}
 
       <div className="content-grid">
         <section className="glass panel" aria-label="Próximas reservas">

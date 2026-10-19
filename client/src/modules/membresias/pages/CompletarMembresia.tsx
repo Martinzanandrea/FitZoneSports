@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, CreditCard } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { sedesApi } from '../../sedes/sedes.api';
 import { membresiasApi } from '../membresias.api';
+import type { EstadoSocio } from '../membresias.types';
 import { pagosApi } from '../../pagos/pagos.api';
 import { preciosApi } from '../../precios/precios.api';
 import type { Sede } from '../../sedes/sedes.types';
@@ -17,13 +18,24 @@ import { LoadingState } from '../../../shared/components/molecules';;
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { AuthLayout } from '../../auth/AuthLayout';
 import { TipoActor } from '../../../shared/types/enums';
-import { invalidarUnaVez, unaVez } from '../../../shared/utils/unaVez';
+import { invalidarUnaVez } from '../../../shared/utils/unaVez';
+import {
+  diasRestantes,
+  fechaValidaHasta,
+  formatearDDMMAAAA,
+} from '../../../shared/utils/fechasMembresia';
 
 const DESCRIPCIONES: Record<string, string> = {
   MENSUAL: 'Ideal para empezar',
   TRIMESTRAL: 'Ahorrás un 8%',
   ANUAL: 'Ahorrás un 20%',
 };
+
+function mensajeDe(e: unknown, porDefecto: string): string {
+  const ax = e as { response?: { data?: { message?: string | string[] } } };
+  const raw = ax.response?.data?.message;
+  return Array.isArray(raw) ? raw.join(', ') : raw ?? porDefecto;
+}
 
 export function CompletarMembresia() {
   useTitulo('Completá tu membresía');
@@ -41,27 +53,26 @@ export function CompletarMembresia() {
   const [simularRechazo, setSimularRechazo] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
+  const [estado, setEstado] = useState<EstadoSocio | null>(null);
+  // Guard contra doble envío: evita un segundo pago antes de que el estado
+  // (loading/deshabilitado) se vuelva a renderizar.
+  const enviando = useRef(false);
   const esExterno = user?.tipoActor === TipoActor.EXTERNO;
-  const [verificando, setVerificando] = useState(!esExterno);
-
-  // Un Socio con membresía ACTIVA no se queda acá (va a su panel), salvo que
-  // venga a renovar a propósito (?renovar=true); sin membresía, vencida o
-  // suspendida se queda. El Externo se queda siempre: ve los planes y, al
-  // pagar, el backend lo promueve a Socio.
   const usuarioId = user?.id;
+  const [cargandoEstado, setCargandoEstado] = useState(!esExterno);
+
   useEffect(() => {
     if (!usuarioId || esExterno) return;
     let viva = true;
-    unaVez(`vigente:${usuarioId}`, () => membresiasApi.getVigente(usuarioId))
-      .then((m) => {
-        if (viva && m?.estado === 'ACTIVO' && !esRenovacion) navigate('/dashboard', { replace: true });
-      })
-      .catch(() => undefined)
-      .finally(() => viva && setVerificando(false));
+    membresiasApi
+      .getVigente(usuarioId)
+      .then((m) => viva && setEstado(m))
+      .catch(() => viva && setEstado(null))
+      .finally(() => viva && setCargandoEstado(false));
     return () => {
       viva = false;
     };
-  }, [usuarioId, esExterno, esRenovacion, navigate]);
+  }, [usuarioId, esExterno]);
 
   useEffect(() => {
     Promise.all([
@@ -86,12 +97,23 @@ export function CompletarMembresia() {
   }));
 
   const planSeleccionado = planes.find((p) => p.value === plan);
+  const proxima = estado?.proxima ?? null;
+  const bloqueado = proxima !== null;
+  const vigente =
+    estado && estado.estado === 'ACTIVO' && diasRestantes(estado.fechaFin) > 0
+      ? estado
+      : null;
+  const avisoVigente = vigente
+    ? `Tu plan vigente vale hasta el ${formatearDDMMAAAA(fechaValidaHasta(vigente.fechaFin))}. El nuevo comienza el ${formatearDDMMAAAA(vigente.fechaFin)} y no perdés ningún día pagado.`
+    : '';
 
   async function handleConfirmar() {
+    if (enviando.current || bloqueado) return;
     if (!user || !sedeId) {
       setError('Elegí una sede para continuar.');
       return;
     }
+    enviando.current = true;
     setLoading(true);
     setError('');
     try {
@@ -117,14 +139,16 @@ export function CompletarMembresia() {
       invalidarUnaVez(`vigente:${user.id}`);
       await refrescarUsuario().catch(() => undefined);
       navigate('/dashboard', { replace: true });
-    } catch {
-      setError('No se pudo completar el pago. Intentá de nuevo.');
+    } catch (err: unknown) {
+      // El 409 (membresía ya programada) llega con el mensaje del servidor.
+      setError(mensajeDe(err, 'No se pudo completar el pago. Intentá de nuevo.'));
     } finally {
       setLoading(false);
+      enviando.current = false;
     }
   }
 
-  if (cargando || verificando)
+  if (cargando || cargandoEstado)
     return (
       <AuthLayout>
         <LoadingState rows={3} label="Cargando planes" />
@@ -149,6 +173,17 @@ export function CompletarMembresia() {
       {esExterno && planSeleccionado && (
         <p style={{ marginTop: 8 }}>
           Al pagar el plan {planSeleccionado.label} ({formatMoney(planSeleccionado.precio)}) pasás a ser socio.
+        </p>
+      )}
+
+      {bloqueado && proxima && (
+        <p role="alert" className="notice notice-err" style={{ marginTop: 12 }}>
+          Ya tenés una membresía programada para el {formatearDDMMAAAA(proxima.fechaInicio)}.
+        </p>
+      )}
+      {!bloqueado && avisoVigente && (
+        <p role="status" className="notice notice-ok" style={{ marginTop: 12 }}>
+          {avisoVigente}
         </p>
       )}
 
@@ -214,7 +249,7 @@ export function CompletarMembresia() {
               checked={simularRechazo}
               onChange={(e) => setSimularRechazo(e.target.checked)}
             />
-            🧪 Simular pago rechazado (solo testing)
+            Simular pago rechazado (solo testing)
           </label>
         </div>
 
@@ -228,9 +263,13 @@ export function CompletarMembresia() {
           className="btn btn-primary"
           style={{ width: '100%' }}
           onClick={() => void handleConfirmar()}
-          disabled={loading || !planSeleccionado || !sedeId}
+          disabled={loading || bloqueado || !planSeleccionado || !sedeId}
         >
-          {loading ? 'Procesando pago…' : `Pagar $${(planSeleccionado?.precio ?? 0).toLocaleString('es-AR')}`}
+          {loading
+            ? 'Procesando pago…'
+            : bloqueado
+              ? 'Membresía ya programada'
+              : `Pagar $${(planSeleccionado?.precio ?? 0).toLocaleString('es-AR')}`}
         </button>
       </div>
     </AuthLayout>
