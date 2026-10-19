@@ -164,7 +164,7 @@
 /* ---------- Header ---------- */
 .lp-header {
   position: sticky;
-  top: 10px;
+  top: max(10px, env(safe-area-inset-top));
   z-index: 100;
   width: min(1240px, 100% - 20px);
   margin: 10px auto 0;
@@ -290,7 +290,7 @@
   bottom: 0;
   z-index: 120;
   width: min(360px, 88vw);
-  padding: 20px 20px 28px;
+  padding: calc(20px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 18px;

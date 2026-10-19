@@ -2,7 +2,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/AuthContext';
 import { AppRoutes } from './routes/AppRoutes';
 import { ScrollToTop } from './routes/ScrollToTop';
-import { BannerCookies } from './shared/components/organisms';;
+import { AvisoActualizacion, BannerCookies } from './shared/components/organisms';;
 
 export default function App() {
   return (
@@ -14,6 +14,7 @@ export default function App() {
         <div aria-hidden className="ambient ambient-coral" />
         <AppRoutes />
         <BannerCookies />
+        <AvisoActualizacion />
       </AuthProvider>
     </BrowserRouter>
   );

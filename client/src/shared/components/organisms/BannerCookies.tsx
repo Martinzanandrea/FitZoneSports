@@ -29,7 +29,7 @@ export function BannerCookies() {
       aria-live="polite"
       aria-label="Aviso de cookies"
       className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-white/10"
-      style={{ zIndex: 'var(--z-popover)' }}
+      style={{ zIndex: 'var(--z-popover)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="mx-auto max-w-6xl px-4 md:px-8 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-white/70 leading-relaxed">
