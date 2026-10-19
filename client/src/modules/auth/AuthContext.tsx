@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { registrarManejadorSesion } from '../../api/axios';
 import { rutaPanelStaff } from '../../shared/utils/rutaPanel';
 import { unaVez } from '../../shared/utils/unaVez';
+import { desuscribirDispositivo, reenviarSuscripcionExistente } from '../notificaciones/push.cliente';
 import { authApi } from './auth.api';
 import type { UsuarioAutenticado } from './auth.types';
 
@@ -86,6 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, [aplicarUsuario]);
 
+  // Con sesión y permiso ya concedido, reasocia la suscripción push de este dispositivo al usuario actual.
+  const usuarioId = user?.id;
+  useEffect(() => {
+    if (usuarioId) void reenviarSuscripcionExistente();
+  }, [usuarioId]);
+
   // Reacciones de axios: 401 (sesión vencida) y 403 (¿otro usuario en la cookie?).
   useEffect(() => {
     registrarManejadorSesion({
@@ -136,6 +143,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
+    // Antes de perder la cookie; acotado en tiempo y sin lanzar error, no bloquea el cierre.
+    await desuscribirDispositivo();
     await authApi.logout();
     aplicarUsuario(null);
     avisarOtrasPestanas('logout');

@@ -8,6 +8,7 @@ import { ErrorState } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { SectionHeader } from '../../../shared/components/molecules';;
 import { CambiarPasswordForm } from './CambiarPassword';
+import { TarjetaPush } from '../../notificaciones/components/TarjetaPush';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 
 export function Configuracion() {
@@ -237,6 +238,8 @@ export function Configuracion() {
         </div>
         <CambiarPasswordForm />
       </div>
+
+      <TarjetaPush />
     </>
   );
 }

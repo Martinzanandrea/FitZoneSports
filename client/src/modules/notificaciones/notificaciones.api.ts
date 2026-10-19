@@ -3,7 +3,7 @@ import type { PaginatedResponse } from '../../shared/types/pagination';
 
 export type TipoNotificacion = 'CLASE_CANCELADA' | 'LISTA_ESPERA_PROMOVIDA' | 'AVISO_GENERAL';
 export type AudienciaEnvio = 'TODOS_LOS_SOCIOS' | 'SOCIOS_DE_SEDE' | 'SOCIO';
-export type CanalNotificacion = 'PANEL' | 'EMAIL';
+export type CanalNotificacion = 'PANEL' | 'EMAIL' | 'PUSH';
 
 export interface Notificacion {
   id: string;

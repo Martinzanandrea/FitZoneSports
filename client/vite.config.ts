@@ -34,11 +34,14 @@ export default defineConfig({
       workbox: {
         // Solo estáticos del build (JS, CSS, íconos, fuentes locales). Sin HTML de datos ni imágenes de landing.
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2}'],
-        globIgnores: ['images/**', 'robots.txt', 'sitemap.xml'],
+        globIgnores: ['images/**', 'robots.txt', 'sitemap.xml', 'push-sw.js'],
+        // Manejadores de push (public/push-sw.js), cargados dentro de sw.js sin tocar la estrategia de caché.
+        importScripts: ['push-sw.js'],
         // Fallback SPA para navegaciones; no aplica a sw.js, manifest, la API ni rutas de archivos.
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [
           /^\/sw\.js$/,
+          /^\/push-sw\.js$/,
           /^\/workbox-.*\.js$/,
           /^\/manifest\.webmanifest$/,
           /^\/api\//,

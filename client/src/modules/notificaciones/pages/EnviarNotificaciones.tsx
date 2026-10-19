@@ -52,6 +52,7 @@ export function EnviarNotificaciones() {
   const [socio, setSocio] = useState<ClienteBuscado | null>(null);
   const [panel, setPanel] = useState(true);
   const [email, setEmail] = useState(false);
+  const [push, setPush] = useState(false);
 
   const [preview, setPreview] = useState<{ cantidad: number; conEmailVerificado: number } | null>(null);
   const [cargandoPreview, setCargandoPreview] = useState(false);
@@ -154,7 +155,7 @@ export function EnviarNotificaciones() {
     void cargarHistorial();
   }, [cargarHistorial, recarga]);
 
-  const canales: CanalNotificacion[] = [...(panel ? (['PANEL'] as const) : []), ...(email ? (['EMAIL'] as const) : [])];
+  const canales: CanalNotificacion[] = [...(panel ? (['PANEL'] as const) : []), ...(email ? (['EMAIL'] as const) : []), ...(push ? (['PUSH'] as const) : [])];
   const formularioCompleto = titulo.trim().length > 0 && mensaje.trim().length > 0 && canales.length > 0 && !!filtro;
   const sinDestinatarios = preview !== null && preview.cantidad === 0;
 
@@ -185,7 +186,7 @@ export function EnviarNotificaciones() {
     }
   }
 
-  const resumenCanales = canales.map((c) => (c === 'PANEL' ? 'la campanita' : 'mail')).join(' y ');
+  const resumenCanales = canales.map((c) => (c === 'PANEL' ? 'la campanita' : c === 'EMAIL' ? 'mail' : 'notificación push')).join(' y ');
 
   return (
     <>
@@ -315,6 +316,12 @@ export function EnviarNotificaciones() {
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 36, fontSize: 12 }}>
                 <input type="checkbox" checked={email} onChange={(e) => setEmail(e.target.checked)} /> Mail
               </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 36, fontSize: 12 }}>
+                <input type="checkbox" checked={push} onChange={(e) => setPush(e.target.checked)} /> Notificación push
+              </label>
+              {push && (
+                <p style={{ fontSize: 11, marginTop: 2 }}>Solo llega a quienes activaron las notificaciones en su dispositivo.</p>
+              )}
               {canales.length === 0 && (
                 <p role="alert" className="notice notice-err" style={{ marginTop: 6 }}>
                   Elegí al menos un canal.
