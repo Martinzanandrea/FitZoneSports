@@ -1,0 +1,4336 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/sedes/publico": {
+      "get": {
+        "operationId": "SedesController_findAllPublico",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de sedes obtenida exitosamente"
+          }
+        },
+        "summary": "Obtener todas las sedes disponibles para el público en general",
+        "tags": [
+          "Sedes"
+        ]
+      }
+    },
+    "/sedes": {
+      "post": {
+        "operationId": "SedesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSedeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sede creada exitosamente"
+          },
+          "400": {
+            "description": "Datos inválidos para crear la sede"
+          },
+          "401": {
+            "description": "No autorizado"
+          },
+          "403": {
+            "description": "Acceso prohibido"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Crear una nueva sede",
+        "tags": [
+          "Sedes"
+        ]
+      },
+      "get": {
+        "operationId": "SedesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de sedes obtenida exitosamente"
+          },
+          "401": {
+            "description": "No autorizado"
+          },
+          "403": {
+            "description": "Acceso prohibido"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener todas las sedes",
+        "tags": [
+          "Sedes"
+        ]
+      }
+    },
+    "/sedes/{id}": {
+      "get": {
+        "operationId": "SedesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sede obtenida exitosamente"
+          },
+          "404": {
+            "description": "Sede no encontrada"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener una sede por su ID",
+        "tags": [
+          "Sedes"
+        ]
+      },
+      "patch": {
+        "operationId": "SedesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSedeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sede actualizada exitosamente"
+          },
+          "403": {
+            "description": "Se requiere rol GERENTE_GENERAL"
+          },
+          "404": {
+            "description": "Sede no encontrada"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar una sede por su ID",
+        "tags": [
+          "Sedes"
+        ]
+      },
+      "delete": {
+        "operationId": "SedesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sede eliminada exitosamente"
+          },
+          "403": {
+            "description": "Se requiere rol GERENTE_GENERAL"
+          },
+          "404": {
+            "description": "Sede no encontrada"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Eliminar una sede por su ID",
+        "tags": [
+          "Sedes"
+        ]
+      }
+    },
+    "/sedes/{id}/franjas": {
+      "get": {
+        "operationId": "SedesController_listarFranjas",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de franjas obtenida exitosamente"
+          },
+          "404": {
+            "description": "Sede no encontrada"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar las franjas horarias de una sede",
+        "tags": [
+          "Sedes"
+        ]
+      },
+      "post": {
+        "operationId": "SedesController_crearFranja",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFranjaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Franja creada exitosamente"
+          },
+          "400": {
+            "description": "Datos inválidos para crear la franja"
+          },
+          "403": {
+            "description": "Se requiere rol GERENTE_GENERAL"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Crear una franja horaria en una sede",
+        "tags": [
+          "Sedes"
+        ]
+      }
+    },
+    "/sedes/{id}/franjas/{franjaId}": {
+      "delete": {
+        "operationId": "SedesController_eliminarFranja",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "franjaId",
+            "required": true,
+            "in": "path",
+            "description": "ID de la franja",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Franja eliminada exitosamente"
+          },
+          "403": {
+            "description": "Se requiere rol GERENTE_GENERAL"
+          },
+          "404": {
+            "description": "Sede o franja no encontrada"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Eliminar una franja horaria de una sede",
+        "tags": [
+          "Sedes"
+        ]
+      }
+    },
+    "/instructores": {
+      "post": {
+        "operationId": "InstructoresController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInstructorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Crear un instructor",
+        "tags": [
+          "Instructores"
+        ]
+      },
+      "get": {
+        "operationId": "InstructoresController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar instructores",
+        "tags": [
+          "Instructores"
+        ]
+      }
+    },
+    "/instructores/{id}": {
+      "get": {
+        "operationId": "InstructoresController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del instructor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener un instructor por ID",
+        "tags": [
+          "Instructores"
+        ]
+      },
+      "patch": {
+        "operationId": "InstructoresController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del instructor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstructorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar un instructor",
+        "tags": [
+          "Instructores"
+        ]
+      },
+      "delete": {
+        "operationId": "InstructoresController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del instructor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Dar de baja un instructor",
+        "tags": [
+          "Instructores"
+        ]
+      }
+    },
+    "/usuarios/staff": {
+      "post": {
+        "operationId": "UsuariosController_createStaff",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUsuarioDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Crear un usuario de staff",
+        "tags": [
+          "Usuarios"
+        ]
+      },
+      "get": {
+        "operationId": "UsuariosController_findStaff",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar usuarios de staff",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/buscar-clientes": {
+      "get": {
+        "operationId": "UsuariosController_buscarClientes",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Buscar socios y externos por nombre/apellido/DNI (mínimo 3 caracteres)",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/verificar-email": {
+      "get": {
+        "operationId": "UsuariosController_verificarEmail",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Confirmar email con el token del link",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/reenviar-verificacion": {
+      "post": {
+        "operationId": "UsuariosController_reenviarVerificacion",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReenviarVerificacionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Reenviar link de verificación de email",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/{id}/sede": {
+      "patch": {
+        "operationId": "UsuariosController_asignarSede",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsignarSedeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Asignar una sede a un usuario",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios": {
+      "post": {
+        "operationId": "UsuariosController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUsuarioDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Registrarse (cuenta EXTERNO, sin verificar)",
+        "tags": [
+          "Usuarios"
+        ]
+      },
+      "get": {
+        "operationId": "UsuariosController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar usuarios",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/{id}": {
+      "get": {
+        "operationId": "UsuariosController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener un usuario por ID",
+        "tags": [
+          "Usuarios"
+        ]
+      },
+      "patch": {
+        "operationId": "UsuariosController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUsuarioDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar un usuario",
+        "tags": [
+          "Usuarios"
+        ]
+      },
+      "delete": {
+        "operationId": "UsuariosController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Desactivar un usuario",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/{id}/foto": {
+      "patch": {
+        "operationId": "UsuariosController_actualizarFoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar foto de perfil de un usuario",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/{id}/rol": {
+      "patch": {
+        "operationId": "UsuariosController_assignRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Asignar rol a un usuario",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/{id}/dni": {
+      "patch": {
+        "operationId": "UsuariosController_actualizarDni",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarDniDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar el DNI de un usuario",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/usuarios/{id}/password": {
+      "patch": {
+        "operationId": "UsuariosController_changePassword",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cambiar contraseña de un usuario",
+        "tags": [
+          "Usuarios"
+        ]
+      }
+    },
+    "/personal/clientes": {
+      "get": {
+        "operationId": "ClientesController_listar",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar socios, externos e instructores de la cadena (solo Gerente General)",
+        "tags": [
+          "Clientes"
+        ]
+      }
+    },
+    "/membresias/vigente/{usuarioId}": {
+      "get": {
+        "operationId": "MembresiasController_vigente",
+        "parameters": [
+          {
+            "name": "usuarioId",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener el estado de membresía de un usuario (solo lectura)",
+        "tags": [
+          "Membresías"
+        ]
+      }
+    },
+    "/membresias": {
+      "get": {
+        "operationId": "MembresiasController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar membresías",
+        "tags": [
+          "Membresías"
+        ]
+      }
+    },
+    "/membresias/{id}": {
+      "get": {
+        "operationId": "MembresiasController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la membresía",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener una membresía por ID",
+        "tags": [
+          "Membresías"
+        ]
+      },
+      "patch": {
+        "operationId": "MembresiasController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la membresía",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMembresiaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar una membresía",
+        "tags": [
+          "Membresías"
+        ]
+      }
+    },
+    "/membresias/marcar-vencidas": {
+      "post": {
+        "operationId": "MembresiasController_marcarVencidas",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Marcar membresías vencidas",
+        "tags": [
+          "Membresías"
+        ]
+      }
+    },
+    "/membresias/{id}/cancelar": {
+      "patch": {
+        "operationId": "MembresiasController_cancelar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la membresía",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cancelar una membresía",
+        "tags": [
+          "Membresías"
+        ]
+      }
+    },
+    "/clases": {
+      "post": {
+        "operationId": "ClasesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Crear una clase con su grilla semanal",
+        "tags": [
+          "Clases"
+        ]
+      },
+      "get": {
+        "operationId": "ClasesController_findAll",
+        "parameters": [
+          {
+            "name": "sedeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "activa",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar clases (filtrable por sede). Las dadas de baja solo las ven los gerentes",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/{id}/generar-ocurrencias": {
+      "post": {
+        "operationId": "ClasesController_generarOcurrencias",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la clase",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Generar ocurrencias faltantes de una clase (idempotente)",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/resumen-tipos": {
+      "get": {
+        "operationId": "ClasesController_resumenTipos",
+        "parameters": [
+          {
+            "name": "sedeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Clases activas por tipo (GS: solo su sede)",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/reglas": {
+      "get": {
+        "operationId": "ClasesController_reglas",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Reglas vigentes de reserva y generación de clases",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/reparto-sugerido": {
+      "get": {
+        "operationId": "ClasesController_sugerirReparto",
+        "parameters": [
+          {
+            "name": "sedeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "horasSemanales",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "numDias",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Sugerir días y horarios para una carga horaria (no persiste nada)",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/publico": {
+      "get": {
+        "operationId": "ClasesController_resumenPublico",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Resumen público de tipos de clase (agregado por tipo)",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/{id}": {
+      "get": {
+        "operationId": "ClasesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la clase",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener una clase por ID",
+        "tags": [
+          "Clases"
+        ]
+      },
+      "patch": {
+        "operationId": "ClasesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la clase",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar tipo, instructor o capacidad de una clase",
+        "tags": [
+          "Clases"
+        ]
+      },
+      "delete": {
+        "operationId": "ClasesController_desactivar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la clase",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Dar de baja una clase: cancela sus fechas y reservas futuras y avisa a los socios (baja lógica)",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/{id}/impacto-baja": {
+      "get": {
+        "operationId": "ClasesController_impactoBaja",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la clase",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Reservas futuras que cancelaría la baja de la clase",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/{id}/ocurrencias": {
+      "get": {
+        "operationId": "ClasesController_listarOcurrencias",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la clase",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desde",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasta",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar ocurrencias de una clase (filtrable por fechas)",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/{id}/reactivar": {
+      "post": {
+        "operationId": "ClasesController_reactivar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la clase",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Reactivar una clase dada de baja (no restaura las reservas canceladas)",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/{id}/instructor": {
+      "patch": {
+        "operationId": "ClasesController_asignarInstructor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la clase",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsignarInstructorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Asignar instructor a una clase",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
+    "/clases/ocurrencias/{ocurrenciaId}/reservas": {
+      "post": {
+        "operationId": "ReservasClaseController_reservar",
+        "parameters": [
+          {
+            "name": "ocurrenciaId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la ocurrencia",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReservaClaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Reservar una ocurrencia de clase",
+        "tags": [
+          "Reservas de clases"
+        ]
+      },
+      "get": {
+        "operationId": "ReservasClaseController_findPorOcurrencia",
+        "parameters": [
+          {
+            "name": "ocurrenciaId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la ocurrencia",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar reservas de una ocurrencia (solo personal, con alcance por sede)",
+        "tags": [
+          "Reservas de clases"
+        ]
+      }
+    },
+    "/clases/reservas/mias": {
+      "get": {
+        "operationId": "ReservasClaseController_misReservas",
+        "parameters": [
+          {
+            "name": "desde",
+            "required": false,
+            "in": "query",
+            "description": "YYYY-MM-DD",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Mis reservas de clases activas",
+        "tags": [
+          "Reservas de clases"
+        ]
+      }
+    },
+    "/clases/reservas/{reservaId}/cancelar": {
+      "post": {
+        "operationId": "ReservasClaseController_cancelar",
+        "parameters": [
+          {
+            "name": "reservaId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la reserva",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cancelar una reserva de clase",
+        "tags": [
+          "Reservas de clases"
+        ]
+      }
+    },
+    "/notificaciones": {
+      "get": {
+        "operationId": "NotificacionesController_listar",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Mis notificaciones (paginado, máx. 20)",
+        "tags": [
+          "Notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/no-leidas/conteo": {
+      "get": {
+        "operationId": "NotificacionesController_contarNoLeidas",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cantidad de notificaciones sin leer",
+        "tags": [
+          "Notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/leer-todas": {
+      "patch": {
+        "operationId": "NotificacionesController_leerTodas",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Marcar todas mis notificaciones como leídas",
+        "tags": [
+          "Notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/{id}/leida": {
+      "patch": {
+        "operationId": "NotificacionesController_marcarLeida",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Marcar una notificación propia como leída",
+        "tags": [
+          "Notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/envios": {
+      "post": {
+        "operationId": "NotificacionesController_crearEnvio",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearEnvioDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Enviar un aviso a una audiencia de Socios",
+        "tags": [
+          "Notificaciones"
+        ]
+      },
+      "get": {
+        "operationId": "NotificacionesController_historial",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Historial de envíos (paginado, máx. 20)",
+        "tags": [
+          "Notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/envios/previsualizar": {
+      "get": {
+        "operationId": "NotificacionesController_previsualizar",
+        "parameters": [
+          {
+            "name": "audiencia",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "TODOS_LOS_SOCIOS",
+                "SOCIOS_DE_SEDE",
+                "SOCIO"
+              ]
+            }
+          },
+          {
+            "name": "sedeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "usuarioId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cantidad de destinatarios de una audiencia",
+        "tags": [
+          "Notificaciones"
+        ]
+      }
+    },
+    "/notificaciones/push/clave-publica": {
+      "get": {
+        "operationId": "PushController_clavePublica",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Clave pública VAPID (503 si no está configurada)",
+        "tags": [
+          "Notificaciones push"
+        ]
+      }
+    },
+    "/notificaciones/push/suscripcion": {
+      "post": {
+        "operationId": "PushController_suscribir",
+        "parameters": [
+          {
+            "name": "user-agent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuscribirPushDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Registrar (o reasignar) mi suscripción push",
+        "tags": [
+          "Notificaciones push"
+        ]
+      },
+      "delete": {
+        "operationId": "PushController_desuscribir",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesuscribirPushDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Borrar mi suscripción push (solo si es mía)",
+        "tags": [
+          "Notificaciones push"
+        ]
+      }
+    },
+    "/canchas": {
+      "post": {
+        "operationId": "CanchasController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCanchaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Crear una cancha",
+        "tags": [
+          "Canchas"
+        ]
+      },
+      "get": {
+        "operationId": "CanchasController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar canchas",
+        "tags": [
+          "Canchas"
+        ]
+      }
+    },
+    "/canchas/publico": {
+      "get": {
+        "operationId": "CanchasController_findAllPublico",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Catálogo público de canchas activas por sede",
+        "tags": [
+          "Canchas"
+        ]
+      }
+    },
+    "/canchas/ingresos-mes": {
+      "get": {
+        "operationId": "CanchasController_obtenerIngresosMes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Suma de pagos aprobados de canchas del mes actual",
+        "tags": [
+          "Canchas"
+        ]
+      }
+    },
+    "/canchas/{id}": {
+      "get": {
+        "operationId": "CanchasController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la cancha",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener una cancha por ID",
+        "tags": [
+          "Canchas"
+        ]
+      },
+      "patch": {
+        "operationId": "CanchasController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la cancha",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCanchaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar una cancha",
+        "tags": [
+          "Canchas"
+        ]
+      },
+      "delete": {
+        "operationId": "CanchasController_eliminar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la cancha",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Eliminar una cancha sin reservas en su historial",
+        "tags": [
+          "Canchas"
+        ]
+      }
+    },
+    "/canchas/{id}/bloqueos": {
+      "post": {
+        "operationId": "CanchasController_crearBloqueo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la cancha",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBloqueoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Crear un bloqueo de cancha",
+        "tags": [
+          "Canchas"
+        ]
+      }
+    },
+    "/tipos-cancha": {
+      "get": {
+        "operationId": "TiposCanchaController_findPublicos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Catálogo público de tipos de cancha activos",
+        "tags": [
+          "TiposCancha"
+        ]
+      },
+      "post": {
+        "operationId": "TiposCanchaController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTipoCanchaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Crear un tipo de cancha con foto",
+        "tags": [
+          "TiposCancha"
+        ]
+      }
+    },
+    "/tipos-cancha/todos": {
+      "get": {
+        "operationId": "TiposCanchaController_findTodos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar todos los tipos (incluidos inactivos)",
+        "tags": [
+          "TiposCancha"
+        ]
+      }
+    },
+    "/tipos-cancha/{id}": {
+      "patch": {
+        "operationId": "TiposCanchaController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del tipo de cancha",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTipoCanchaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cambiar nombre y/o foto de un tipo de cancha",
+        "tags": [
+          "TiposCancha"
+        ]
+      },
+      "delete": {
+        "operationId": "TiposCanchaController_eliminar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del tipo de cancha",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Eliminar un tipo de cancha sin canchas asociadas",
+        "tags": [
+          "TiposCancha"
+        ]
+      }
+    },
+    "/tipos-cancha/{id}/estado": {
+      "patch": {
+        "operationId": "TiposCanchaController_cambiarEstado",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del tipo de cancha",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambiarEstadoTipoCanchaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Activar o desactivar un tipo de cancha",
+        "tags": [
+          "TiposCancha"
+        ]
+      }
+    },
+    "/reservas-cancha": {
+      "post": {
+        "operationId": "ReservasCanchaController_reservar",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReservaCanchaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Reservar una cancha",
+        "tags": [
+          "Reservas de canchas"
+        ]
+      }
+    },
+    "/reservas-cancha/cotizar": {
+      "post": {
+        "operationId": "ReservasCanchaController_cotizar",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReservaCanchaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cotizar una reserva de cancha",
+        "tags": [
+          "Reservas de canchas"
+        ]
+      }
+    },
+    "/reservas-cancha/cancha/{canchaId}": {
+      "get": {
+        "operationId": "ReservasCanchaController_findPorCancha",
+        "parameters": [
+          {
+            "name": "canchaId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la cancha",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fecha",
+            "required": false,
+            "in": "query",
+            "description": "Fecha a consultar en formato ISO",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar reservas de una cancha (solo personal, con alcance por sede)",
+        "tags": [
+          "Reservas de canchas"
+        ]
+      }
+    },
+    "/reservas-cancha/cancha/{canchaId}/ocupacion": {
+      "get": {
+        "operationId": "ReservasCanchaController_ocupacion",
+        "parameters": [
+          {
+            "name": "canchaId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la cancha",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fecha",
+            "required": true,
+            "in": "query",
+            "description": "YYYY-MM-DD",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Franjas ocupadas de una cancha en una fecha (sin datos de usuarios)",
+        "tags": [
+          "Reservas de canchas"
+        ]
+      }
+    },
+    "/reservas-cancha/mias": {
+      "get": {
+        "operationId": "ReservasCanchaController_misReservas",
+        "parameters": [
+          {
+            "name": "fecha",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desde",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Mis reservas de canchas confirmadas",
+        "tags": [
+          "Reservas de canchas"
+        ]
+      }
+    },
+    "/reservas-cancha/{id}/cancelar": {
+      "post": {
+        "operationId": "ReservasCanchaController_cancelar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la reserva",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cancelar una reserva de cancha",
+        "tags": [
+          "Reservas de canchas"
+        ]
+      }
+    },
+    "/pagos/pasarela": {
+      "post": {
+        "operationId": "PagosController_pagarConPasarela",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePagoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Pagar mediante pasarela",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos": {
+      "get": {
+        "operationId": "PagosController_historialPagos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Historial de pagos (paginado, filtros y totales; acotado a la sede salvo GG)",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/mias": {
+      "get": {
+        "operationId": "PagosController_misPagos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Mis pagos (Socio y Externo)",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/{id}/comprobante": {
+      "post": {
+        "operationId": "PagosController_generarComprobante",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del pago",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Generar el comprobante de un pago aprobado que no lo tiene",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/{id}/comprobante/regenerar": {
+      "post": {
+        "operationId": "PagosController_regenerarComprobante",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del pago",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Regenerar el comprobante de un pago con el diseño actual",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/efectivo": {
+      "post": {
+        "operationId": "PagosController_registrarEfectivo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarPagoEfectivoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Registrar un pago en efectivo",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/efectivo/cancha": {
+      "post": {
+        "operationId": "PagosController_cobrarCanchaPresencial",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CobrarCanchaPresencialDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cobrar en el mostrador una cancha: crea la reserva y registra el pago en efectivo",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/efectivo/clientes": {
+      "get": {
+        "operationId": "PagosController_clientesEfectivo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Clientes de la sede para cobrar en efectivo (paginado, con q)",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/efectivo/reservas-cancha": {
+      "get": {
+        "operationId": "PagosController_reservasCanchaEfectivo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Reservas de cancha de un cliente pendientes de cobro, en la sede",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/usuario/{usuarioId}": {
+      "get": {
+        "operationId": "PagosController_findPorUsuario",
+        "parameters": [
+          {
+            "name": "usuarioId",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar pagos de un usuario",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/pagos/{id}": {
+      "get": {
+        "operationId": "PagosController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del pago",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener un pago por ID",
+        "tags": [
+          "Pagos"
+        ]
+      }
+    },
+    "/comprobantes/{id}/archivo": {
+      "get": {
+        "operationId": "ComprobantesController_archivo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del comprobante",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Descargar el PDF de un comprobante (con control de acceso)",
+        "tags": [
+          "Comprobantes"
+        ]
+      }
+    },
+    "/precios/membresias/publico": {
+      "get": {
+        "operationId": "PreciosController_findAllPublico",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Obtener precios públicos de membresías",
+        "tags": [
+          "Precios"
+        ]
+      }
+    },
+    "/precios/membresias/{plan}": {
+      "patch": {
+        "operationId": "PreciosController_actualizar",
+        "parameters": [
+          {
+            "name": "plan",
+            "required": true,
+            "in": "path",
+            "description": "Tipo de plan de membresía",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePrecioDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Actualizar precio de un plan",
+        "tags": [
+          "Precios"
+        ]
+      }
+    },
+    "/admin/auditoria": {
+      "get": {
+        "operationId": "AuditoriaController_findAll",
+        "parameters": [
+          {
+            "name": "entidad",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desde",
+            "required": false,
+            "in": "query",
+            "description": "Fecha inicial en formato ISO",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasta",
+            "required": false,
+            "in": "query",
+            "description": "Fecha final en formato ISO",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Consultar registros de auditoría",
+        "tags": [
+          "Auditoría"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Iniciar sesión y establecer cookie de autenticación",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Cerrar sesión",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener el usuario autenticado",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/acceso/qr/{usuarioId}": {
+      "get": {
+        "operationId": "AccesoController_generarQr",
+        "parameters": [
+          {
+            "name": "usuarioId",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Generar QR de acceso para un usuario",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/validar": {
+      "post": {
+        "operationId": "AccesoController_validarIngreso",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidarQrDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Validar ingreso mediante QR",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/validar-codigo": {
+      "post": {
+        "operationId": "AccesoController_validarCodigo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidarCodigoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Validar ingreso mediante código corto de 6 dígitos",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/validar-dni": {
+      "post": {
+        "operationId": "AccesoController_validarDni",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidarDniDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Registrar el ingreso de un socio por DNI",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/buscar-dni": {
+      "post": {
+        "operationId": "AccesoController_buscarDni",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidarDniDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Buscar un socio por DNI (nombre, foto y estado de membresía)",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/egreso": {
+      "post": {
+        "operationId": "AccesoController_registrarEgreso",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarEgresoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Registrar egreso de un usuario",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/resumen": {
+      "get": {
+        "operationId": "AccesoController_obtenerResumenAccesos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener resumen de accesos por sede (solo lectura)",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/aforo/{sedeId}": {
+      "get": {
+        "operationId": "AccesoController_obtenerAforo",
+        "parameters": [
+          {
+            "name": "sedeId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Consultar aforo actual de una sede",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/dentro/{sedeId}": {
+      "get": {
+        "operationId": "AccesoController_listarDentro",
+        "parameters": [
+          {
+            "name": "sedeId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Listar usuarios actualmente dentro de una sede",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/historial/{usuarioId}": {
+      "get": {
+        "operationId": "AccesoController_findHistorial",
+        "parameters": [
+          {
+            "name": "usuarioId",
+            "required": true,
+            "in": "path",
+            "description": "UUID del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Consultar historial de acceso de un usuario",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/admin/dashboard/resumen": {
+      "get": {
+        "operationId": "AdminController_obtenerDashboardResumen",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener resumen del dashboard",
+        "tags": [
+          "Administración"
+        ]
+      }
+    },
+    "/admin/reservas": {
+      "get": {
+        "operationId": "AdminController_obtenerReservas",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener reservas para administración",
+        "tags": [
+          "Administración"
+        ]
+      }
+    },
+    "/admin/reportes/financiero": {
+      "get": {
+        "operationId": "AdminController_obtenerReporteFinanciero",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener reporte financiero",
+        "tags": [
+          "Administración"
+        ]
+      }
+    },
+    "/admin/reportes/membresias": {
+      "get": {
+        "operationId": "AdminController_obtenerMembresiasPorSede",
+        "parameters": [
+          {
+            "name": "sedeId",
+            "required": false,
+            "in": "query",
+            "description": "UUID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener reporte de membresías por sede",
+        "tags": [
+          "Administración"
+        ]
+      }
+    },
+    "/admin/reportes/precios-popularidad": {
+      "get": {
+        "operationId": "AdminController_obtenerPopularidadPlanes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Obtener popularidad de planes",
+        "tags": [
+          "Administración"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "FitZone Sports API",
+    "description": "API del sistema de gestión de gimnasios",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token"
+      }
+    },
+    "schemas": {
+      "CreateSedeDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "description": "Nombre de la sede",
+            "example": "Sede Central"
+          },
+          "direccion": {
+            "type": "string",
+            "description": "Dirección de la sede",
+            "example": "Calle Principal 123"
+          },
+          "aforoMaximo": {
+            "type": "number",
+            "description": "Aforo máximo de la sede",
+            "example": 100
+          },
+          "activa": {
+            "type": "boolean",
+            "description": "Indica si la sede está activa",
+            "example": true
+          }
+        },
+        "required": [
+          "nombre",
+          "direccion",
+          "aforoMaximo"
+        ]
+      },
+      "UpdateSedeDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "description": "Nombre de la sede",
+            "example": "Sede Central"
+          },
+          "direccion": {
+            "type": "string",
+            "description": "Dirección de la sede",
+            "example": "Calle Principal 123"
+          },
+          "aforoMaximo": {
+            "type": "number",
+            "description": "Aforo máximo de la sede",
+            "example": 100
+          },
+          "activa": {
+            "type": "boolean",
+            "description": "Indica si la sede está activa",
+            "example": true
+          }
+        }
+      },
+      "CreateFranjaDto": {
+        "type": "object",
+        "properties": {
+          "apertura": {
+            "type": "string",
+            "description": "Hora de apertura en formato HH:MM",
+            "example": "08:00"
+          },
+          "cierre": {
+            "type": "string",
+            "description": "Hora de cierre en formato HH:MM",
+            "example": "22:00"
+          }
+        },
+        "required": [
+          "apertura",
+          "cierre"
+        ]
+      },
+      "CreateInstructorDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "example": "Andrea Martínez"
+          },
+          "especialidad": {
+            "type": "string",
+            "example": "Yoga"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "+54 11 5555-5555"
+          },
+          "activo": {
+            "type": "boolean",
+            "example": true,
+            "default": true
+          }
+        },
+        "required": [
+          "nombre"
+        ]
+      },
+      "UpdateInstructorDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "example": "Andrea Martínez"
+          },
+          "especialidad": {
+            "type": "string",
+            "example": "Yoga"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "+54 11 5555-5555"
+          },
+          "activo": {
+            "type": "boolean",
+            "example": true,
+            "default": true
+          }
+        }
+      },
+      "CreateUsuarioDto": {
+        "type": "object",
+        "properties": {
+          "tipoActor": {
+            "type": "string",
+            "enum": [
+              "SOCIO",
+              "EXTERNO",
+              "RECEPCIONISTA",
+              "GERENTE_GENERAL",
+              "GERENTE_SEDE"
+            ],
+            "example": "SOCIO"
+          },
+          "dni": {
+            "type": "string",
+            "example": "30123456",
+            "description": "Obligatorio para SOCIO y EXTERNO"
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Martínez"
+          },
+          "email": {
+            "type": "string",
+            "example": "andrea@fitzone.com"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "+54 11 5555-5555"
+          },
+          "fotoUrl": {
+            "type": "string",
+            "example": "https://example.com/foto.jpg"
+          },
+          "password": {
+            "type": "string",
+            "example": "12345678",
+            "minLength": 8
+          },
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "tipoActor",
+          "nombre",
+          "email",
+          "password"
+        ]
+      },
+      "ReenviarVerificacionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AsignarSedeDto": {
+        "type": "object",
+        "properties": {
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "sedeId"
+        ]
+      },
+      "UpdateUsuarioDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "example": "Andrea"
+          },
+          "apellido": {
+            "type": "string",
+            "example": "Martínez"
+          },
+          "email": {
+            "type": "string",
+            "example": "andrea@fitzone.com"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "+54 11 5555-5555"
+          },
+          "fotoUrl": {
+            "type": "string",
+            "example": "https://example.com/foto.jpg"
+          }
+        }
+      },
+      "AssignRoleDto": {
+        "type": "object",
+        "properties": {
+          "tipoActor": {
+            "type": "string",
+            "enum": [
+              "SOCIO",
+              "EXTERNO",
+              "RECEPCIONISTA",
+              "GERENTE_GENERAL",
+              "GERENTE_SEDE"
+            ],
+            "example": "RECEPCIONISTA"
+          },
+          "password": {
+            "type": "string",
+            "example": "12345678",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "tipoActor",
+          "password"
+        ]
+      },
+      "ActualizarDniDto": {
+        "type": "object",
+        "properties": {
+          "dni": {
+            "type": "string",
+            "example": "30123456"
+          }
+        },
+        "required": [
+          "dni"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "passwordActual": {
+            "type": "string",
+            "example": "clave-actual-123"
+          },
+          "password": {
+            "type": "string",
+            "example": "nueva-clave-123",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "passwordActual",
+          "password"
+        ]
+      },
+      "UpdateMembresiaDto": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ACTIVO",
+              "SUSPENDIDO"
+            ],
+            "example": "SUSPENDIDO"
+          },
+          "renovacionAuto": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "HorarioClaseDto": {
+        "type": "object",
+        "properties": {
+          "diaSemana": {
+            "type": "number",
+            "example": 1,
+            "description": "Día de semana: 0 (domingo) a 6 (sábado)"
+          },
+          "horaInicio": {
+            "type": "string",
+            "example": "19:00"
+          },
+          "horaFin": {
+            "type": "string",
+            "example": "20:00"
+          }
+        },
+        "required": [
+          "diaSemana",
+          "horaInicio",
+          "horaFin"
+        ]
+      },
+      "CreateClaseDto": {
+        "type": "object",
+        "properties": {
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "tipoClase": {
+            "type": "string",
+            "example": "Funcional"
+          },
+          "instructorId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "capacidad": {
+            "type": "number",
+            "example": 30,
+            "minimum": 1
+          },
+          "horasSemanalesTotales": {
+            "type": "number",
+            "example": 6,
+            "description": "Carga horaria semanal total"
+          },
+          "horarios": {
+            "description": "Grilla semanal ya confirmada por el Gerente (pasó por la sugerencia + edición antes de llegar acá)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HorarioClaseDto"
+            }
+          }
+        },
+        "required": [
+          "sedeId",
+          "tipoClase",
+          "instructorId",
+          "capacidad",
+          "horasSemanalesTotales",
+          "horarios"
+        ]
+      },
+      "UpdateClaseDto": {
+        "type": "object",
+        "properties": {
+          "tipoClase": {
+            "type": "string",
+            "example": "Funcional"
+          },
+          "instructorId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "capacidad": {
+            "type": "number",
+            "example": 30,
+            "minimum": 1
+          }
+        }
+      },
+      "AsignarInstructorDto": {
+        "type": "object",
+        "properties": {
+          "instructorId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "instructorId"
+        ]
+      },
+      "CreateReservaClaseDto": {
+        "type": "object",
+        "properties": {
+          "usuarioId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "usuarioId"
+        ]
+      },
+      "CrearEnvioDto": {
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "mensaje": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "audiencia": {
+            "type": "string",
+            "enum": [
+              "TODOS_LOS_SOCIOS",
+              "SOCIOS_DE_SEDE",
+              "SOCIO"
+            ]
+          },
+          "sedeId": {
+            "type": "string",
+            "description": "Obligatoria si audiencia = SOCIOS_DE_SEDE"
+          },
+          "usuarioId": {
+            "type": "string",
+            "description": "Obligatorio si audiencia = SOCIO"
+          },
+          "canales": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "PANEL",
+                "EMAIL",
+                "PUSH"
+              ]
+            }
+          }
+        },
+        "required": [
+          "titulo",
+          "mensaje",
+          "audiencia",
+          "canales"
+        ]
+      },
+      "PushKeysDto": {
+        "type": "object",
+        "properties": {
+          "p256dh": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "auth": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "p256dh",
+          "auth"
+        ]
+      },
+      "SuscribirPushDto": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "URL https del servicio push"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushKeysDto"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ]
+      },
+      "DesuscribirPushDto": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "maxLength": 2048
+          }
+        },
+        "required": [
+          "endpoint"
+        ]
+      },
+      "CreateCanchaDto": {
+        "type": "object",
+        "properties": {
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "description": "UUID de la sede"
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Cancha 1",
+            "description": "Nombre de la cancha"
+          },
+          "tipoId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001",
+            "description": "UUID del tipo de cancha"
+          },
+          "costoHoraBase": {
+            "type": "number",
+            "example": 2500,
+            "minimum": 0.01,
+            "description": "Costo base por hora"
+          }
+        },
+        "required": [
+          "sedeId",
+          "nombre",
+          "tipoId",
+          "costoHoraBase"
+        ]
+      },
+      "UpdateCanchaDto": {
+        "type": "object",
+        "properties": {
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "description": "UUID de la sede"
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Cancha 1",
+            "description": "Nombre de la cancha"
+          },
+          "tipoId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001",
+            "description": "UUID del tipo de cancha"
+          },
+          "costoHoraBase": {
+            "type": "number",
+            "example": 2500,
+            "minimum": 0.01,
+            "description": "Costo base por hora"
+          }
+        }
+      },
+      "CreateBloqueoDto": {
+        "type": "object",
+        "properties": {
+          "desde": {
+            "type": "string",
+            "example": "2026-09-10T08:00:00.000Z"
+          },
+          "hasta": {
+            "type": "string",
+            "example": "2026-09-10T12:00:00.000Z"
+          },
+          "motivo": {
+            "type": "string",
+            "example": "Mantenimiento"
+          }
+        },
+        "required": [
+          "desde",
+          "hasta"
+        ]
+      },
+      "CreateTipoCanchaDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "example": "Tenis",
+            "description": "Nombre del tipo de cancha"
+          }
+        },
+        "required": [
+          "nombre"
+        ]
+      },
+      "UpdateTipoCanchaDto": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "example": "Pádel",
+            "description": "Nuevo nombre del tipo"
+          }
+        }
+      },
+      "CambiarEstadoTipoCanchaDto": {
+        "type": "object",
+        "properties": {
+          "activo": {
+            "type": "boolean",
+            "example": false,
+            "description": "Activar o desactivar el tipo"
+          }
+        },
+        "required": [
+          "activo"
+        ]
+      },
+      "CreateReservaCanchaDto": {
+        "type": "object",
+        "properties": {
+          "canchaId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "usuarioId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "fecha": {
+            "type": "string",
+            "example": "2026-09-10"
+          },
+          "horaInicio": {
+            "type": "string",
+            "example": "18:00",
+            "description": "Hora de inicio en formato HH:MM"
+          },
+          "horaFin": {
+            "type": "string",
+            "example": "19:00",
+            "description": "Hora de fin en formato HH:MM"
+          }
+        },
+        "required": [
+          "canchaId",
+          "usuarioId",
+          "fecha",
+          "horaInicio",
+          "horaFin"
+        ]
+      },
+      "CreatePagoDto": {
+        "type": "object",
+        "properties": {
+          "usuarioId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "membresiaId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "plan": {
+            "type": "string",
+            "enum": [
+              "MENSUAL",
+              "TRIMESTRAL",
+              "ANUAL"
+            ],
+            "example": "MENSUAL"
+          },
+          "sedeAltaId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440004"
+          },
+          "reservaClaseId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440002"
+          },
+          "reservaCanchaId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440003"
+          },
+          "metodo": {
+            "type": "string",
+            "enum": [
+              "MERCADOPAGO",
+              "MODO",
+              "EFECTIVO"
+            ],
+            "example": "MERCADOPAGO"
+          },
+          "monto": {
+            "type": "number",
+            "example": 15000,
+            "minimum": 0.01
+          },
+          "simularRechazo": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "usuarioId",
+          "metodo"
+        ]
+      },
+      "RegistrarPagoEfectivoDto": {
+        "type": "object",
+        "properties": {
+          "usuarioId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "membresiaId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "plan": {
+            "type": "string",
+            "enum": [
+              "MENSUAL",
+              "TRIMESTRAL",
+              "ANUAL"
+            ],
+            "example": "MENSUAL"
+          },
+          "reservaClaseId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440002"
+          },
+          "reservaCanchaId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440003"
+          },
+          "monto": {
+            "type": "number",
+            "example": 15000,
+            "minimum": 0.01
+          }
+        },
+        "required": [
+          "usuarioId"
+        ]
+      },
+      "CobrarCanchaPresencialDto": {
+        "type": "object",
+        "properties": {
+          "usuarioId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "canchaId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "fecha": {
+            "type": "string",
+            "example": "2026-10-10"
+          },
+          "horaInicio": {
+            "type": "string",
+            "example": "18:00"
+          },
+          "horaFin": {
+            "type": "string",
+            "example": "19:00"
+          }
+        },
+        "required": [
+          "usuarioId",
+          "canchaId",
+          "fecha",
+          "horaInicio",
+          "horaFin"
+        ]
+      },
+      "UpdatePrecioDto": {
+        "type": "object",
+        "properties": {
+          "precio": {
+            "type": "number",
+            "example": 15000,
+            "minimum": 0.01
+          }
+        },
+        "required": [
+          "precio"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "usuario@fitzone.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "12345678",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "ValidarQrDto": {
+        "type": "object",
+        "properties": {
+          "qrToken": {
+            "type": "string",
+            "example": "qr-token-generado"
+          },
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "qrToken",
+          "sedeId"
+        ]
+      },
+      "ValidarCodigoDto": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "example": "482913"
+          },
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "codigo",
+          "sedeId"
+        ]
+      },
+      "ValidarDniDto": {
+        "type": "object",
+        "properties": {
+          "dni": {
+            "type": "string",
+            "example": "30123456"
+          },
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "dni",
+          "sedeId"
+        ]
+      },
+      "RegistrarEgresoDto": {
+        "type": "object",
+        "properties": {
+          "usuarioId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "usuarioId"
+        ]
+      }
+    }
+  }
+}

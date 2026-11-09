@@ -36,6 +36,12 @@ jobs:
       - name: Compilar
         run: npm run build
 
+      # El contrato versionado tiene que coincidir con el código.
+      - name: swagger.json actualizado
+        run: |
+          node dist/scripts/exportar-swagger.js
+          git diff --exit-code -- swagger.json
+
       - name: Guardar informe de cobertura
         if: always()
         uses: actions/upload-artifact@v4

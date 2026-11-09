@@ -2,7 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
+import { crearDocumentoSwagger } from './swagger';
 import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
 import { static as servirEstaticos } from 'express';
@@ -44,16 +45,10 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  // Configuración de Swagger
+  // Swagger UI en /api, fuera de producción. El mismo documento se exporta a
+  // swagger.json con npm run swagger:exportar.
   if (process.env.NODE_ENV !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('FitZone Sports API')
-      .setDescription('API del sistema de gestión de gimnasios')
-      .setVersion('1.0')
-      .addCookieAuth('token') // documenta que auth usa la cookie httpOnly
-      .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, document);
+    SwaggerModule.setup('api', app, crearDocumentoSwagger(app));
   }
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
