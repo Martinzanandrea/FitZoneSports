@@ -1,6 +1,6 @@
 # Portal del socio y consola de administración (React + Vite), servidos con
 # nginx. VITE_API_URL queda fija en el build: /api, que nginx reenvía a la API.
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
