@@ -316,17 +316,49 @@ describe('AccesoService.validarIngreso (token)', () => {
     );
   });
 
-  // OBSERVACIÓN DE SEGURIDAD (comportamiento actual, no corregido): a
-  // diferencia del código corto, el token QR no es de un solo uso. Mientras no
-  // venza (60 s), el mismo token sirve otra vez tras el egreso, por ejemplo una
-  // captura de pantalla del QR.
-  it('OBSERVACIÓN: el token QR se puede reutilizar dentro de sus 60 s', async () => {
-    const { service } = armar();
+  // Un solo uso: cada QR lleva un jti y el servidor recuerda los ya usados
+  // hasta que vencen. Una captura de pantalla no sirve para entrar dos veces.
+  it('el token QR es de un solo uso: el segundo intento es 409', async () => {
+    const { service, sesiones } = armar();
     const { qrToken } = await service.generarQr('u1');
     await service.validarIngreso(qrToken, 'sA', recepA);
     await service.registrarEgreso('u1', recepA);
     await expect(
       service.validarIngreso(qrToken, 'sA', recepA),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(sesiones).toHaveLength(1);
+  });
+
+  it('un intento fallido (otra sede) no consume el QR', async () => {
+    const { service } = armar();
+    const { qrToken } = await service.generarQr('u1');
+    await expect(
+      service.validarIngreso(qrToken, 'sA', recepB),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.validarIngreso(qrToken, 'sA', recepA),
+    ).resolves.toBeDefined();
+  });
+
+  it('dos lecturas simultáneas del mismo QR: entra una sola', async () => {
+    const { service, sesiones } = armar();
+    const { qrToken } = await service.generarQr('u1');
+    const resultados = await Promise.allSettled([
+      service.validarIngreso(qrToken, 'sA', recepA),
+      service.validarIngreso(qrToken, 'sA', recepA),
+    ]);
+    expect(resultados.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(sesiones).toHaveLength(1);
+  });
+
+  it('un QR nuevo del mismo socio sirve después del egreso', async () => {
+    const { service } = armar();
+    const primero = await service.generarQr('u1');
+    await service.validarIngreso(primero.qrToken, 'sA', recepA);
+    await service.registrarEgreso('u1', recepA);
+    const segundo = await service.generarQr('u1');
+    await expect(
+      service.validarIngreso(segundo.qrToken, 'sA', recepA),
     ).resolves.toBeDefined();
   });
 });
@@ -443,14 +475,10 @@ describe('RN01: un usuario no puede estar en dos sedes a la vez', () => {
     expect(sesiones.filter((s) => !s.horaEgreso)).toHaveLength(1);
   });
 
-  // BUG (comportamiento actual, NO corregido): si dos ingresos del mismo
-  // usuario pasan el chequeo `sesionAbierta` a la vez, el índice único
-  // `uq_acceso_abierto_por_usuario` rechaza el segundo con un error 23505,
-  // pero el servicio no lo traduce: el QueryFailedError sale tal cual y el
-  // cliente recibiría un 500 (no hay filtro global de excepciones en el
-  // proyecto). Lo esperado por RN01 es un 409. Cuando se corrija, invertir
-  // las dos últimas aserciones: debe ser ConflictException.
-  it('BUG: el conflicto por índice único (23505) NO se traduce a 409', async () => {
+  // Dos validaciones simultáneas pueden superar juntas el chequeo de sesión
+  // abierta; el índice único parcial de la base rechaza la segunda y el
+  // servicio lo traduce a 409 (antes llegaba como 500).
+  it('el conflicto por índice único (23505) se traduce a 409', async () => {
     const error23505 = Object.assign(
       new Error('duplicate key value violates unique constraint'),
       {
@@ -462,9 +490,16 @@ describe('RN01: un usuario no puede estar en dos sedes a la vez', () => {
     );
     const { service } = armar({ falloAlGuardar: error23505 });
     const { qrToken } = await service.generarQr('u1');
-    const promesa = service.validarIngreso(qrToken, 'sA', recepA);
-    await expect(promesa).rejects.toBe(error23505);
-    await expect(promesa).rejects.not.toBeInstanceOf(ConflictException);
+    await expect(
+      service.validarIngreso(qrToken, 'sA', recepA),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('otros errores de la base se propagan sin tocar', async () => {
+    const otro = new Error('conexión caída');
+    const { service } = armar({ falloAlGuardar: otro });
+    const { qrToken } = await service.generarQr('u1');
+    await expect(service.validarIngreso(qrToken, 'sA', recepA)).rejects.toBe(otro);
   });
 });
 

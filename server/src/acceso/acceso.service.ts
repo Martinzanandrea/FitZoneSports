@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'crypto';
 import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
 import { EstadoMembresia, TipoActor } from '../entities/enums';
 import { estadoDesde } from '../membresias/estado-membresia';
@@ -26,6 +27,10 @@ import type { PaginatedResponse } from '../common/types/paginated-response.type'
 interface QrPayload {
   usuarioId: string;
   tipo: 'qr-acceso';
+  // Identificador único de este QR: permite rechazar un segundo uso del
+  // mismo token dentro de sus 60 segundos (captura de pantalla compartida).
+  jti?: string;
+  exp?: number;
 }
 
 interface CodigoCorto {
@@ -95,6 +100,10 @@ export class AccesoService {
   // En memoria (no sobrevive reinicios ni se comparte entre instancias).
   private readonly codigosCortos = new Map<string, CodigoCorto>();
 
+  // QR ya usados (jti -> vencimiento en ms). Se recuerdan hasta que el token
+  // vence: después el JWT ya no verifica y no hace falta guardarlos.
+  private readonly qrUsados = new Map<string, number>();
+
   // RF04: QR dinámico que rota cada minuto.
   async generarQr(
     usuarioId: string,
@@ -109,7 +118,11 @@ export class AccesoService {
 
     this.purgarCodigosExpirados();
 
-    const payload: QrPayload = { usuarioId, tipo: 'qr-acceso' };
+    const payload: QrPayload = {
+      usuarioId,
+      tipo: 'qr-acceso',
+      jti: randomUUID(),
+    };
     const qrToken = this.jwtService.sign(payload, { expiresIn: '60s' });
     const codigoCorto = this.generarCodigoCortoUnico();
     this.codigosCortos.set(codigoCorto, {
@@ -123,6 +136,9 @@ export class AccesoService {
     const ahora = Date.now();
     for (const [codigo, entrada] of this.codigosCortos) {
       if (entrada.expiraEnMs <= ahora) this.codigosCortos.delete(codigo);
+    }
+    for (const [jti, expiraEnMs] of this.qrUsados) {
+      if (expiraEnMs <= ahora) this.qrUsados.delete(jti);
     }
   }
 
@@ -197,12 +213,34 @@ export class AccesoService {
       throw new BadRequestException('QR inválido');
     }
 
-    return this.registrarIngresoValidado(
-      payload.usuarioId,
-      sedeId,
-      currentUser,
-      'Usuario del QR no encontrado',
-    );
+    // Un solo uso: el jti se reserva antes de cualquier await, así dos
+    // lecturas simultáneas del mismo QR no pueden pasar las dos. Si la
+    // validación falla (aforo, membresía, otra sede) se libera para reintentar.
+    const jti = payload.jti;
+    if (jti) {
+      this.purgarCodigosExpirados();
+      if (this.qrUsados.has(jti)) {
+        throw new ConflictException(
+          'Este QR ya fue usado. Pedile al socio que lo actualice',
+        );
+      }
+      this.qrUsados.set(
+        jti,
+        payload.exp ? payload.exp * 1000 : Date.now() + CODIGO_CORTO_TTL_MS,
+      );
+    }
+
+    try {
+      return await this.registrarIngresoValidado(
+        payload.usuarioId,
+        sedeId,
+        currentUser,
+        'Usuario del QR no encontrado',
+      );
+    } catch (err) {
+      if (jti) this.qrUsados.delete(jti);
+      throw err;
+    }
   }
 
   // Alternativa práctica al token largo: código de 6 dígitos de un solo
@@ -271,7 +309,19 @@ export class AccesoService {
     }
 
     const registro = this.accesoRepo.create({ usuario, sede });
-    return this.accesoRepo.save(registro);
+    try {
+      return await this.accesoRepo.save(registro);
+    } catch (err) {
+      // RN-01 en la base: el índice único parcial uq_acceso_abierto_por_usuario
+      // rechaza un segundo ingreso abierto cuando dos validaciones simultáneas
+      // superan juntas el chequeo de arriba. Vale para QR, código y DNI.
+      if (esViolacionUnique(err)) {
+        throw new ConflictException(
+          'El usuario ya tiene un ingreso abierto en otra sede (o en esta misma sin egreso registrado)',
+        );
+      }
+      throw err;
+    }
   }
 
   // Socio activo por DNI. Un DNI inexistente y el de alguien que no es socio
@@ -324,22 +374,13 @@ export class AccesoService {
   ): Promise<ControlAcceso> {
     assertSedeScope(currentUser, sedeId);
     const usuario = await this.buscarSocioPorDni(dni);
-    try {
-      return await this.registrarIngresoValidado(
-        usuario.id,
-        sedeId,
-        currentUser,
-        'Socio no encontrado',
-      );
-    } catch (err) {
-      // Dos ingresos a la vez: el índice único de RN01 rechaza al segundo.
-      if (esViolacionUnique(err)) {
-        throw new ConflictException(
-          'El usuario ya tiene un ingreso abierto en otra sede (o en esta misma sin egreso registrado)',
-        );
-      }
-      throw err;
-    }
+    // El 23505 de RN01 ya lo traduce a 409 registrarIngresoValidado.
+    return this.registrarIngresoValidado(
+      usuario.id,
+      sedeId,
+      currentUser,
+      'Socio no encontrado',
+    );
   }
 
   // Ahora recibe currentUser para validar que el recepcionista que cierra
