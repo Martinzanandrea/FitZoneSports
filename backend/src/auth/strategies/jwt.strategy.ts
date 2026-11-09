@@ -22,7 +22,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: config.get<string>('JWT_SECRET')!,
     });
   }
-  async validate(payload: JwtPayload) {
+  async validate(payload: JwtPayload & { tipo?: string }) {
+    // El token del QR de acceso (60 s) se firma con el mismo secreto: no sirve como sesión.
+    if (payload.tipo === 'qr-acceso') {
+      throw new UnauthorizedException('Token no válido como sesión');
+    }
     const usuario = await this.usuariosService.findOne(payload.sub);
     if (!usuario || !usuario.activo) {
       throw new UnauthorizedException('Usuario inválido o inactivo');

@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'crypto';
+import { randomInt, randomUUID } from 'crypto';
 import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
 import { EstadoMembresia, TipoActor } from '../entities/enums';
 import { estadoDesde } from '../membresias/estado-membresia';
@@ -144,7 +144,7 @@ export class AccesoService {
 
   private generarCodigoCortoUnico(): string {
     for (let i = 0; i < 10; i++) {
-      const codigo = String(Math.floor(Math.random() * 1_000_000)).padStart(
+      const codigo = String(randomInt(0, 1_000_000)).padStart(
         6,
         '0',
       );
