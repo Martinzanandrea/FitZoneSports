@@ -1,34 +1,14 @@
 # Bitácora — Retamoso, Máximo — Rol COMPLETAR (P1 a P4)
 
-Bitácora individual según la plantilla del Anexo C. Las entradas de los sprints 2, 3 y 5 vienen de `docs/LOG.md` (bitácora grupal original). Los campos marcados **COMPLETAR** van a mano.
+Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 a 5 vienen de `docs/LOG.md` (bitácora grupal original). En cada entrada, los commits se separan en propios (usuario de Git `maxi`) y del equipo (autor indicado entre paréntesis). Los campos marcados **COMPLETAR** van a mano.
 
 Usuario de Git: `maxi` (maxiretamosotrotta@gmail.com).
 
-## Sprint 1 — Unidad I — Semana del 2026-08-10
-
-### AAAA-MM-DD · COMPLETAR h
-
-**Actividad**
-
-COMPLETAR
-
-**Decisión**
-
-COMPLETAR
-
-**Problema o bloqueo**
-
-COMPLETAR
-
-**Commits**
-
-COMPLETAR (no hay commits con el usuario `maxi` en este sprint)
-
----
-
-## Sprint 2 — Unidad I / II — Semana del 2026-08-24
+## Sprint 1 — Arquitectura — Unidad I — 2026-08-13 al 2026-08-27
 
 ### 2026-08-24 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-9 (2 pts) y FT1-16 (3 pts), ambas asignadas a MR
 
 **Actividad**
 
@@ -44,11 +24,18 @@ posiciones iniciales divididas en el equipo; se cerró con matriz de criterios (
 
 **Commits**
 
-`e22cde0`
+- Propios: ninguno
+- Del equipo, relacionados con la tarea: `e22cde0` (martin, 24/08, ADR del monolito modular)
+
+Trabajo de diseño: el debate y el contenido del ADR-0002 se acordaron con el equipo por mensajes; el ADR lo integró Martín al repositorio.
 
 ---
 
+## Sprint 2 — Frameworks — Unidad II — 2026-09-03 al 2026-09-17
+
 ### 2026-09-02 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-15 (1 pt); FT1-16 es del sprint 1
 
 **Actividad**
 
@@ -64,13 +51,14 @@ numeración de ADRs con gaps tras varias iteraciones; se resolvió con renumerac
 
 **Commits**
 
-`612d9ce`, `068e8b6`, `e22cde0`
+- Propios: ninguno
+- Del equipo, relacionados con la tarea: `612d9ce`, `068e8b6` (martin, 04/09 y 06/09); `e22cde0` (martin, 24/08)
 
 ---
 
-## Sprint 3 — Unidad II / III — Semana del 2026-09-07
-
 ### 2026-09-10 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-37 (4 pts)
 
 **Actividad**
 
@@ -86,11 +74,14 @@ la ventana de 60s entre generar y validar obligó al doble chequeo de membresía
 
 **Commits**
 
-`7862d54`, `f4bbfdc`, `23cf2ff`
+- Propios: ninguno
+- Del equipo, relacionados con la tarea: `7862d54` (martin, 15/08), `23cf2ff` (martin, 16/09), `f4bbfdc` (martin, 30/09)
 
 ---
 
 ### 2026-09-12 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-40 (6 pts) y FT1-42 (5 pts)
 
 **Actividad**
 
@@ -106,11 +97,14 @@ el doble cobro concurrente se resolvió con lock pesimista + verificación de pa
 
 **Commits**
 
-`7862d54`, `26dfa17`, `f07fa62`, `13b0d95`
+- Propios: ninguno
+- Del equipo, relacionados con la tarea: `7862d54` (martin, 15/08), `13b0d95` (martin, 01/10), `f07fa62` (martin, 07/10), `26dfa17` (martin, 09/10)
 
 ---
 
 ### 2026-09-14 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-22 (5 pts)
 
 **Actividad**
 
@@ -126,11 +120,16 @@ el detalle JSON guardaba tokens; se agregó redacción automática de secretos +
 
 **Commits**
 
-`1802fc4`, `068e8b6`
+- Propios: ninguno
+- Del equipo, relacionados con la tarea: `1802fc4` (martin, 29/08), `068e8b6` (martin, 06/09)
 
 ---
 
+## Sprint 3 — Patrones — Unidad III — 2026-09-15 al 2026-09-24
+
 ### 2026-09-18 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-26 (4 pts)
 
 **Actividad**
 
@@ -146,35 +145,16 @@ la primera versión no era polimórfica real; se refactorizó a forma canónica 
 
 **Commits**
 
-`cdca2b6`, `5552f69`, `2c6c8d7`
+- Propios: ninguno
+- Del equipo, relacionados con la tarea: `cdca2b6`, `5552f69` (martin, 20/08), `2c6c8d7` (martin, 15/09)
 
 ---
 
-## Sprint 4 — Unidad III — Semana del 2026-09-21
-
-### AAAA-MM-DD · COMPLETAR h
-
-**Actividad**
-
-COMPLETAR
-
-**Decisión**
-
-COMPLETAR
-
-**Problema o bloqueo**
-
-COMPLETAR
-
-**Commits**
-
-COMPLETAR (no hay commits con el usuario `maxi` en este sprint)
-
----
-
-## Sprint 5 — Unidad IV / V — Semana del 2026-10-05
+## Sprint 4 — Componentes — Unidad IV — 2026-09-15 al 2026-10-08
 
 ### 2026-10-05 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-48
 
 **Actividad**
 
@@ -190,11 +170,14 @@ react-router conserva el scroll entre rutas y no había ningún manejo de scroll
 
 **Commits**
 
-`9f46ceb`, `b3ec7c3` (mergeado a main, en producción)
+- Propios: `b3ec7c3` (11/10, fix del scroll al cambiar de ruta)
+- Del equipo, relacionados con la tarea: `9f46ceb` (martin, 23/09, landing pública)
 
 ---
 
 ### 2026-10-06 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-32 (4 pts)
 
 **Actividad**
 
@@ -210,11 +193,13 @@ el build marcó dos errores tras el move (rutas relativas e import de barrel); s
 
 **Commits**
 
-`772b856` (mergeado a main con PR #1)
+- Propios: `772b856` (11/10, mergeado con el PR #1)
 
 ---
 
 ### 2026-10-11 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-50 (5 pts), subtarea FT1-53
 
 **Actividad**
 
@@ -230,11 +215,18 @@ sin bloqueantes: se verificó además el scope por sede (el GS solo ve datos de 
 
 **Commits**
 
-`f07fa62`, `13b0d95`
+- Propios: ninguno
+- Del equipo, relacionados con la tarea: `13b0d95` (martin, 01/10), `f07fa62` (martin, 07/10)
+
+La tarjeta está en el sprint 4 aunque la verificación se cerró el 11/10, después de la fecha de fin del sprint.
 
 ---
 
+## Sprint 5 — Testing y CI/CD — Unidad V — 2026-10-29 al 2026-11-12
+
 ### 2026-10-13 · COMPLETAR h
+
+**Tarjeta(s) Jira:** FT1-30 (6 pts), FT1-61, FT1-62 y FT1-56
 
 **Actividad**
 
@@ -250,39 +242,19 @@ sin clase casi llena no hay última plaza real (se probó carrera en paralelo si
 
 **Commits**
 
-`5371015` (reporte docs/PRUEBAS.md, mergeado a main con el PR #2)
+- Propios: `5371015` (13/10, reporte `docs/PRUEBAS.md`, mergeado con el PR #2)
+
+Las pruebas se hicieron el 13/10, antes de la fecha de inicio del sprint en el tablero.
 
 ---
-
-## Sprint 6 — Unidad V — Semana del 2026-10-19
-
-### AAAA-MM-DD · COMPLETAR h
-
-**Actividad**
-
-COMPLETAR
-
-**Decisión**
-
-COMPLETAR
-
-**Problema o bloqueo**
-
-COMPLETAR
-
-**Commits**
-
-COMPLETAR (no hay commits con el usuario `maxi` en este sprint)
-
----
-
-## Sprint 7 — Unidad VI / Cierre — Semana del 2026-11-02
 
 ### 2026-11-09 · COMPLETAR h
 
+**Tarjeta(s) Jira:** FT1-59 y FT1-64
+
 **Actividad**
 
-Cierre de los requisitos de admisibilidad de la entrega: QR de un solo uso y conflicto 23505 traducido a 409; migraciones reproducibles con su reversión y script de migración; datos de prueba de 25 sedes; docker compose con almacenamiento local; pruebas de integración contra Postgres para RN-01 y RN-02 con umbral de cobertura en el CI; swagger.json exportado; escaneo de secretos; los diez ADR obligatorios; diagramas C4, DER, despliegue y pipeline; corrección de la carga de clases (429 con 25 sedes); integración con la reestructura backend/frontend; los tres manuales.
+Pruebas de integración contra PostgreSQL real para RN-01 y RN-02 (FT1-59): diez reservas simultáneas de la misma cancha confirman exactamente una, dos ingresos simultáneos del mismo socio en sedes distintas registran uno solo, y el cupo de una clase no se excede bajo concurrencia; umbral de cobertura en `package.json` y jobs de integración y Docker en el CI. Endurecimiento del QR (FT1-64): token de un solo uso con `jti` y la violación del índice de RN-01 (23505) devuelta como 409 en lugar de 500 en los tres tipos de ingreso.
 
 **Decisión**
 
@@ -294,31 +266,19 @@ COMPLETAR
 
 **Commits**
 
-- `009914b` fix(acceso): QR de un solo uso y conflicto 23505 como 409 en todos los ingresos
-- `b101898` feat(db): migraciones reproducibles desde cero, con reversión y registro
-- `5f5f7b6` feat(db): datos de prueba con 25 sedes, canchas, clases y usuarios de todos los roles
-- `a63719c` feat(storage): almacenamiento de archivos intercambiable, con proveedor local
-- `6b33468` build: levantar el sistema completo con docker compose up --build
-- `c2d8e0e` test: integración contra Postgres real para RN-01 y RN-02, y umbral de cobertura
-- `ab9b759` docs(api): exportar el contrato OpenAPI a swagger.json
-- `532fb99` ci: escaneo de secretos con gitleaks sobre todo el historial
-- `849e354` docs(adr): los diez ADR obligatorios en la plantilla del Anexo B
-- `74894a6` docs(diagramas): C4, DER físico, despliegue y pipeline con fuente editable
-- `6713502` fix(clases): cargar las ocurrencias de todas las clases en un solo pedido
-- `458225c` docs(manuales): capturas del sistema por rol
-- `7a7b3a3` merge con la reestructura backend/ y frontend/
-- `86452ab` fix(cliente): plazos de cancelación iguales a los que aplica el servidor
-- `a5b6a03` docs(manuales): manual de usuario, de instalación y operación, y técnico
+- Propios: `009914b` (QR de un solo uso y 23505 como 409), `c2d8e0e` (pruebas de integración, umbral de cobertura y CI)
 
 ---
 
-## Sprint 8 — Unidad Cierre — Semana del 2026-11-16
+## Sprint 6 — Móvil — Unidad VI — 2026-10-22 al 2026-11-05
 
 ### AAAA-MM-DD · COMPLETAR h
 
+**Tarjeta(s) Jira:** el sprint no tiene tarjetas cargadas en el tablero
+
 **Actividad**
 
-COMPLETAR
+COMPLETAR (en el repositorio no hay commits del usuario `maxi` entre el 22/10 y el 05/11; si no hubo actividad propia, dejarlo dicho así)
 
 **Decisión**
 
@@ -330,6 +290,39 @@ COMPLETAR
 
 **Commits**
 
+- Propios: ninguno
+
+---
+
+## Sprint 7 — Integración — Unidad Cierre — 2026-11-05 al 2026-11-19
+
+### 2026-11-09 · COMPLETAR h
+
+**Tarjeta(s) Jira:** COMPLETAR (tarjetas a crear en el tablero)
+
+**Actividad**
+
+Cierre de los requisitos de admisibilidad de la entrega: migraciones reproducibles desde una base vacía con su reversión y script de migración; datos de prueba con 25 sedes; almacenamiento de archivos intercambiable y `docker compose up --build`; contrato OpenAPI exportado; escaneo de secretos del historial completo; los diez ADR obligatorios en la plantilla del Anexo B; diagramas C4, DER, despliegue y pipeline; corrección de la carga de clases (429 con 25 sedes) y de los plazos de cancelación mostrados; integración con la reestructura backend/frontend; los tres manuales; README.
+
+**Decisión**
+
 COMPLETAR
+
+**Problema o bloqueo**
+
+COMPLETAR
+
+**Commits**
+
+- Propios: `b101898`, `5f5f7b6`, `a63719c`, `6b33468`, `ab9b759`, `532fb99`, `849e354`, `74894a6`, `6713502`, `458225c`, `7a7b3a3`, `8b605ad`, `86452ab`, `a5b6a03`, `79faad7`, `32a2ca8`
+- Del equipo, relacionados con la tarea: `1eec536` (martin, 09/11, reestructura backend/frontend que se integró)
+
+---
+
+## Sprint 8 — Demo Day — Unidad Cierre — 2026-11-19 al 2026-12-03
+
+### AAAA-MM-DD · COMPLETAR h
+
+_Sprint todavía no iniciado._
 
 ---
