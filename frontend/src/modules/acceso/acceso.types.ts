@@ -45,3 +45,20 @@ export interface VistaPreviaSocio {
   fotoUrl: string | null;
   estadoMembresia: EstadoMembresiaVista;
 }
+
+// POST /acceso/sincronizar: ingresos que el terminal registró sin conexión.
+export interface EventoSincronizacion {
+  clientEventId: string;
+  qrToken: string;
+  ocurridoEn: string;
+}
+
+export type EstadoSincronizacion = 'CREADO' | 'OBSERVADO' | 'CONFLICTO' | 'RECHAZADO';
+
+export interface ResultadoSincronizacion {
+  clientEventId: string;
+  estado: EstadoSincronizacion;
+  codigo: string;
+  accesoId?: string;
+  mensaje?: string;
+}

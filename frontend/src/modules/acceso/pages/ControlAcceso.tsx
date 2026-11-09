@@ -14,6 +14,23 @@ import { TipoActor } from '../../../shared/types/enums';
 import { useAhora } from '../../../shared/hooks/useAhora';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { TEXTO_REQUIERE_CONEXION, useEstadoConexion } from '../../../shared/hooks/useEstadoConexion';
+import { useModoOffline } from '../offline/useModoOffline';
+import { validarIngresoOffline } from '../offline/colaIngresos';
+import { leerSnapshot } from '../offline/almacenOffline';
+import {
+  TEXTO_EGRESO_REQUIERE_CONEXION,
+  controlesSegunConexion,
+  debeDescargarSnapshot,
+  debeMostrarResumen,
+  debePasarAOffline,
+  estadoBanner,
+  rutaValidacionQr,
+  textoRequiereConexion,
+  textoResumenSync,
+} from '../offline/decisionesPantalla';
+
+// Cada cuánto se revisa si el snapshot de la sede necesita refrescarse (se baja si tiene más de 1 hora).
+const REVISION_SNAPSHOT_MS = 5 * 60 * 1000;
 
 type Modo = 'camara' | 'manual' | 'codigo' | 'dni';
 
@@ -32,6 +49,30 @@ function mensajeDeError(e: unknown, porDefecto: string): string {
   return Array.isArray(raw) ? raw.join(', ') : raw ?? porDefecto;
 }
 
+// Resultado de la última sincronización de ingresos hechos sin conexión.
+function ResumenSincronizacion({ resumen, onCerrar }: { resumen: Parameters<typeof textoResumenSync>[0]; onCerrar: () => void }) {
+  const t = textoResumenSync(resumen);
+  const clase = t.tono === 'error' ? 'notice-err' : t.tono === 'ok' ? 'notice-ok' : '';
+  return (
+    <section role="status" aria-label="Resultado de la sincronización" className={`notice ${clase}`} style={{ marginBottom: 14 }}>
+      <strong>{t.titulo}</strong>
+      <p style={{ marginTop: 4 }}>{t.conteos}</p>
+      {t.interrupcion && <p style={{ marginTop: 4 }}>{t.interrupcion}</p>}
+      {t.fallidos && <p style={{ marginTop: 4 }}>{t.fallidos}</p>}
+      {t.detalle.length > 0 && (
+        <ul style={{ marginTop: 6, paddingLeft: 18 }}>
+          {t.detalle.map((d) => (
+            <li key={d.clientEventId}>{d.texto}</li>
+          ))}
+        </ul>
+      )}
+      <button type="button" className="btn btn-ghost" style={{ marginTop: 6 }} onClick={onCerrar}>
+        Cerrar
+      </button>
+    </section>
+  );
+}
+
 export function ControlAcceso() {
   useTitulo('Control de acceso');
   const { user } = useAuth();
@@ -39,16 +80,23 @@ export function ControlAcceso() {
   const online = useEstadoConexion();
   const [searchParams] = useSearchParams();
   const sedeId = user?.sedeId ?? null;
+  const offline = useModoOffline(sedeId);
   // Escanear/validar y registrar egresos: solo el Recepcionista. El Gerente de Sede
   // ve únicamente el aforo y quién está dentro (el backend lo exige igual).
   const puedeOperar = user?.tipoActor === TipoActor.RECEPCIONISTA;
+  const controles = controlesSegunConexion(!online);
+  const banner = estadoBanner({ sinConexion: !online, snapshotVigente: offline.snapshotVigente, pendientes: offline.pendientes });
+  // Ingresos registrados sin conexión en esta sesión de la pantalla, con su insignia.
+  const [ingresosOffline, setIngresosOffline] = useState<Array<{ id: string; nombre: string; hora: string }>>([]);
+  const [resumenOcultoFecha, setResumenOcultoFecha] = useState<string | null>(null);
 
   // ?modo= permite llegar directo a la cámara o al código desde el panel.
   const modoInicial = searchParams.get('modo');
   const [tab, setTab] = useState<Modo>(modoInicial === 'camara' || modoInicial === 'manual' ? modoInicial : 'codigo');
   const [qrToken, setQrToken] = useState('');
   const [validando, setValidando] = useState(false);
-  const [resultado, setResultado] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  // offline: el resultado salió de la validación local (sin conexión), no del servidor.
+  const [resultado, setResultado] = useState<{ type: 'ok' | 'err'; text: string; offline?: boolean } | null>(null);
   const [codigo, setCodigo] = useState('');
   const [validandoCodigo, setValidandoCodigo] = useState(false);
   const codigoRef = useRef<HTMLInputElement>(null);
@@ -60,6 +108,30 @@ export function ControlAcceso() {
   useEffect(() => {
     if (tab === 'codigo') codigoRef.current?.focus();
   }, [tab]);
+
+  // Con conexión: baja el snapshot de la sede si no hay uno o tiene más de 1 hora, y lo revisa cada tanto.
+  const descargarSnapshot = offline.descargarSnapshot;
+  useEffect(() => {
+    if (!puedeOperar || !sedeId || !online) return;
+    const sede = sedeId;
+    async function asegurarSnapshot() {
+      try {
+        const guardado = await leerSnapshot(sede);
+        if (debeDescargarSnapshot(guardado?.generadoEn ?? null, Date.now())) await descargarSnapshot();
+      } catch {
+        /* sin snapshot nuevo: el banner informa si el que hay está vencido */
+      }
+    }
+    void asegurarSnapshot();
+    const id = setInterval(() => void asegurarSnapshot(), REVISION_SNAPSHOT_MS);
+    return () => clearInterval(id);
+  }, [puedeOperar, sedeId, online, descargarSnapshot]);
+
+  // Al cambiar la conexión se relee el estado local (snapshot vigente, pendientes, resumen).
+  const refrescarOffline = offline.refrescar;
+  useEffect(() => {
+    void Promise.resolve().then(refrescarOffline);
+  }, [online, refrescarOffline]);
 
   const [aforo, setAforo] = useState<{ actual: number; maximo: number } | null>(null);
   const [loadingAforo, setLoadingAforo] = useState(true);
@@ -131,12 +203,17 @@ export function ControlAcceso() {
       setResultado({ type: 'err', text: 'Ingresá el token QR.' });
       return;
     }
-    if (!navigator.onLine) {
-      setResultado({ type: 'err', text: `Sin conexión a internet. ${TEXTO_REQUIERE_CONEXION}` });
-      return;
-    }
     setValidando(true);
     setResultado(null);
+    // Sin conexión: validación local con el snapshot descargado.
+    if (rutaValidacionQr(navigator.onLine) === 'OFFLINE') {
+      try {
+        await validarSinConexion(sedeId, token.trim());
+      } finally {
+        setValidando(false);
+      }
+      return;
+    }
     try {
       const data = await accesoApi.validarIngreso({ qrToken: token.trim(), sedeId });
       // backend devuelve ControlAcceso con usuario y sede poblados
@@ -146,12 +223,35 @@ export function ControlAcceso() {
       void cargarAforo();
       void cargarDentro();
     } catch (e: unknown) {
-      const ax = e as { response?: { data?: { message?: string | string[] } } };
-      const raw = ax.response?.data?.message;
-      const msg = Array.isArray(raw) ? raw.join(', ') : raw ?? 'No se pudo validar el ingreso.';
-      setResultado({ type: 'err', text: msg });
+      // Sin respuesta del servidor (red, timeout) o servidor caído: se valida localmente.
+      // Un 4xx es un rechazo real del servidor y se muestra como tal.
+      if (debePasarAOffline(e, navigator.onLine)) {
+        await validarSinConexion(sedeId, token.trim());
+      } else {
+        const ax = e as { response?: { data?: { message?: string | string[] } } };
+        const raw = ax.response?.data?.message;
+        const msg = Array.isArray(raw) ? raw.join(', ') : raw ?? 'No se pudo validar el ingreso.';
+        setResultado({ type: 'err', text: msg });
+      }
     } finally {
       setValidando(false);
+    }
+  }
+
+  // Valida el QR contra el snapshot local; si corresponde, lo encola para sincronizarlo después.
+  async function validarSinConexion(sede: string, token: string) {
+    const r = await validarIngresoOffline(sede, token);
+    // Primero se relee la cola (pendientes) y recién después se agrega a la lista de la pantalla.
+    await offline.refrescar();
+    if (r.permitido) {
+      setResultado({ type: 'ok', text: r.mensaje, offline: true });
+      setIngresosOffline((prev) => [
+        { id: crypto.randomUUID(), nombre: `${r.nombre} ${r.apellido}`.trim(), hora: new Date().toISOString() },
+        ...prev,
+      ]);
+      setQrToken('');
+    } else {
+      setResultado({ type: 'err', text: r.mensaje, offline: true });
     }
   }
 
@@ -303,6 +403,40 @@ export function ControlAcceso() {
         </div>
       </div>
 
+      {puedeOperar && banner.visible && (
+        <section
+          role="status"
+          aria-label="Estado de la conexión"
+          className={`notice ${banner.tono === 'error' ? 'notice-err' : ''}`}
+          style={{ marginBottom: 14 }}
+        >
+          <strong>{banner.titulo}</strong>
+          {banner.lineas.map((linea) => (
+            <p key={linea} style={{ marginTop: 4 }}>
+              {linea}
+            </p>
+          ))}
+          {offline.pendientes > 0 && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ marginTop: 8 }}
+              onClick={() => void offline.sincronizar()}
+              disabled={!online || offline.sincronizando}
+            >
+              {offline.sincronizando ? 'Sincronizando...' : 'Sincronizar ahora'}
+            </button>
+          )}
+        </section>
+      )}
+
+      {puedeOperar && debeMostrarResumen(offline.resumenUltimaSync, !online, resumenOcultoFecha) && offline.resumenUltimaSync && (
+        <ResumenSincronizacion
+          resumen={offline.resumenUltimaSync}
+          onCerrar={() => setResumenOcultoFecha(offline.resumenUltimaSync?.fecha ?? null)}
+        />
+      )}
+
       <div className="ops-grid" style={puedeOperar ? undefined : { gridTemplateColumns: 'minmax(0, 1fr)' }}>
         {puedeOperar && (
         <div className="stack-gap" style={{ minWidth: 0 }}>
@@ -331,9 +465,9 @@ export function ControlAcceso() {
               ))}
             </div>
 
-            {!online && (
+            {textoRequiereConexion(tab, !online) && (
               <p role="status" style={{ fontSize: 11, marginTop: 10 }}>
-                {TEXTO_REQUIERE_CONEXION} Validar ingresos y registrar egresos se habilita al reconectarte.
+                {textoRequiereConexion(tab, !online)}
               </p>
             )}
 
@@ -372,7 +506,7 @@ export function ControlAcceso() {
                   type="button"
                   className="btn btn-primary"
                   onClick={() => void handleValidar(qrToken)}
-                  disabled={validando || !online}
+                  disabled={validando}
                 >
                   {validando ? 'Validando...' : 'Validar ingreso'}
                 </button>
@@ -394,13 +528,14 @@ export function ControlAcceso() {
                     value={codigo}
                     onChange={(e) => handleCodigoChange(e.target.value)}
                     placeholder="000000"
+                    disabled={controles.codigoDeshabilitado}
                   />
                 </label>
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={() => void handleValidarCodigo(codigo)}
-                  disabled={validandoCodigo || !online || codigo.length !== 6}
+                  disabled={validandoCodigo || controles.codigoDeshabilitado || codigo.length !== 6}
                 >
                   {validandoCodigo ? 'Validando...' : 'Validar código'}
                 </button>
@@ -424,13 +559,14 @@ export function ControlAcceso() {
                     }}
                     placeholder="Sin puntos"
                     style={{ minHeight: 44 }}
+                    disabled={controles.dniDeshabilitado}
                   />
                 </label>
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => void handleBuscarDni()}
-                  disabled={buscandoDni || !online || dni.length < 6}
+                  disabled={buscandoDni || controles.dniDeshabilitado || dni.length < 6}
                 >
                   {buscandoDni ? 'Buscando...' : 'Buscar'}
                 </button>
@@ -466,7 +602,7 @@ export function ControlAcceso() {
                     type="button"
                     className="btn btn-primary"
                     onClick={() => void handleConfirmarDni()}
-                    disabled={confirmandoDni || !online || socioDni.estadoMembresia !== 'VIGENTE'}
+                    disabled={confirmandoDni || controles.dniDeshabilitado || socioDni.estadoMembresia !== 'VIGENTE'}
                   >
                     {confirmandoDni ? 'Registrando...' : 'Confirmar ingreso'}
                   </button>
@@ -477,6 +613,12 @@ export function ControlAcceso() {
             {resultado && (
               <p role="status" className={`notice ${resultado.type === 'ok' ? 'notice-ok' : 'notice-err'}`} style={{ marginTop: 14 }}>
                 {resultado.text}
+                {resultado.offline && (
+                  <span className="badge badge-warning" style={{ marginLeft: 8 }}>
+                    <i />
+                    Sin conexión
+                  </span>
+                )}
               </p>
             )}
           </section>
@@ -511,10 +653,26 @@ export function ControlAcceso() {
           {/* Quién está dentro: resumen (la lista completa vive en su pantalla propia) */}
           <section className="glass panel" aria-label="Quién está dentro">
             <SectionHeader title={`Quién está dentro${totalDentro > 0 ? ` (${totalDentro})` : ''}`} />
+            {ingresosOffline.length > 0 && (
+              <div className="stack-list" aria-label="Ingresos registrados sin conexión">
+                {ingresosOffline.map((i) => (
+                  <div className="list-row" key={i.id}>
+                    <div className="row-main">
+                      <strong>{i.nombre}</strong>
+                      <span>Ingresó {new Date(i.hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} · pendiente de sincronizar</span>
+                    </div>
+                    <span className="badge badge-warning">
+                      <i />
+                      Sin conexión
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             {loadingDentro ? (
               <LoadingState rows={2} label="Cargando" />
             ) : dentro.length === 0 ? (
-              <p style={{ fontSize: 12 }}>No hay nadie registrado dentro en este momento.</p>
+              ingresosOffline.length === 0 && <p style={{ fontSize: 12 }}>No hay nadie registrado dentro en este momento.</p>
             ) : (
               <div className="stack-list">
                 {dentro.map((s) => {
@@ -532,7 +690,7 @@ export function ControlAcceso() {
                         <button
                           className="btn btn-secondary"
                           onClick={() => void handleEgresoDirecto(s.usuario.id, nombre)}
-                          disabled={ocupado || !online}
+                          disabled={ocupado || controles.egresoDeshabilitado}
                         >
                           {ocupado ? 'Registrando...' : 'Egreso'}
                         </button>
@@ -541,6 +699,11 @@ export function ControlAcceso() {
                   );
                 })}
               </div>
+            )}
+            {puedeOperar && controles.egresoDeshabilitado && dentro.length > 0 && (
+              <p role="status" style={{ fontSize: 11, marginTop: 8 }}>
+                {TEXTO_EGRESO_REQUIERE_CONEXION}
+              </p>
             )}
             {totalDentro > dentro.length && (
               <p style={{ fontSize: 11, marginTop: 8 }}>+ {totalDentro - dentro.length} más adentro</p>

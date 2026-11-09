@@ -3194,6 +3194,86 @@
         ]
       }
     },
+    "/acceso/clave-publica": {
+      "get": {
+        "operationId": "AccesoController_obtenerClavePublica",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Clave pública ES256 con la que se firma el QR",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/snapshot/{sedeId}": {
+      "get": {
+        "operationId": "AccesoController_obtenerSnapshot",
+        "parameters": [
+          {
+            "name": "sedeId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Snapshot de acceso de una sede para uso offline",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/sincronizar": {
+      "post": {
+        "operationId": "AccesoController_sincronizar",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SincronizarAccesoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Sincronizar ingresos registrados offline",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
     "/acceso/validar-dni": {
       "post": {
         "operationId": "AccesoController_validarDni",
@@ -4345,6 +4425,49 @@
         "required": [
           "codigo",
           "sedeId"
+        ]
+      },
+      "EventoOfflineDto": {
+        "type": "object",
+        "properties": {
+          "clientEventId": {
+            "type": "string",
+            "description": "Lo genera el terminal: hace idempotente el reenvío",
+            "example": "3f2b8c1e-5d4a-4e7b-9c1a-2b6d8e0f1a34"
+          },
+          "qrToken": {
+            "type": "string",
+            "example": "qr-token-es256"
+          },
+          "ocurridoEn": {
+            "type": "string",
+            "description": "Momento en que el terminal leyó el QR",
+            "example": "2026-10-09T18:00:00.000Z"
+          }
+        },
+        "required": [
+          "clientEventId",
+          "qrToken",
+          "ocurridoEn"
+        ]
+      },
+      "SincronizarAccesoDto": {
+        "type": "object",
+        "properties": {
+          "sedeId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "eventos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventoOfflineDto"
+            }
+          }
+        },
+        "required": [
+          "sedeId",
+          "eventos"
         ]
       },
       "ValidarDniDto": {

@@ -10,6 +10,8 @@ import {
 import { Usuario } from './usuario.entity';
 import { Sede } from './sede.entity';
 
+export type MetodoIngreso = 'QR' | 'CODIGO' | 'DNI' | 'QR_OFFLINE';
+
 @Entity('control_acceso')
 // RN01: un usuario no puede estar en 2 sedes a la vez.
 // Índice único PARCIAL: solo puede existir una fila sin hora_egreso por usuario.
@@ -48,4 +50,16 @@ export class ControlAcceso {
 
   @Column({ name: 'sincronizado_en', type: 'timestamptz', nullable: true })
   sincronizadoEn?: Date;
+
+  // Cómo se registró el ingreso.
+  @Column({
+    name: 'metodo_ingreso',
+    type: 'varchar',
+    length: 12,
+    default: 'QR',
+  })
+  metodoIngreso!: MetodoIngreso;
+
+  @Column({ type: 'text', nullable: true })
+  observacion?: string | null;
 }

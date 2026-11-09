@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { EstadoMembresia, TipoActor } from '../entities/enums';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { AccesoService } from './acceso.service';
+import { ClavesQrService } from './claves-qr.service';
 
 // Sin base real: los repositorios son dobles en memoria. El JwtService es el
 // real (con un secreto de prueba) para que firma y vencimiento se verifiquen
@@ -137,6 +138,7 @@ function armar(opts: Opciones = {}) {
     sedesRepo as never,
     membresiasRepo as never,
     jwt,
+    new ClavesQrService({ get: () => undefined } as never),
   );
   return { service, jwt, accesoRepo, sesiones };
 }
