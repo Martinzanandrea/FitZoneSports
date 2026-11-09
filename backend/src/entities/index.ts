@@ -3,6 +3,7 @@ export * from './sede.entity';
 export * from './usuario.entity';
 export * from './membresia.entity';
 export * from './control-acceso.entity';
+export * from './evento-acceso-offline.entity';
 export * from './instructor.entity';
 export * from './clase.entity';
 export * from './clase-horario-semanal.entity';
@@ -25,6 +26,7 @@ import { Sede } from './sede.entity';
 import { Usuario } from './usuario.entity';
 import { Membresia } from './membresia.entity';
 import { ControlAcceso } from './control-acceso.entity';
+import { EventoAccesoOffline } from './evento-acceso-offline.entity';
 import { Instructor } from './instructor.entity';
 import { Clase } from './clase.entity';
 import { ClaseHorarioSemanal } from './clase-horario-semanal.entity';
@@ -47,6 +49,7 @@ export const ALL_ENTITIES = [
   Usuario,
   Membresia,
   ControlAcceso,
+  EventoAccesoOffline,
   Instructor,
   Clase,
   ClaseHorarioSemanal,

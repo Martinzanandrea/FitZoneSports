@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
 import { AccesoService } from './acceso.service';
 import { AccesoController } from './acceso.controller';
+import { ClavesQrService } from './claves-qr.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { AccesoController } from './acceso.controller';
     }),
   ],
   controllers: [AccesoController],
-  providers: [AccesoService],
+  providers: [AccesoService, ClavesQrService],
   exports: [AccesoService],
 })
 export class AccesoModule {}

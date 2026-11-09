@@ -78,6 +78,27 @@ export class AccesoController {
     return this.accesoService.validarCodigo(dto.codigo, dto.sedeId, user);
   }
 
+  // El terminal verifica el QR sin servidor con esta clave pública (JWK).
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE)
+  @Get('clave-publica')
+  @ApiOperation({ summary: 'Clave pública ES256 con la que se firma el QR' })
+  obtenerClavePublica() {
+    return this.accesoService.obtenerClavePublica();
+  }
+
+  // Datos de la sede para validar QR sin conexión durante 24 h.
+  @Roles(TipoActor.RECEPCIONISTA, TipoActor.GERENTE_SEDE)
+  @Auditable('DESCARGA_SNAPSHOT_ACCESO', 'Sede')
+  @Get('snapshot/:sedeId')
+  @ApiOperation({ summary: 'Snapshot de acceso de una sede para uso offline' })
+  @ApiParam({ name: 'sedeId', description: 'UUID de la sede' })
+  obtenerSnapshot(
+    @Param('sedeId', ParseUUIDPipe) sedeId: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.accesoService.obtenerSnapshot(sedeId, user);
+  }
+
   // Ingreso manual por DNI: alternativa cuando el socio no puede mostrar su QR.
   // Queda en la auditoría como INGRESO_MANUAL_DNI, con el actor que lo hizo.
   @Roles(

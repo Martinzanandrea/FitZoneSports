@@ -6,10 +6,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, MoreThan, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { randomInt, randomUUID } from 'crypto';
 import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
+import type { MetodoIngreso } from '../entities/control-acceso.entity';
 import { EstadoMembresia, TipoActor } from '../entities/enums';
 import { estadoDesde } from '../membresias/estado-membresia';
 import {
@@ -23,6 +24,7 @@ import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
+import { ClavesQrService, type ClavePublicaQr } from './claves-qr.service';
 
 interface QrPayload {
   usuarioId: string;
@@ -38,6 +40,9 @@ interface CodigoCorto {
   expiraEnMs: number;
 }
 
+// El snapshot offline vale 24 horas desde que se genera.
+const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000;
+
 // 60 segundos, igual que el QR (ambos se generan y vencen juntos).
 const CODIGO_CORTO_TTL_MS = 60_000;
 
@@ -50,6 +55,24 @@ export interface VistaPreviaSocio {
   apellido: string;
   fotoUrl: string | null;
   estadoMembresia: EstadoMembresiaVista;
+}
+
+// Lo que el terminal descarga para validar QR sin servidor. Solo los campos
+// mínimos: nada de DNI, email, teléfono, foto ni plan.
+export interface SnapshotAcceso {
+  sedeId: string;
+  generadoEn: string;
+  venceEn: string;
+  clave: ClavePublicaQr;
+  aforo: { actual: number; maximo: number };
+  dentro: string[];
+  socios: Array<{
+    id: string;
+    nombre: string;
+    apellido: string;
+    desde: string;
+    hasta: string;
+  }>;
 }
 
 export interface ResumenAccesoSede {
@@ -79,6 +102,7 @@ export class AccesoService {
     @InjectRepository(Membresia)
     private readonly membresiasRepo: Repository<Membresia>,
     private readonly jwtService: JwtService,
+    private readonly claves: ClavesQrService,
   ) {}
 
   // RF-04: el QR de acceso es exclusivo de Socios con membresía activa.
@@ -123,7 +147,20 @@ export class AccesoService {
       tipo: 'qr-acceso',
       jti: randomUUID(),
     };
-    const qrToken = this.jwtService.sign(payload, { expiresIn: '60s' });
+    // Con clave ES256 el terminal puede verificar el QR sin servidor; sin ella
+    // se sigue firmando HS256 con JWT_SECRET.
+    const clave = this.claves.publica;
+    const qrToken =
+      this.claves.clavePrivada && clave
+        ? this.jwtService.sign(payload, {
+            expiresIn: '60s',
+            // `secret` y no `privateKey`: @nestjs/jwt prefiere el secret del módulo
+            // (HS256) sobre privateKey, y no queremos tocar el JwtModule.
+            secret: this.claves.clavePrivada,
+            algorithm: 'ES256',
+            keyid: clave.kid,
+          })
+        : this.jwtService.sign(payload, { expiresIn: '60s' });
     const codigoCorto = this.generarCodigoCortoUnico();
     this.codigosCortos.set(codigoCorto, {
       usuarioId,
@@ -144,10 +181,7 @@ export class AccesoService {
 
   private generarCodigoCortoUnico(): string {
     for (let i = 0; i < 10; i++) {
-      const codigo = String(randomInt(0, 1_000_000)).padStart(
-        6,
-        '0',
-      );
+      const codigo = String(randomInt(0, 1_000_000)).padStart(6, '0');
       if (!this.codigosCortos.has(codigo)) return codigo;
     }
     throw new ConflictException('No se pudo generar un código, reintentá');
@@ -196,6 +230,114 @@ export class AccesoService {
     };
   }
 
+  // La cabecera se lee sin confiar en ella: solo decide con qué clave se
+  // verifica, y cada camino fija su algoritmo (nunca 'none' ni otro).
+  private verificarQr(qrToken: string): QrPayload {
+    const invalido = new BadRequestException('QR inválido o expirado');
+    const decodificado = this.jwtService.decode<{
+      header?: { alg?: string };
+    } | null>(qrToken, { complete: true });
+    const alg = decodificado?.header?.alg;
+    try {
+      if (alg === 'ES256') {
+        const publica = this.claves.claveVerificacion;
+        if (!publica) throw invalido;
+        return this.jwtService.verify<QrPayload>(qrToken, {
+          secret: publica,
+          algorithms: ['ES256'],
+        });
+      }
+      if (alg === 'HS256') {
+        return this.jwtService.verify<QrPayload>(qrToken, {
+          algorithms: ['HS256'],
+        });
+      }
+    } catch {
+      throw invalido;
+    }
+    throw invalido;
+  }
+
+  obtenerClavePublica(): ClavePublicaQr {
+    const clave = this.claves.publica;
+    if (!clave) {
+      throw new NotFoundException('No hay clave de acceso offline disponible');
+    }
+    return clave;
+  }
+
+  // Datos para validar QR sin conexión durante 24 h: clave pública, aforo,
+  // quiénes están dentro y los socios con membresía vigente de toda la red.
+  async obtenerSnapshot(
+    sedeId: string,
+    currentUser: UsuarioAutenticado,
+  ): Promise<SnapshotAcceso> {
+    assertSedeScope(currentUser, sedeId);
+    const sede = await this.sedesRepo.findOne({ where: { id: sedeId } });
+    if (!sede) throw new NotFoundException(`Sede ${sedeId} no encontrada`);
+    const clave = this.claves.publica;
+    if (!clave) {
+      throw new NotFoundException('No hay clave de acceso offline disponible');
+    }
+
+    const hoy = hoyArgentina();
+    const [actual, abiertas, membresias] = await Promise.all([
+      this.accesoRepo
+        .createQueryBuilder('a')
+        .where('a.sede_id = :sedeId', { sedeId })
+        .andWhere('a.hora_egreso IS NULL')
+        .getCount(),
+      this.accesoRepo
+        .createQueryBuilder('a')
+        .select('a.usuario_id', 'usuarioId')
+        .where('a.hora_egreso IS NULL')
+        .getRawMany<{ usuarioId: string }>(),
+      this.membresiasRepo.find({
+        where: {
+          estado: EstadoMembresia.ACTIVO,
+          fechaFin: MoreThan(hoy),
+          usuario: { activo: true, tipoActor: TipoActor.SOCIO },
+        },
+        relations: { usuario: true },
+        select: {
+          id: true,
+          fechaInicio: true,
+          fechaFin: true,
+          usuario: { id: true, nombre: true, apellido: true },
+        },
+        order: { fechaInicio: 'ASC' },
+      }),
+    ]);
+
+    // Una fila por socio: la vigente hoy y, si no tiene, la próxima.
+    const porSocio = new Map<string, Membresia>();
+    for (const m of membresias) {
+      if (!esVigente(m, hoy) && !esProxima(m, hoy)) continue;
+      // Orden por inicio: la vigente pisa a la anterior; la próxima solo entra
+      // si el socio no tiene otra fila.
+      if (esVigente(m, hoy) || !porSocio.has(m.usuario.id)) {
+        porSocio.set(m.usuario.id, m);
+      }
+    }
+
+    const generado = new Date();
+    return {
+      sedeId,
+      generadoEn: generado.toISOString(),
+      venceEn: new Date(generado.getTime() + SNAPSHOT_TTL_MS).toISOString(),
+      clave,
+      aforo: { actual, maximo: sede.aforoMaximo },
+      dentro: abiertas.map((a) => a.usuarioId),
+      socios: [...porSocio.values()].map((m) => ({
+        id: m.usuario.id,
+        nombre: m.usuario.nombre,
+        apellido: m.usuario.apellido,
+        desde: m.fechaInicio,
+        hasta: m.fechaFin,
+      })),
+    };
+  }
+
   // RN01 + RF04/RF05: valida el QR, chequea aforo, y ahora también
   // que el recepcionista que valida pertenezca a ESA sede (o sea Gerente).
   async validarIngreso(
@@ -203,12 +345,7 @@ export class AccesoService {
     sedeId: string,
     currentUser: UsuarioAutenticado,
   ): Promise<ControlAcceso> {
-    let payload: QrPayload;
-    try {
-      payload = this.jwtService.verify<QrPayload>(qrToken);
-    } catch {
-      throw new BadRequestException('QR inválido o expirado');
-    }
+    const payload = this.verificarQr(qrToken);
     if (payload.tipo !== 'qr-acceso') {
       throw new BadRequestException('QR inválido');
     }
@@ -236,6 +373,7 @@ export class AccesoService {
         sedeId,
         currentUser,
         'Usuario del QR no encontrado',
+        'QR',
       );
     } catch (err) {
       if (jti) this.qrUsados.delete(jti);
@@ -261,6 +399,7 @@ export class AccesoService {
       sedeId,
       currentUser,
       'Usuario del código no encontrado',
+      'CODIGO',
     );
     // Un solo uso: recién se borra con la validación exitosa.
     this.codigosCortos.delete(codigo);
@@ -275,6 +414,7 @@ export class AccesoService {
     sedeId: string,
     currentUser: UsuarioAutenticado,
     mensajeUsuarioNoEncontrado: string,
+    metodo: MetodoIngreso,
   ): Promise<ControlAcceso> {
     assertSedeScope(currentUser, sedeId);
 
@@ -308,7 +448,11 @@ export class AccesoService {
       );
     }
 
-    const registro = this.accesoRepo.create({ usuario, sede });
+    const registro = this.accesoRepo.create({
+      usuario,
+      sede,
+      metodoIngreso: metodo,
+    });
     try {
       return await this.accesoRepo.save(registro);
     } catch (err) {
@@ -380,6 +524,7 @@ export class AccesoService {
       sedeId,
       currentUser,
       'Socio no encontrado',
+      'DNI',
     );
   }
 

@@ -3194,6 +3194,56 @@
         ]
       }
     },
+    "/acceso/clave-publica": {
+      "get": {
+        "operationId": "AccesoController_obtenerClavePublica",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Clave pública ES256 con la que se firma el QR",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
+    "/acceso/snapshot/{sedeId}": {
+      "get": {
+        "operationId": "AccesoController_obtenerSnapshot",
+        "parameters": [
+          {
+            "name": "sedeId",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Snapshot de acceso de una sede para uso offline",
+        "tags": [
+          "Acceso"
+        ]
+      }
+    },
     "/acceso/validar-dni": {
       "post": {
         "operationId": "AccesoController_validarDni",

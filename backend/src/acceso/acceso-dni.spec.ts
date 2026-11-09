@@ -143,6 +143,7 @@ function armar(opts: Opciones = {}) {
     sedesRepo as never,
     membresiasRepo as never,
     {} as never,
+    { publica: null, clavePrivada: null } as never,
   );
   return { service, accesoRepo, usuariosRepo, sesiones };
 }

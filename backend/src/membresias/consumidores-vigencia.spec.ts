@@ -62,6 +62,7 @@ describe('acceso por QR', () => {
       {} as never,
       repoMembresias(filas) as never,
       { sign: jest.fn().mockReturnValue('jwt') } as never,
+      { publica: null, clavePrivada: null } as never,
     );
 
   it('con vigente + próxima genera el QR', async () => {

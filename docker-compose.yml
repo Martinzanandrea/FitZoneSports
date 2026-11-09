@@ -47,6 +47,8 @@ services:
       DB_SSL: "false"
       JWT_SECRET: ${JWT_SECRET:-solo-para-desarrollo-local-cambiar}
       JWT_EXPIRATION: 8h
+      # Par de claves ES256 del QR efímero (solo desarrollo): se regenera al reiniciar.
+      QR_CLAVE_EFIMERA: "true"
       SEED: "true"
       STORAGE_PROVIDER: local
       STORAGE_LOCAL_DIR: /app/archivos

@@ -2,6 +2,7 @@ import { ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DataSource } from 'typeorm';
 import { AccesoService } from '../../src/acceso/acceso.service';
+import { ClavesQrService } from '../../src/acceso/claves-qr.service';
 import { ControlAcceso, Membresia, Sede, Usuario } from '../../src/entities';
 import { TipoActor } from '../../src/entities/enums';
 import type { UsuarioAutenticado } from '../../src/auth/types/usuario-autenticado.type';
@@ -33,6 +34,7 @@ describe('RN-01: un socio no puede estar en dos sedes a la vez (Postgres real)',
       ds.getRepository(Sede),
       ds.getRepository(Membresia),
       new JwtService({ secret: 'secreto-de-integracion' }),
+      new ClavesQrService({ get: () => undefined } as never),
     );
     sedeA = await crearSede(ds);
     sedeB = await crearSede(ds);
