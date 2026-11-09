@@ -62,15 +62,15 @@ numeración de ADRs con gaps tras varias iteraciones; se resolvió con renumerac
 
 **Actividad**
 
-M2 Gimnasio y Acceso (FT1-37, RF-04/RF-05/RN-01): QR dinámico de 60s + código corto de 6 dígitos de un solo uso, doble chequeo de membresía activa al generar y validar, aforo con conteo de sesiones abiertas y sesión única por usuario.
+Definición de las reglas del módulo de Gimnasio y Acceso (RF-04, RF-05, RN-01) junto con Martín: QR dinámico que vence a los 60 segundos, código corto de 6 dígitos de un solo uso como alternativa, control de aforo por sede y sesión única por usuario. Martín implementó el módulo; yo lo probé con cuentas de prueba (generación del QR, validación por código y aforo) y le reporté los ajustes necesarios.
 
 **Decisión**
 
-JWT firmado de corta vida + revalidación en servidor en vez de QR estático.
+JWT firmado de corta vida con revalidación en el servidor, en vez de un QR estático que se puede fotografiar y compartir.
 
 **Problema o bloqueo**
 
-la ventana de 60s entre generar y validar obligó al doble chequeo de membresía; aforo resuelto con índice parcial sobre sesiones abiertas.
+La ventana de 60 s entre que se genera el QR y se valida obligó a chequear la membresía dos veces, porque puede vencer en el medio. El aforo se resolvió contando las sesiones abiertas, con un índice parcial.
 
 **Commits**
 
@@ -85,15 +85,15 @@ la ventana de 60s entre generar y validar obligó al doble chequeo de membresía
 
 **Actividad**
 
-M5 Pagos (FT1-40, RF-13/RF-14) y módulos de soporte (FT1-42: sedes, franjas, precios, instructores): pasarela mock con token, membresía creada solo con pago APROBADO en la misma transacción, promoción EXTERNO→SOCIO, comprobante PDF 1:1 por pago; catálogo de tipos de cancha y ABM de sedes con franjas.
+Definición con Martín del funcionamiento de los pagos (RF-13, RF-14) y de los módulos de soporte (sedes, franjas, precios e instructores): pasarela simulada que devuelve un token, membresía creada solo con el pago aprobado, paso de externo a socio y comprobante PDF por pago. Martín los implementó; yo los probé con cuentas de prueba (pago de membresía, pago de cancha, comprobante, alta de sedes y precios).
 
 **Decisión**
 
-montos siempre calculados en servidor y clases incluidas en membresía (RN-03).
+Los montos se calculan siempre en el servidor, y las clases vienen incluidas en la membresía (RN-03).
 
 **Problema o bloqueo**
 
-el doble cobro concurrente se resolvió con lock pesimista + verificación de pago existente (409 al segundo intento).
+El doble clic al pagar podía cobrar dos veces. Martín lo resolvió con un bloqueo de la fila y verificando si ya había un pago (el segundo intento recibe 409); en las pruebas verifiqué que no se duplica el cobro.
 
 **Commits**
 
@@ -133,15 +133,15 @@ el detalle JSON guardaba tokens; se agregó redacción automática de secretos +
 
 **Actividad**
 
-Justificación escrita de los tres patrones GoF aplicados (FT1-26): Strategy en pricing dinámico (RF-11), Observer en lista de espera (RF-08) y Repository con lock pesimista anti-sobreventa (RN-02), con refactor a forma canónica (Strategy con array inyectado por token PRICING_STRATEGIES, Repository con interfaz + implementación in-memory para tests).
+Definí con Martín cómo armar el documento de justificación de los tres patrones GoF: Strategy en el precio dinámico (RF-11), Observer en la lista de espera (RF-08) y Repository con bloqueo pesimista contra la sobreventa (RN-02). Para cada uno, qué problema resuelve, por qué se eligió frente a las alternativas y qué costo tiene. La redacción la hizo casi toda Martín.
 
 **Decisión**
 
-documentar por qué cada patrón y qué alternativa se descartó.
+Documentar para cada patrón el porqué y la alternativa descartada, en lugar de solo describir la implementación.
 
 **Problema o bloqueo**
 
-la primera versión no era polimórfica real; se refactorizó a forma canónica y se verificó sin regresiones.
+Al repasar los patrones para justificarlos noté que la primera versión de Strategy no era polimórfica de verdad, porque el calculador conocía las clases concretas. Se lo planteé a Martín, que hizo el refactor a la forma canónica: arreglo de estrategias inyectado por el token PRICING_STRATEGIES y Repository con interfaz e implementación en memoria para las pruebas.
 
 **Commits**
 
@@ -158,15 +158,15 @@ la primera versión no era polimórfica real; se refactorizó a forma canónica 
 
 **Actividad**
 
-Pantallas públicas del home/inicio y catálogos (FT1-48, Listo): landing multi-página (/, /clases, /canchas, /sedes, /nosotros) con nav compartido. Fix propio del nav que no volvía arriba al cambiar de ruta (componente ScrollToTop global).
+Definí con Martín el contenido y el diseño de la landing pública multipágina (inicio, clases, canchas, sedes, nosotros, con navegación compartida), que programó él. Al probar la navegación encontré que al cambiar de ruta la página no volvía arriba, y lo arreglé con un componente global ScrollToTop.
 
 **Decisión**
 
-layout público único (PublicLayout) en vez de repetir nav en cada página; fix global en vez de parchar página por página.
+Un layout público único (PublicLayout) en vez de repetir la navegación en cada página, y un arreglo global del scroll en vez de parchear página por página.
 
 **Problema o bloqueo**
 
-react-router conserva el scroll entre rutas y no había ningún manejo de scroll en el frontend; se diagnosticó reproduciendo scroll + clic contra recarga.
+React Router conserva el scroll entre rutas y el frontend no tenía ningún manejo de scroll. Lo diagnostiqué comparando el scroll más un clic contra una recarga de la página.
 
 **Commits**
 
@@ -203,15 +203,15 @@ el build marcó dos errores tras el move (rutas relativas e import de barrel); s
 
 **Actividad**
 
-Cierre de FT1-50 rol Gerente de Sede (FT1-53 pantallas; endpoints FT1-51 de MZ y BD FT1-52 de TA, ya en main): login con cuenta de prueba, panel propio y las 10 pantallas del rol (personal, canchas, clases, reservas, reportes, pagos, membresías, instructores, acceso) cargando datos de su sede, sin 403 ni blancos.
+Discutí con Martín las pantallas del nuevo rol Gerente de Sede, que programó él. Las verifiqué con una cuenta de prueba: login, panel propio y las 10 pantallas del rol (personal, canchas, clases, reservas, reportes, pagos, membresías, instructores y acceso), cargando los datos de su sede.
 
 **Decisión**
 
-cerrar como Listo con verificación funcional por rol en vez de solo inspección de código.
+Cerrar la tarea como Listo después de una verificación funcional por rol, y no solo revisando el código.
 
 **Problema o bloqueo**
 
-sin bloqueantes: se verificó además el scope por sede (el GS solo ve datos de su sede en personal, reservas y reportes).
+En la verificación encontré algunas cosas para corregir y se las pasé a Martín. También revisé el alcance por sede: el gerente de sede solo ve datos de su sede en personal, reservas y reportes.
 
 **Commits**
 
