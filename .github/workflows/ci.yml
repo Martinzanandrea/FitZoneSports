@@ -28,7 +28,9 @@ jobs:
       - name: Verificar tipos
         run: npx tsc --noEmit
 
-      - name: Pruebas con informe de cobertura
+      # Falla si la cobertura queda por debajo del umbral de package.json
+      # (coverageThreshold, ver ADR-008).
+      - name: Pruebas unitarias con umbral de cobertura
         run: npm test -- --coverage
 
       - name: Compilar
@@ -41,6 +43,86 @@ jobs:
           name: cobertura-servidor
           path: server/coverage
           if-no-files-found: ignore
+
+  integracion:
+    name: Servidor (integración contra Postgres)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fitzone_integracion
+          POSTGRES_USER: fitzone
+          POSTGRES_PASSWORD: fitzone-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fitzone"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      INTEGRACION_DB: "true"
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USERNAME: fitzone
+      DB_PASSWORD: fitzone-ci
+      DB_NAME: fitzone_integracion
+      DB_SSL: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Las migraciones se aplican desde cero en la base del servicio y luego
+      # corren las pruebas de RN-01, RN-02 y cupo de clases con concurrencia real.
+      - name: Pruebas de integración (RN-01, RN-02)
+        run: npm run test:integracion
+
+      - name: Migraciones reversibles (revertir todo y volver a subir)
+        run: |
+          node db/migrar.js revertir 999
+          node db/migrar.js subir
+          node db/migrar.js seed
+
+  docker:
+    name: Docker compose (levanta y responde)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Mismo comando que el manual de instalación; --wait espera los healthcheck.
+      - name: docker compose up --build
+        run: docker compose up -d --build --wait --wait-timeout 300
+
+      - name: Verificar portal, API, Swagger y datos de prueba
+        run: |
+          curl -fsS http://localhost:8080/ > /dev/null
+          curl -fsS http://localhost:3000/api > /dev/null
+          curl -fsS -c cookies -H 'content-type: application/json' \
+            -d '{"email":"gerente@fitzone.test","password":"FitZone2026!"}' \
+            http://localhost:8080/api/auth/login > /dev/null
+          SEDES=$(curl -fsS -b cookies 'http://localhost:8080/api/sedes?limit=100' | jq '.total')
+          echo "Sedes cargadas: $SEDES"
+          test "$SEDES" -ge 25
+
+      - name: Logs de los contenedores
+        if: failure()
+        run: docker compose logs
+
+      - name: Bajar el entorno
+        if: always()
+        run: docker compose down -v
 
   cliente:
     name: Cliente (tipos y build)
