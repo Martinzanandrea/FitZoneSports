@@ -29,7 +29,7 @@ que cambiar de proveedor implicaba modificarlos.
 
 ## Decisión
 
-Se introduce la abstracción `EnviadorCorreo` (`server/src/common/mail/`), con
+Se introduce la abstracción `EnviadorCorreo` (`backend/src/common/mail/`), con
 un único método `enviar({ para, asunto, html, texto? })`, y dos
 implementaciones:
 
@@ -86,7 +86,7 @@ RF-01, RF-08
   propio.
 - La API key de Brevo vive únicamente en las variables de entorno de Render
   (y en el `.env` local, que no se versiona). Se documentan los nombres de
-  las variables en `server/.env.example`, sin valores.
+  las variables en `backend/.env.example`, sin valores.
 - Gmail SMTP queda restringido a desarrollo local: en producción debe
   configurarse `MAIL_PROVIDER=brevo`.
 - El envío por Brevo se verificó con pruebas unitarias con `fetch` simulado.

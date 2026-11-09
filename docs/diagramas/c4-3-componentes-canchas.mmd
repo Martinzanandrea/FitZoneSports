@@ -6,7 +6,7 @@ C4Component
 
   Container(spa, "Portal / Consola", "React", "ReservarCanchas, CanchasPage, GestionReservasCanchas")
 
-  Container_Boundary(m4, "server/src/canchas") {
+  Container_Boundary(m4, "backend/src/canchas") {
     Component(ctrlCanchas, "CanchasController, TiposCanchaController", "Controladores Nest", "Canchas por sede (RF-09), mantenimiento y bloqueos (RF-12), catálogo de tipos.")
     Component(ctrlReservas, "ReservasCanchaController", "Controlador Nest", "POST /reservas-cancha, /cotizar, /:id/cancelar; grilla de turnos (RF-10).")
     Component(svcReservas, "ReservasCanchaService", "Facade", "Existencia, scope por sede, turno válido, precio y creación segura.")

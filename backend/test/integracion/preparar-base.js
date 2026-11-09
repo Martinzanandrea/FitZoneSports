@@ -15,7 +15,7 @@ module.exports = async () => {
         'Definí INTEGRACION_DB=true para confirmar que es una base de pruebas.',
     );
   }
-  // Las variables tienen que venir del entorno (no de server/.env, que apunta
+  // Las variables tienen que venir del entorno (no de backend/.env, que apunta
   // a Supabase) y nunca a un host de Supabase.
   const host = process.env.DB_HOST ?? '';
   if (!host || !process.env.DB_NAME || host.includes('supabase')) {

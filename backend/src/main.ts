@@ -3,11 +3,11 @@ import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { SwaggerModule } from '@nestjs/swagger';
-import { crearDocumentoSwagger } from './swagger';
 import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
 import { static as servirEstaticos } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { crearConfigSwagger } from './swagger.config';
 import {
   RUTA_ARCHIVOS_LOCALES,
   directorioArchivosLocales,
@@ -46,9 +46,10 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   // Swagger UI en /api, fuera de producción. El mismo documento se exporta a
-  // swagger.json con npm run swagger:exportar.
+  // swagger.json con npm run swagger:export.
   if (process.env.NODE_ENV !== 'production') {
-    SwaggerModule.setup('api', app, crearDocumentoSwagger(app));
+    const documento = SwaggerModule.createDocument(app, crearConfigSwagger());
+    SwaggerModule.setup('api', app, documento);
   }
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 

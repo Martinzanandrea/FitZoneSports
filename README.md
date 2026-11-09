@@ -40,10 +40,12 @@ Patrones de diseño aplicados:
 
 ## Estructura del repositorio
 
-Monorepo con dos aplicaciones independientes: `server/` (API NestJS) y `client/` (SPA React). La documentación técnica y los Architecture Decision Records viven en `docs/`.
+Monorepo con dos aplicaciones independientes: `backend/` (API NestJS) y `frontend/` (SPA React). La documentación técnica y los Architecture Decision Records viven en `docs/`.
 
 ## Notificaciones
 
-Los avisos salen por canales independientes (Factory/Strategy en `server/src/notificaciones/`): `PANEL` (campanita), `EMAIL` y `PUSH` (Web Push con VAPID).
+Los avisos salen por canales independientes (Factory/Strategy en `backend/src/notificaciones/`): `PANEL` (campanita), `EMAIL` y `PUSH` (Web Push con VAPID).
 
 ## Licencia
+
+Este proyecto se distribuye bajo la licencia MIT, a nombre de "Equipo FitZone Sports" (2026). El texto completo está en [`LICENSE`](LICENSE).

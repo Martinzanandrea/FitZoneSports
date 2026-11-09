@@ -7,7 +7,7 @@
 
 ## Contexto
 
-El sistema está desplegado desde el sprint 3 en planes gratuitos: el portal en Vercel, la API en Render y la base y los archivos en Supabase. La entrega exige además que alguien ajeno al equipo pueda levantar todo con `docker compose up --build`, con esquema y datos de prueba, y un procedimiento documentado de reversión. Hasta ahora no había Dockerfiles, el esquema se aplicaba a mano en el editor SQL de Supabase y los scripts de `server/db/sql` no reproducían la base real en una base vacía.
+El sistema está desplegado desde el sprint 3 en planes gratuitos: el portal en Vercel, la API en Render y la base y los archivos en Supabase. La entrega exige además que alguien ajeno al equipo pueda levantar todo con `docker compose up --build`, con esquema y datos de prueba, y un procedimiento documentado de reversión. Hasta ahora no había Dockerfiles, el esquema se aplicaba a mano en el editor SQL de Supabase y los scripts de `backend/db/sql` no reproducían la base real en una base vacía.
 
 ## Alternativas consideradas
 
@@ -20,7 +20,7 @@ El sistema está desplegado desde el sprint 3 en planes gratuitos: el portal en 
 
 ## Decisión
 
-**Producción:** Vercel (portal, con `/api` reenviado a la API), Render (API) y Supabase (Postgres y Storage), con despliegue automático al hacer merge en `main` después del CI. **Desarrollo y corrección:** `docker-compose.yml` en la raíz con tres contenedores (Postgres 17, API y portal servido por nginx con el mismo reenvío de `/api`); la API aplica las migraciones pendientes y carga los datos de prueba al arrancar, y guarda archivos en un volumen (ADR-023). **Migraciones:** `server/db/migrar.js` aplica los scripts `db/sql/NNN-*.sql` en orden y registra cada uno en `schema_migraciones`; cada uno tiene su reversión en `db/sql/reversion/NNN-*.down.sql`. **Reversión:** (1) aplicación: volver al despliegue anterior desde el panel de Render ("Rollback") y de Vercel ("Promote" del deployment previo), o `git revert` del merge; (2) base: `npm run db:revertir` deshace la última migración (o `revertir N`), previa copia de seguridad.
+**Producción:** Vercel (portal, con `/api` reenviado a la API), Render (API) y Supabase (Postgres y Storage), con despliegue automático al hacer merge en `main` después del CI. **Desarrollo y corrección:** `docker-compose.yml` en la raíz con tres contenedores (Postgres 17, API y portal servido por nginx con el mismo reenvío de `/api`); la API aplica las migraciones pendientes y carga los datos de prueba al arrancar, y guarda archivos en un volumen (ADR-023). **Migraciones:** `backend/db/migrar.js` aplica los scripts `db/sql/NNN-*.sql` en orden y registra cada uno en `schema_migraciones`; cada uno tiene su reversión en `db/sql/reversion/NNN-*.down.sql`. **Reversión:** (1) aplicación: volver al despliegue anterior desde el panel de Render ("Rollback") y de Vercel ("Promote" del deployment previo), o `git revert` del merge; (2) base: `npm run db:revertir` deshace la última migración (o `revertir N`), previa copia de seguridad.
 
 ## Consecuencias
 

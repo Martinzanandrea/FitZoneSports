@@ -5,7 +5,7 @@
 // registra cada uno en la tabla schema_migraciones. La reversión de cada
 // migración vive en db/sql/reversion/NNN-*.down.sql.
 //
-// Uso (desde server/):
+// Uso (desde backend/):
 //   node db/migrar.js subir              aplica todas las pendientes
 //   node db/migrar.js revertir [n]       revierte las últimas n (por defecto 1)
 //   node db/migrar.js estado             lista aplicadas y pendientes
@@ -16,7 +16,7 @@
 //                                        como la de Supabase)
 //
 // Toma la conexión de las mismas variables que la API (DB_HOST, DB_PORT,
-// DB_USERNAME, DB_PASSWORD, DB_NAME, DB_SSL) y lee server/.env si existe.
+// DB_USERNAME, DB_PASSWORD, DB_NAME, DB_SSL) y lee backend/.env si existe.
 //
 // Los scripts de diagnóstico (nombre con "diagnostico") son consultas de solo
 // lectura para correr a mano: no son migraciones y se saltean.

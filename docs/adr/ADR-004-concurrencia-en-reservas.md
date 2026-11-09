@@ -24,7 +24,7 @@ Usamos **bloqueo pesimista** dentro de una transacción: `TypeOrmBookingCanchaRe
 
 ## Consecuencias
 
-- **Positivas:** RN-02 verificada contra Postgres real: 10 reservas simultáneas confirman exactamente una (`server/test/integracion/reserva-cancha.int-spec.ts`); el lock es por cancha, así que otras canchas no esperan; una reserva cancelada libera el horario porque el índice es parcial.
+- **Positivas:** RN-02 verificada contra Postgres real: 10 reservas simultáneas confirman exactamente una (`backend/test/integracion/reserva-cancha.int-spec.ts`); el lock es por cancha, así que otras canchas no esperan; una reserva cancelada libera el horario porque el índice es parcial.
 - **Negativas:** las reservas de la misma cancha se serializan; el índice cubre igualdad de hora de inicio, por lo que turnos superpuestos con distinto inicio dependen del lock y de que los turnos sean de una hora en punto (`turnos-cancha.ts`).
 - **Deuda asumida:** si se permitieran turnos de duración libre, habría que reemplazar el índice por una restricción de exclusión sobre el rango horario (como la de membresías).
 

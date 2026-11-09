@@ -1,4 +1,4 @@
-// Debe reflejar EXACTAMENTE los enums de server/src/entities/enums.ts
+// Debe reflejar EXACTAMENTE los enums de backend/src/entities/enums.ts
 
 export const TipoActor = {
   SOCIO: 'SOCIO',

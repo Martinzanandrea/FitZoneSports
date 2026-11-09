@@ -12,7 +12,7 @@ C4Component
     Component(cola, "Cola de ingresos offline (propuesto)", "IndexedDB", "Ingresos validados sin conexión, con id idempotente.")
   }
 
-  Container_Boundary(m2, "server/src/acceso") {
+  Container_Boundary(m2, "backend/src/acceso") {
     Component(ctrl, "AccesoController", "Controlador Nest", "qr/:id, validar, validar-codigo, validar-dni, egreso, aforo, dentro/:sedeId.")
     Component(svc, "AccesoService", "Servicio", "Genera el QR (JWT de 60 s con jti) y registra ingresos (RF-04, RF-05).")
     Component(jwt, "JwtService", "@nestjs/jwt", "Firma y verifica el QR.")

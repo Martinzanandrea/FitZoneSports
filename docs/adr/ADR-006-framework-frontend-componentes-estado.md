@@ -20,7 +20,7 @@ El sistema tiene dos caras: el portal responsive del socio y la consola de admin
 
 ## Decisión
 
-Usamos **React 19 con Vite y TypeScript**, estilos con **Tailwind CSS 4** y un catálogo propio organizado con **Atomic Design** en `client/src/shared/components/` (`atoms/`, `molecules/`, `organisms/`, documentado en su README). El **estado global** es la sesión, en `AuthContext` (usuario, rol, sede, sincronizado entre pestañas); el resto del estado vive en cada pantalla. La comunicación con la API está aislada en una **capa de servicio** por módulo (`modules/*/*.api.ts`) sobre una única instancia de axios (`api/axios.ts`) que maneja cookie de sesión, timeouts y sesión vencida.
+Usamos **React 19 con Vite y TypeScript**, estilos con **Tailwind CSS 4** y un catálogo propio organizado con **Atomic Design** en `frontend/src/shared/components/` (`atoms/`, `molecules/`, `organisms/`, documentado en su README). El **estado global** es la sesión, en `AuthContext` (usuario, rol, sede, sincronizado entre pestañas); el resto del estado vive en cada pantalla. La comunicación con la API está aislada en una **capa de servicio** por módulo (`modules/*/*.api.ts`) sobre una única instancia de axios (`api/axios.ts`) que maneja cookie de sesión, timeouts y sesión vencida.
 
 ## Consecuencias
 

@@ -43,7 +43,7 @@ y la vigencia se decide siempre por fechas.
    transacción del alta.
 4. `fecha_fin` suma meses de calendario recortando al último día del mes
    (31/01 + 1 = 28 o 29/02), en fechas argentinas.
-5. Único módulo de decisión: `server/src/membresias/vigencia.ts` (`esVigente`,
+5. Único módulo de decisión: `backend/src/membresias/vigencia.ts` (`esVigente`,
    `esProxima`, `sumarMeses`, `obtenerVigente`, `obtenerProxima`,
    `obtenerCadena`). Los consumidores (QR, reserva de clases, precio de cancha,
    pagos, listado de clientes, reportes) usan solo estas funciones o el

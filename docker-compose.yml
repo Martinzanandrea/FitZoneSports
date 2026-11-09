@@ -31,7 +31,7 @@ services:
       retries: 20
 
   api:
-    build: ./server
+    build: ./backend
     depends_on:
       db:
         condition: service_healthy
@@ -68,7 +68,7 @@ services:
       retries: 30
 
   web:
-    build: ./client
+    build: ./frontend
     depends_on:
       api:
         condition: service_healthy

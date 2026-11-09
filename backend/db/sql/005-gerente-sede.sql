@@ -9,7 +9,7 @@
 -- dividido en PARTE 1 y PARTE 2: ejecutar la PARTE 1, esperar a que
 -- termine (commit), y recién después ejecutar la PARTE 2.
 --
--- Con el script de migraciones (server/db/migrar.js) el archivo se ejecuta
+-- Con el script de migraciones (backend/db/migrar.js) el archivo se ejecuta
 -- solo: la marca "migrar:sin-transaccion" hace que cada tramo separado por
 -- "migrar:corte" se confirme por separado, como pide Postgres.
 -- migrar:sin-transaccion

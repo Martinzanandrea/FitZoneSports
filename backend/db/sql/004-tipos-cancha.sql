@@ -16,7 +16,7 @@ CREATE TABLE public.tipos_cancha (
 );
 
 -- 2) Seed de los 2 tipos actuales. Las imágenes son las rutas estáticas
--- que ya sirven desde el frontend (client/public/images/landing/...),
+-- que ya sirven desde el frontend (frontend/public/images/landing/...),
 -- no hace falta subirlas a Supabase Storage.
 INSERT INTO public.tipos_cancha (nombre, imagen_url) VALUES
     ('Paddle', '/images/landing/paddle-cancha.jpg'),

@@ -4,7 +4,7 @@
   "description": "",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -19,7 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:integracion": "jest --config ./test/jest-integracion.json --runInBand",
-    "swagger:exportar": "nest build && node dist/scripts/exportar-swagger.js",
+    "swagger:export": "ts-node -r tsconfig-paths/register scripts/export-swagger.ts",
     "db:migrar": "node db/migrar.js subir",
     "db:revertir": "node db/migrar.js revertir",
     "db:estado": "node db/migrar.js estado",
@@ -107,8 +107,7 @@
       "!**/*.module.ts",
       "!**/dto/**",
       "!entities/**",
-      "!scripts/**",
-      "!swagger.ts"
+      "!swagger.config.ts"
     ],
     "coverageThreshold": {
       "global": {

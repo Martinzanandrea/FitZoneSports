@@ -19,7 +19,7 @@ Las fotos de usuario, las imágenes de tipos de cancha y los comprobantes PDF se
 
 ## Decisión
 
-Los servicios dependen de la clase abstracta `Almacenamiento` (`server/src/storage/almacenamiento.ts`: subir, eliminar y leer). `StorageModule` elige la implementación con `STORAGE_PROVIDER`: `SupabaseStorageService` por defecto (producción) o `LocalStorageService` con `local`, que guarda en `STORAGE_LOCAL_DIR` y sirve los archivos en `/archivos`. La descarga de comprobantes también pasa por el contrato y solo lee de nuestro propio almacenamiento.
+Los servicios dependen de la clase abstracta `Almacenamiento` (`backend/src/storage/almacenamiento.ts`: subir, eliminar y leer). `StorageModule` elige la implementación con `STORAGE_PROVIDER`: `SupabaseStorageService` por defecto (producción) o `LocalStorageService` con `local`, que guarda en `STORAGE_LOCAL_DIR` y sirve los archivos en `/archivos`. La descarga de comprobantes también pasa por el contrato y solo lee de nuestro propio almacenamiento.
 
 ## Consecuencias
 

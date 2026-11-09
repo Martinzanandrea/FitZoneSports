@@ -18,7 +18,7 @@ Las versiones 1.0 de los diagramas C4 de contexto, contenedores y componentes (d
 
 ## Notas de lectura
 
-- **DER físico:** generado desde la base que crean las migraciones `001` a `011` (`server/db/migrar.js`), así que coincide con el esquema real. PK, FK y UK van como marca del atributo; los índices y restricciones se anotan como comentario. Las que sostienen las reglas de negocio:
+- **DER físico:** generado desde la base que crean las migraciones `001` a `011` (`backend/db/migrar.js`), así que coincide con el esquema real. PK, FK y UK van como marca del atributo; los índices y restricciones se anotan como comentario. Las que sostienen las reglas de negocio:
   - `uq_cancha_horario_confirmado` en `reservas_cancha (cancha_id, fecha, hora_inicio) WHERE estado = 'CONFIRMADA'`: impide la sobreventa (RN-02).
   - `uq_acceso_abierto_por_usuario` en `control_acceso (usuario_id) WHERE hora_egreso IS NULL`: un socio no puede estar en dos sedes (RN-01).
   - `excl_membresia_sin_superposicion` (EXCLUDE GiST) en `membresias`: sin períodos superpuestos.

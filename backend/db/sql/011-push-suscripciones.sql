@@ -1,6 +1,6 @@
 -- 011-push-suscripciones.sql
 -- Tabla de suscripciones Web Push (una por navegador o dispositivo), usada
--- por el canal PUSH de notificaciones (server/src/notificaciones/push/).
+-- por el canal PUSH de notificaciones (backend/src/notificaciones/push/).
 -- En la base de Supabase la tabla se creó a mano desde el SQL Editor; este
 -- script la deja versionada para que una base nueva quede igual.
 -- Ver docs/adr/ADR-021 y la entidad push-suscripcion.entity.ts.
