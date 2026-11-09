@@ -7,6 +7,18 @@ on:
     branches: [main]
 
 jobs:
+  secretos:
+    name: Escaneo de secretos (historial completo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # todo el historial, no solo el último commit
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   servidor:
     name: Servidor (tsc, pruebas y build)
     runs-on: ubuntu-latest
