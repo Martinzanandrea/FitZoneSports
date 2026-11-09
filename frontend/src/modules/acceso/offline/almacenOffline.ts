@@ -138,6 +138,16 @@ export async function leerUltimaSincronizacion(): Promise<string | null> {
   return r ?? null;
 }
 
+// Valores sueltos de la tienda meta (resumen de la última sincronización, etc.).
+export async function guardarMeta(clave: string, valor: unknown): Promise<void> {
+  await transaccion([STORE_META], 'readwrite', (tx) => tx.objectStore(STORE_META).put(valor, clave));
+}
+
+export async function leerMeta<T>(clave: string): Promise<T | null> {
+  const r = await transaccion<T | undefined>([STORE_META], 'readonly', (tx) => tx.objectStore(STORE_META).get(clave));
+  return r ?? null;
+}
+
 export async function encolarEvento(evento: EventoOffline): Promise<void> {
   await transaccion([STORE_COLA], 'readwrite', (tx) => tx.objectStore(STORE_COLA).put(evento));
 }

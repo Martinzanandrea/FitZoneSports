@@ -1,5 +1,15 @@
 import { api } from "../../api/axios";
-import type { Aforo, HistorialAcceso, ResumenAccesos, SesionAbierta, VistaPreviaSocio } from "./acceso.types";
+import type {
+  Aforo,
+  EventoSincronizacion,
+  HistorialAcceso,
+  ResultadoSincronizacion,
+  ResumenAccesos,
+  SesionAbierta,
+  VistaPreviaSocio,
+} from "./acceso.types";
+import type { ClavePublica } from "./offline/verificarQr";
+import type { SnapshotAcceso } from "./offline/almacenOffline";
 import type { PaginatedResponse } from "../../shared/types/pagination";
 // Funciones para hablar con el backend en todo lo referido al ingreso a las sedes.
 export const accesoApi = {
@@ -42,4 +52,12 @@ export const accesoApi = {
   // Resumen de accesos de todas las sedes activas (solo Gerente, solo lectura).
   getResumenAccesos: () =>
     api.get<ResumenAccesos>("/acceso/resumen").then((res) => res.data),
+  // Clave pública ES256 (JWK + kid) con la que se verifica el QR sin servidor.
+  getClavePublica: () => api.get<ClavePublica>("/acceso/clave-publica").then((res) => res.data),
+  // Datos de la sede para validar QR sin conexión durante 24 h.
+  getSnapshot: (sedeId: string) =>
+    api.get<SnapshotAcceso>(`/acceso/snapshot/${sedeId}`).then((res) => res.data),
+  // Envía los ingresos registrados offline; un resultado por evento, en el mismo orden.
+  sincronizar: (payload: { sedeId: string; eventos: EventoSincronizacion[] }) =>
+    api.post<{ resultados: ResultadoSincronizacion[] }>("/acceso/sincronizar", payload).then((res) => res.data),
 };
