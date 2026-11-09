@@ -1,8 +1,9 @@
-# ADR 0009: Clases grupales como plantillas recurrentes, no eventos únicos
+# ADR-018 — Clases grupales como plantillas recurrentes, no eventos únicos
 
-## Estado
-
-Aceptado
+- **Estado:** Aceptado
+- **Fecha:** 2026-09-09
+- **Autor:** Zanandrea, Martín
+- **Sprint:** 3
 
 ## Contexto
 
@@ -15,6 +16,14 @@ indefinidamente hasta que se decide discontinuarlas, sin una fecha de
 fin planificada de antemano — el enunciado original (RF-06 a RF-08)
 no específica este comportamiento ni si una sede permite clases
 simultáneas, dejando ambas decisiones abiertas.
+
+## Alternativas consideradas
+
+| Alternativa | A favor | En contra | Por qué se descartó |
+|---|---|---|---|
+| **Plantilla semanal + ocurrencias generadas** | Refleja la operación real; reservas atadas a una fecha concreta | Necesita un cron que mantenga la ventana | Elegida |
+| Una fila por clase con fecha fija | Modelo simple | El gerente carga cada clase a mano | No escala |
+| Reglas de recurrencia tipo iCal (RRULE) | Muy expresivo | Complejidad para calcular cupo y reservas | Más de lo necesario |
 
 ## Decisión
 
@@ -34,6 +43,16 @@ misma sede, y el pool de horas semanales disponibles (definido por el
 horario de apertura de la sede) se comparte entre todas sus clases.
 
 ## Consecuencias
+
+- **Positivas:** planificación por horas semanales; reglas de 48 h y 2 h sin ambigüedad.
+- **Negativas:** supuesto de sala única por sede.
+- **Deuda asumida:** si una sede necesitara clases simultáneas habría que introducir el concepto de sala.
+
+## Requisitos relacionados
+
+RF-06, RF-07, RF-08
+
+## Detalle de las consecuencias
 
 El Gerente planifica en términos de "cuántas horas semanales" en lugar
 de crear eventos uno por uno, reflejando cómo se gestiona un gimnasio
@@ -57,3 +76,5 @@ ambas en RESERVADA, superando la capacidad declarada. Se cerró con el
 mismo patrón Repository ya aplicado a canchas (transacción con lock
 pesimista sobre la ocurrencia, más una implementación in-memory
 disponible para testing).
+
+> Originalmente ADR 0009. Contenido sin cambios, adaptado a la plantilla del Anexo B.

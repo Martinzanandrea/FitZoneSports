@@ -3,7 +3,7 @@ import { Membresia } from '../entities';
 import { EstadoMembresia } from '../entities/enums';
 import { ahoraArgentina } from '../common/helpers/hora-argentina.helper';
 
-// Vigencia de membresías POR FECHAS (ADR 0013). Única fuente de verdad: ningún
+// Vigencia de membresías POR FECHAS (ADR-022). Única fuente de verdad: ningún
 // consumidor elige una membresía solo por `estado = ACTIVO`.
 //
 // `fecha_fin` es EXCLUSIVA: es el primer día en que la membresía ya no vale.

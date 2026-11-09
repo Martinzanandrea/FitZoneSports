@@ -5,7 +5,7 @@
 -- con períodos superpuestos. Período = [fecha_inicio, fecha_fin): fecha_fin es
 -- EXCLUSIVA (primer día en que ya no vale), así que dos membresías
 -- consecutivas (la nueva empieza en la fecha_fin de la anterior) NO se
--- superponen. Ver docs/adr/0013-vigencia-de-membresias-por-fechas.md.
+-- superponen. Ver docs/adr/ADR-022-vigencia-de-membresias.md.
 --
 -- Orden de ejecución sugerido (a mano, en el SQL Editor de Supabase):
 --   1) Correr 009 y limpiar los datos que devuelva (consultas 2 y 4).

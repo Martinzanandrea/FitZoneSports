@@ -3,7 +3,7 @@
 -- Tabla de auditoría (capa 1: interceptor de aplicación, ver
 -- server/src/auditoria/) + trigger de Postgres en pagos (capa 2,
 -- defensa ante cambios hechos fuera de la aplicación).
--- Ver docs/adr/0008-sistema-de-auditoria.md
+-- Ver docs/adr/ADR-017-auditoria-en-dos-capas.md
 -- Idempotente: 001 (export de la base real) ya incluye esta tabla y el
 -- trigger, así que en una base nueva este script no debe fallar.
 -- ============================================================

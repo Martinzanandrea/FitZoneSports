@@ -3,7 +3,7 @@
 -- por el canal PUSH de notificaciones (server/src/notificaciones/push/).
 -- En la base de Supabase la tabla se creó a mano desde el SQL Editor; este
 -- script la deja versionada para que una base nueva quede igual.
--- Ver docs/adr/0012 y la entidad push-suscripcion.entity.ts.
+-- Ver docs/adr/ADR-021 y la entidad push-suscripcion.entity.ts.
 
 CREATE TABLE IF NOT EXISTS public.push_suscripciones (
     id uuid DEFAULT gen_random_uuid() NOT NULL,

@@ -1,8 +1,9 @@
-# ADR 0013: Vigencia de membresías por fechas y no superposición
+# ADR-022 — Vigencia de membresías por fechas y no superposición
 
-## Estado
-
-Aceptada (implementación de backend; la migración 010 y el cliente quedan pendientes)
+- **Estado:** Aceptado
+- **Fecha:** 2026-10-18
+- **Autor:** Zanandrea, Martín
+- **Sprint:** 5
 
 ## Contexto
 
@@ -15,6 +16,14 @@ listados) elegían por `estado = ACTIVO`, sin mirar fechas, y `renovar()` tomaba
 `setMonth` desbordaba (31/01 + 1 mes = 03/03) y la vigencia dependía del cron
 nocturno, que puede no ejecutarse en el hosting gratuito. No había restricción
 en la base, y dos compras simultáneas podían duplicar períodos.
+
+## Alternativas consideradas
+
+| Alternativa | A favor | En contra | Por qué se descartó |
+|---|---|---|---|
+| **A: cada compra es una fila; la vigencia se decide por fechas** | Renovación anticipada; no depende del cron; la base impide superposiciones | Todos los consumidores tienen que usar el mismo módulo de vigencia | Elegida |
+| B: estado nuevo (programada) activado al llegar la fecha | Estado explícito | Depende de un proceso que active la fila | Más piezas, mismo resultado |
+| C: rechazar la compra con una vigente | Simple | Elimina la renovación anticipada; sigue la carrera sin restricción | Peor experiencia |
 
 ## Decisión
 
@@ -56,18 +65,17 @@ y la vigencia se decide siempre por fechas.
     de la última no próxima si no hay vigente), y agrega `proxima` (objeto o
     null).
 
-## Alternativas descartadas
-
-- **B — estado nuevo (programada/pendiente) activado al llegar su fecha:**
-  cambia el enum de la base y depende de un proceso que active la fila; con el
-  cron potencialmente apagado el socio quedaría sin acceso. Terminaría
-  recalculando por fechas igual, con más piezas.
-- **C — rechazar la compra mientras haya una vigente (permitir renovar solo a
-  pocos días del vencimiento):** simple, pero elimina la renovación anticipada
-  que la interfaz ofrece, y sin restricción en la base sigue habiendo carrera
-  entre dos requests.
-
 ## Consecuencias
+
+- **Positivas:** una sola definición de vigente; la base rechaza períodos superpuestos (23P01 → 409).
+- **Negativas:** una segunda compra legítima queda como próxima y se cobra.
+- **Deuda asumida:** la prueba de concurrencia real de la exclusión quedó cubierta por la estrategia del ADR-008 para RN-01 y RN-02, pero no para membresías.
+
+## Requisitos relacionados
+
+RF-02, RN-03
+
+## Detalle de las consecuencias
 
 - Con una vigente, una segunda compra legítima (o un doble clic que llega al
   servidor dos veces) queda como próxima y se cobra: la protección de doble
@@ -83,6 +91,17 @@ y la vigencia se decide siempre por fechas.
 - Pendiente en el cliente: mostrar vigente y próxima, y tratar `fecha_fin` como
   exclusiva en textos y cuenta de días.
 
+## Alternativas descartadas
+
+- **B — estado nuevo (programada/pendiente) activado al llegar su fecha:**
+  cambia el enum de la base y depende de un proceso que active la fila; con el
+  cron potencialmente apagado el socio quedaría sin acceso. Terminaría
+  recalculando por fechas igual, con más piezas.
+- **C — rechazar la compra mientras haya una vigente (permitir renovar solo a
+  pocos días del vencimiento):** simple, pero elimina la renovación anticipada
+  que la interfaz ofrece, y sin restricción en la base sigue habiendo carrera
+  entre dos requests.
+
 ## Limitación de las pruebas de concurrencia
 
 Los tests usan repositorios simulados: verifican el orden (bloqueo antes de
@@ -91,3 +110,5 @@ pueden probar** que el bloqueo de fila serialice dos transacciones reales ni
 que la restricción de exclusión rechace una inserción concurrente. Eso exige
 una base PostgreSQL real con dos conexiones simultáneas y `btree_gist`
 habilitada; queda como prueba manual o de integración pendiente.
+
+> Originalmente ADR 0013. Contenido sin cambios, adaptado a la plantilla del Anexo B.

@@ -1,12 +1,13 @@
-# ADR 0012: Envío de correo mediante proveedor abstracto (Brevo en producción, Gmail en desarrollo)
+# ADR-021 — Envío de correo mediante proveedor abstracto (Brevo en producción, Gmail en desarrollo)
 
-## Estado
-
-Aceptado. Reemplaza al ADR 0010.
+- **Estado:** Aceptado
+- **Fecha:** 2026-10-12
+- **Autor:** Zanandrea, Martín
+- **Sprint:** 5
 
 ## Contexto
 
-El ADR 0010 adoptó Gmail SMTP como transporte de correo para la verificación
+El ADR-019 adoptó Gmail SMTP como transporte de correo para la verificación
 de email. Esa decisión funcionó en desarrollo local, pero en producción el
 backend corre en el plan gratuito de Render, que bloquea el SMTP saliente
 (puertos 25, 465 y 587). El resultado fue un error ETIMEDOUT en todos los
@@ -16,6 +17,15 @@ notificaciones por correo. Gmail SMTP seguía funcionando solo en local.
 Los dos consumidores del correo (`EmailVerificacionService` y
 `EmailNotificador`) creaban o usaban directamente el transporte SMTP, de modo
 que cambiar de proveedor implicaba modificarlos.
+
+## Alternativas consideradas
+
+| Alternativa | A favor | En contra | Por qué se descartó |
+|---|---|---|---|
+| **Interfaz `EnviadorCorreo` con Brevo (HTTPS) y Gmail (SMTP)** | Funciona en Render; los consumidores no conocen al proveedor | Depende de otro proveedor externo | Elegida |
+| Seguir con Gmail SMTP | Sin cambios | Render bloquea SMTP | No funciona en producción |
+| Gmail API con OAuth | HTTPS | Flujo OAuth en lugar de contraseña de aplicación | Más complejo |
+| Dominio propio | Mejor entrega (DKIM/DMARC) | El proyecto no tiene uno | Pendiente |
 
 ## Decisión
 
@@ -55,19 +65,17 @@ implementación y registrarla en la fábrica, sin tocar los consumidores. Es
 la misma lógica de desacople que ya usa el módulo de notificaciones con su
 fábrica de notificadores por canal.
 
-## Alternativas consideradas
-
-- **Seguir con Gmail SMTP:** descartada, porque Render bloquea el SMTP
-  saliente y no es posible enviar desde producción.
-- **Otro proveedor con API HTTPS:** es viable en general, porque la API
-  HTTPS no está afectada por el bloqueo de puertos. Con la abstracción
-  adoptada, incorporarlo no exigiría cambios en los consumidores.
-- **Gmail API con OAuth:** también usa HTTPS, pero requiere un flujo de
-  autorización OAuth en lugar de una contraseña de aplicación. No se adoptó.
-- **Dominio propio:** el proyecto no tiene uno (ver ADR 0010). Es la mejora
-  pendiente para la entrega, descrita en las consecuencias.
-
 ## Consecuencias
+
+- **Positivas:** correo funcionando en producción; cambiar de proveedor no toca a los consumidores.
+- **Negativas:** sin dominio propio los mails pueden ir a spam.
+- **Deuda asumida:** conseguir un dominio propio para autenticar los envíos.
+
+## Requisitos relacionados
+
+RF-01, RF-08
+
+## Detalle de las consecuencias
 
 - Los envíos de producción dependen de un proveedor externo y de los límites
   de su plan gratuito.
@@ -86,3 +94,17 @@ fábrica de notificadores por canal.
 - Se mantiene lo ya decidido sobre el mecanismo de verificación (token JWT de
   tipo 'email-verificacion' con expiración de 24 horas y bloqueo de login
   hasta verificar): solo cambia el transporte.
+
+## Detalle de las alternativas
+
+- **Seguir con Gmail SMTP:** descartada, porque Render bloquea el SMTP
+  saliente y no es posible enviar desde producción.
+- **Otro proveedor con API HTTPS:** es viable en general, porque la API
+  HTTPS no está afectada por el bloqueo de puertos. Con la abstracción
+  adoptada, incorporarlo no exigiría cambios en los consumidores.
+- **Gmail API con OAuth:** también usa HTTPS, pero requiere un flujo de
+  autorización OAuth en lugar de una contraseña de aplicación. No se adoptó.
+- **Dominio propio:** el proyecto no tiene uno (ver ADR-019). Es la mejora
+  pendiente para la entrega, descrita en las consecuencias.
+
+> Originalmente ADR 0012. Contenido sin cambios, adaptado a la plantilla del Anexo B. Reemplaza al ADR-019.

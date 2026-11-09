@@ -1,8 +1,9 @@
-# ADR 0011: Jerarquía de roles de gestión — Gerente General y Gerente de Sede
+# ADR-020 — Jerarquía de roles de gestión: Gerente General y Gerente de Sede
 
-## Estado
-
-Aceptada
+- **Estado:** Aceptado
+- **Fecha:** 2026-10-07
+- **Autor:** Zanandrea, Martín
+- **Sprint:** 5
 
 ## Contexto
 
@@ -10,6 +11,14 @@ El enunciado agregó un rol de gerente general que administra gerentes
 de sede: una persona con visibilidad total sobre todas las sedes, y
 gerentes operativos acotados a su propia sede. El rol GERENTE anterior
 era plano (acceso total sin sede) y no distinguía niveles.
+
+## Alternativas consideradas
+
+| Alternativa | A favor | En contra | Por qué se descartó |
+|---|---|---|---|
+| **Tres niveles con scope por exclusión (fail-closed)** | Cada actor ve solo lo suyo; sin sede se rechaza | Más casos de permisos que probar | Elegida |
+| Rol GERENTE plano | Simple | No distingue la gerencia central de la de sede | No cubre el nuevo requisito |
+| Permisos granulares configurables (RBAC) | Muy flexible | Interfaz y modelo de permisos completos | Sobredimensionado |
 
 ## Decisión
 
@@ -39,6 +48,16 @@ reportes, no solo en endpoints por id.
 
 ## Consecuencias
 
+- **Positivas:** visibilidad acotada por sede también en listados y reportes.
+- **Negativas:** el valor GERENTE queda en el enum sin uso.
+- **Deuda asumida:** nuevos roles requieren migración del enum.
+
+## Requisitos relacionados
+
+RF-03, RF-05, RF-09
+
+## Detalle de las consecuencias
+
 El control de acceso por dueño o staff se acotó: el acceso a perfiles
 y membresías de otros usuarios depende del rol y de la sede, y el socio
 que reserva para sí mismo conserva el uso multi-sede.
@@ -48,3 +67,5 @@ titular EXTERNO en SOCIO, en la misma transacción que el pago (única función:
 único que cambia; ningún otro rol se toca. Un pago rechazado no lo cambia.
 El valor GERENTE del enum se conserva por compatibilidad en Postgres
 y los usuarios existentes se migraron a GERENTE_GENERAL (migración 005).
+
+> Originalmente ADR 0011. Contenido sin cambios, adaptado a la plantilla del Anexo B.

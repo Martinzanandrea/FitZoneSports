@@ -27,7 +27,7 @@ import { conflictoPorUnique } from '../common/helpers/db-errors.helper';
 const MSG_DNI_DUPLICADO = 'Ya existe un usuario registrado con ese DNI';
 const MSG_EMAIL_DUPLICADO = 'Ya existe un usuario registrado con ese email';
 // Roles que se dan de alta desde el panel de personal. SOCIO y EXTERNO se
-// registran solos; un SOCIO nace de pagar una membresía (ADR 0011).
+// registran solos; un SOCIO nace de pagar una membresía (ADR-020).
 const ROLES_ALTA_STAFF: TipoActor[] = [
   TipoActor.RECEPCIONISTA,
   TipoActor.GERENTE_SEDE,
@@ -89,7 +89,7 @@ export class UsuariosService {
   }
 
   // Registro público (sin login). Nunca confía en el rol del body: todo el
-  // mundo nace EXTERNO y pasa a SOCIO recién al pagar una membresía (ADR 0011).
+  // mundo nace EXTERNO y pasa a SOCIO recién al pagar una membresía (ADR-020).
   // Tampoco acepta sede: sin esto cualquiera podría registrarse como gerente.
   registrarPublico(
     dto: CreateUsuarioDto,

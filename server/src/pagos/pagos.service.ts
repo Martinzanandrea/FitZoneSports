@@ -574,7 +574,7 @@ export class PagosService {
     return resultado;
   }
 
-  // ADR 0011: pagar una membresía convierte al titular EXTERNO en SOCIO.
+  // ADR-020: pagar una membresía convierte al titular EXTERNO en SOCIO.
   // Es el único punto que cambia ese rol por un pago; lo usan todos los
   // caminos que dejan un pago de membresía APROBADO. El usuario promovido
   // es el titular de la membresía, nunca quien ejecuta el cobro. El UPDATE

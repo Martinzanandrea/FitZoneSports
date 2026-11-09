@@ -1,5 +1,5 @@
 -- 005-gerente-sede.sql
--- Etapa 1 del rol GERENTE_SEDE (ver ADR 0011): divide GERENTE en
+-- Etapa 1 del rol GERENTE_SEDE (ver ADR-020): divide GERENTE en
 -- GERENTE_GENERAL (todo, como el Gerente actual) y GERENTE_SEDE
 -- (limitado a su sede). NO ejecutar automáticamente: correr a mano
 -- en el SQL Editor de Supabase, en DOS ejecuciones separadas.

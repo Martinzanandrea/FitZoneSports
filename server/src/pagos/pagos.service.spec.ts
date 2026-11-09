@@ -4,7 +4,7 @@ import { EstadoPago, MetodoPago, TipoActor, TipoPlan } from '../entities/enums';
 import { PagosService } from './pagos.service';
 
 // Tests con repositorios simulados: no tocan la base. Cubren la promoción
-// EXTERNO → SOCIO al aprobarse un pago de membresía (ADR 0011).
+// EXTERNO → SOCIO al aprobarse un pago de membresía (ADR-020).
 
 const ID_TITULAR = 'titular-1';
 const ID_MEMBRESIA = 'membresia-1';
