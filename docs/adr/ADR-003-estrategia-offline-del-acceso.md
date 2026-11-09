@@ -1,6 +1,6 @@
 # ADR-003 — Estrategia offline del control de acceso
 
-- **Estado:** Propuesto
+- **Estado:** Propuesto (implementación en curso a cargo de Zanandrea, Martín; pasar a Aceptado al integrarla y ajustar la decisión a lo implementado)
 - **Fecha:** 2026-11-09
 - **Autor:** Retamoso, Máximo
 - **Sprint:** 7

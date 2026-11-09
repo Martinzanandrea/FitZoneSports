@@ -8,11 +8,11 @@ Un ADR por archivo, con la plantilla del Anexo B de los lineamientos (Estado, Fe
 |---|---|---|---|
 | [ADR-001](ADR-001-estilo-arquitectonico.md) | Monolito modular frente a microservicios, SOA y serverless | Aceptado | RN-02, RNF-04 |
 | [ADR-002](ADR-002-motor-de-base-de-datos.md) | PostgreSQL por integridad transaccional | Aceptado | RNF-03 |
-| [ADR-003](ADR-003-estrategia-offline-del-acceso.md) | Estrategia offline del control de acceso | **Propuesto** | RNF-01 |
+| [ADR-003](ADR-003-estrategia-offline-del-acceso.md) | Estrategia offline del control de acceso | **Propuesto** (en curso) | RNF-01 |
 | [ADR-004](ADR-004-concurrencia-en-reservas.md) | Bloqueo pesimista e índice único en la reserva de canchas | Aceptado | RN-02 |
 | [ADR-005](ADR-005-framework-backend-ioc-orm.md) | NestJS, contenedor de IoC y TypeORM | Aceptado | Unidad II |
 | [ADR-006](ADR-006-framework-frontend-componentes-estado.md) | React, Atomic Design y estado global con Context | Aceptado | Unidad IV |
-| [ADR-007](ADR-007-sincronizacion-del-terminal-de-sede.md) | Sincronización del terminal de sede | **Propuesto** | RNF-01, RN-01 |
+| [ADR-007](ADR-007-sincronizacion-del-terminal-de-sede.md) | Sincronización del terminal de sede | **Propuesto** (en curso) | RNF-01, RN-01 |
 | [ADR-008](ADR-008-estrategia-de-pruebas.md) | Pirámide de pruebas y umbral de cobertura | Aceptado | Unidad V |
 | [ADR-009](ADR-009-despliegue-contenerizacion-y-reversion.md) | Despliegue, Docker y reversión | Aceptado | Unidad V |
 | [ADR-010](ADR-010-medios-de-pago-y-tokenizacion.md) | Pasarela simulada y tokenización sin datos de tarjeta | Aceptado | RNF-02 |
