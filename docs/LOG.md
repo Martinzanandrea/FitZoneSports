@@ -200,7 +200,15 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Actividad:** Pruebas manuales en producción (FT1-30/54/55: 20 ejecutadas, 2 parciales) con cuentas de prueba por rol, y reporte en docs/PRUEBAS.md con tablas por grupo, plantilla y hallazgos (FT1-56). Incluye registro con mail real verificado, compra en cuenta fresca, doble clic en cuenta propia sin duplicado y baja de clase TEST con aviso. Limpieza verificada en base: sin sesiones ni reservas abiertas.
 **Decisión:** probar contra producción (como pide el plan) con cuentas de prueba, cancelando/cerrando todo lo creado en el acto; no ejecutar mail masivo por riesgo a socios reales.
 **Problema encontrado:** sin clase casi llena no hay última plaza real (se probó carrera en paralelo sin duplicados); throttle de login confirmado al 6.º intento.
-**Commit(s):** `ca1c051` (rama qa/sprint5-pruebas, sin pushear)
+**Commit(s):** `5371015` (reporte docs/PRUEBAS.md, mergeado a main con el PR #2)
+
+### Máximo Retamoso
+
+**Fecha:** 2026-11-09
+**Actividad:** Pruebas de integración contra PostgreSQL real para RN-01 y RN-02 (FT1-59): diez reservas simultáneas de la misma cancha confirman exactamente una, dos ingresos simultáneos del mismo socio en sedes distintas registran uno solo y el cupo de una clase no se excede bajo concurrencia; umbral de cobertura en package.json y jobs de integración y Docker en el CI. Endurecimiento del QR (FT1-64): token de un solo uso con jti y la violación del índice de RN-01 (23505) devuelta como 409 en lugar de 500 en los tres tipos de ingreso.
+**Decisión:** COMPLETAR
+**Problema encontrado:** COMPLETAR
+**Commit(s):** `009914b`, `c2d8e0e`
 
 ## UNIDAD VI
 
@@ -228,7 +236,11 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Máximo Retamoso
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+**Fecha:** 2026-11-09
+**Actividad:** Cierre de los requisitos de admisibilidad de la entrega (sprint 7, Integración): migraciones reproducibles desde una base vacía con su reversión y script de migración; datos de prueba con 25 sedes; almacenamiento de archivos intercambiable y docker compose up --build; escaneo de secretos del historial completo; los diez ADR obligatorios en la plantilla del Anexo B; diagramas C4, DER, despliegue y pipeline; corrección de la carga de clases (429 con 25 sedes) y de los plazos de cancelación mostrados; integración con la reestructura backend/frontend; los tres manuales; README.
+**Decisión:** COMPLETAR
+**Problema encontrado:** COMPLETAR
+**Commit(s):** `b101898`, `5f5f7b6`, `a63719c`, `6b33468`, `ab9b759`, `532fb99`, `849e354`, `74894a6`, `6713502`, `458225c`, `7a7b3a3`, `8b605ad`, `86452ab`, `a5b6a03`, `79faad7`, `32a2ca8`
 
 ## TRABAJO ADICIONAL RELEVANTE
 
