@@ -206,8 +206,8 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 **Fecha:** 2026-11-09
 **Actividad:** Pruebas de integración contra PostgreSQL real para RN-01 y RN-02 (FT1-59): diez reservas simultáneas de la misma cancha confirman exactamente una, dos ingresos simultáneos del mismo socio en sedes distintas registran uno solo y el cupo de una clase no se excede bajo concurrencia; umbral de cobertura en package.json y jobs de integración y Docker en el CI. Endurecimiento del QR (FT1-64): token de un solo uso con jti y la violación del índice de RN-01 (23505) devuelta como 409 en lugar de 500 en los tres tipos de ingreso.
-**Decisión:** COMPLETAR
-**Problema encontrado:** COMPLETAR
+**Decisión:** Probar la concurrencia contra PostgreSQL real y no solo con repositorios en memoria, porque los dobles no reproducen el SELECT … FOR UPDATE ni los índices únicos parciales. Para el QR de un solo uso, guardar los jti usados en memoria hasta que vencen (viven 60 segundos) en vez de una tabla, y traducir el error 23505 en la función común de registro del ingreso, así cubre QR, código y DNI.
+**Problema encontrado:** Ese mismo día Martín subió el ingreso por DNI y chocaba con mi versión: me quedé con la suya y volví a aplicar solo el endurecimiento sobre su código. Ahí apareció que su versión traducía el 23505 únicamente para el DNI, y con QR y con código seguía saliendo 500. Además, el script de las pruebas de integración borra la base, así que le agregué un resguardo: exige INTEGRACION_DB=true y se niega a correr contra Supabase.
 **Commit(s):** `009914b`, `c2d8e0e`
 
 ## UNIDAD VI
@@ -238,8 +238,8 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 **Fecha:** 2026-11-09
 **Actividad:** Cierre de los requisitos de admisibilidad de la entrega (sprint 7, Integración): migraciones reproducibles desde una base vacía con su reversión y script de migración; datos de prueba con 25 sedes; almacenamiento de archivos intercambiable y docker compose up --build; escaneo de secretos del historial completo; los diez ADR obligatorios en la plantilla del Anexo B; diagramas C4, DER, despliegue y pipeline; corrección de la carga de clases (429 con 25 sedes) y de los plazos de cancelación mostrados; integración con la reestructura backend/frontend; los tres manuales; README.
-**Decisión:** COMPLETAR
-**Problema encontrado:** COMPLETAR
+**Decisión:** Escribir un script de migraciones propio sobre los SQL que ya existían, en lugar de las migraciones de TypeORM, porque el esquema usa restricciones que el ORM no genera (índices únicos parciales, exclusión GiST, triggers). Hacer intercambiable el almacenamiento de archivos para que Docker funcione sin Supabase.
+**Problema encontrado:** Las migraciones no levantaban una base vacía: 002 repetía lo del 001 y faltaban GERENTE_SEDE y la tabla de push. Con 25 sedes, la pantalla de reservar clases hacía más de 100 pedidos y la API respondía 429. El merge con la reestructura de carpetas de Martín dio conflictos en package.json, main.ts y el exportador de Swagger, que estaba duplicado: me quedé con el suyo.
 **Commit(s):** `b101898`, `5f5f7b6`, `a63719c`, `6b33468`, `ab9b759`, `532fb99`, `849e354`, `74894a6`, `6713502`, `458225c`, `7a7b3a3`, `8b605ad`, `86452ab`, `a5b6a03`, `79faad7`, `32a2ca8`
 
 ## TRABAJO ADICIONAL RELEVANTE

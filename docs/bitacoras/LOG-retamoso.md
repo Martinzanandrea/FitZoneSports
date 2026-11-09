@@ -1,12 +1,12 @@
-# Bitácora — Retamoso, Máximo — Rol COMPLETAR (P1 a P4)
+# Bitácora — Retamoso, Máximo — Rol P4
 
-Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 a 5 vienen de `docs/LOG.md` (bitácora grupal original). En cada entrada, los commits se separan en propios (usuario de Git `maxi`) y del equipo (autor indicado entre paréntesis). Los campos marcados **COMPLETAR** van a mano.
+Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 a 5 vienen de `docs/LOG.md` (bitácora grupal original). En cada entrada, los commits se separan en propios (usuario de Git `maxi`) y del equipo (autor indicado entre paréntesis).
 
 Usuario de Git: `maxi` (maxiretamosotrotta@gmail.com).
 
 ## Sprint 1 — Arquitectura — Unidad I — 2026-08-13 al 2026-08-27
 
-### 2026-08-24 · COMPLETAR h
+### 2026-08-24 · 3 h
 
 **Tarjeta(s) Jira:** FT1-9 (2 pts) y FT1-16 (3 pts), ambas asignadas a MR
 
@@ -33,7 +33,7 @@ Trabajo de diseño: el debate y el contenido del ADR-0002 se acordaron con el eq
 
 ## Sprint 2 — Frameworks — Unidad II — 2026-09-03 al 2026-09-17
 
-### 2026-09-02 · COMPLETAR h
+### 2026-09-02 · 1 h
 
 **Tarjeta(s) Jira:** FT1-15 (1 pt); FT1-16 es del sprint 1
 
@@ -56,7 +56,7 @@ numeración de ADRs con gaps tras varias iteraciones; se resolvió con renumerac
 
 ---
 
-### 2026-09-10 · COMPLETAR h
+### 2026-09-10 · 4 h
 
 **Tarjeta(s) Jira:** FT1-37 (4 pts)
 
@@ -79,7 +79,7 @@ la ventana de 60s entre generar y validar obligó al doble chequeo de membresía
 
 ---
 
-### 2026-09-12 · COMPLETAR h
+### 2026-09-12 · 5 h
 
 **Tarjeta(s) Jira:** FT1-40 (6 pts) y FT1-42 (5 pts)
 
@@ -102,7 +102,7 @@ el doble cobro concurrente se resolvió con lock pesimista + verificación de pa
 
 ---
 
-### 2026-09-14 · COMPLETAR h
+### 2026-09-14 · 3 h
 
 **Tarjeta(s) Jira:** FT1-22 (5 pts)
 
@@ -127,7 +127,7 @@ el detalle JSON guardaba tokens; se agregó redacción automática de secretos +
 
 ## Sprint 3 — Patrones — Unidad III — 2026-09-15 al 2026-09-24
 
-### 2026-09-18 · COMPLETAR h
+### 2026-09-18 · 3 h
 
 **Tarjeta(s) Jira:** FT1-26 (4 pts)
 
@@ -152,7 +152,7 @@ la primera versión no era polimórfica real; se refactorizó a forma canónica 
 
 ## Sprint 4 — Componentes — Unidad IV — 2026-09-15 al 2026-10-08
 
-### 2026-10-05 · COMPLETAR h
+### 2026-10-05 · 2 h
 
 **Tarjeta(s) Jira:** FT1-48
 
@@ -175,7 +175,7 @@ react-router conserva el scroll entre rutas y no había ningún manejo de scroll
 
 ---
 
-### 2026-10-06 · COMPLETAR h
+### 2026-10-06 · 4 h
 
 **Tarjeta(s) Jira:** FT1-32 (4 pts)
 
@@ -197,7 +197,7 @@ el build marcó dos errores tras el move (rutas relativas e import de barrel); s
 
 ---
 
-### 2026-10-11 · COMPLETAR h
+### 2026-10-11 · 2 h
 
 **Tarjeta(s) Jira:** FT1-50 (5 pts), subtarea FT1-53
 
@@ -224,7 +224,7 @@ La tarjeta está en el sprint 4 aunque la verificación se cerró el 11/10, desp
 
 ## Sprint 5 — Testing y CI/CD — Unidad V — 2026-10-29 al 2026-11-12
 
-### 2026-10-13 · COMPLETAR h
+### 2026-10-13 · 4 h
 
 **Tarjeta(s) Jira:** FT1-30 (6 pts), FT1-61, FT1-62 y FT1-56
 
@@ -248,7 +248,7 @@ Las pruebas se hicieron el 13/10, antes de la fecha de inicio del sprint en el t
 
 ---
 
-### 2026-11-09 · COMPLETAR h
+### 2026-11-09 · 2 h
 
 **Tarjeta(s) Jira:** FT1-59 y FT1-64
 
@@ -258,11 +258,11 @@ Pruebas de integración contra PostgreSQL real para RN-01 y RN-02 (FT1-59): diez
 
 **Decisión**
 
-COMPLETAR
+Probar la concurrencia contra PostgreSQL real y no solo con repositorios en memoria, porque los dobles no reproducen el SELECT … FOR UPDATE ni los índices únicos parciales. Para el QR de un solo uso, guardar los jti usados en memoria hasta que vencen (viven 60 segundos) en vez de una tabla, y traducir el error 23505 en la función común de registro del ingreso, así cubre QR, código y DNI.
 
 **Problema o bloqueo**
 
-COMPLETAR
+Ese mismo día Martín subió el ingreso por DNI y chocaba con mi versión: me quedé con la suya y volví a aplicar solo el endurecimiento sobre su código. Ahí apareció que su versión traducía el 23505 únicamente para el DNI, y con QR y con código seguía saliendo 500. Además, el script de las pruebas de integración borra la base, así que le agregué un resguardo: exige INTEGRACION_DB=true y se niega a correr contra Supabase.
 
 **Commits**
 
@@ -296,7 +296,7 @@ COMPLETAR
 
 ## Sprint 7 — Integración — Unidad Cierre — 2026-11-05 al 2026-11-19
 
-### 2026-11-09 · COMPLETAR h
+### 2026-11-09 · 4 h
 
 **Tarjeta(s) Jira:** COMPLETAR (tarjetas a crear en el tablero)
 
@@ -306,11 +306,11 @@ Cierre de los requisitos de admisibilidad de la entrega: migraciones reproducibl
 
 **Decisión**
 
-COMPLETAR
+Escribir un script de migraciones propio sobre los SQL que ya existían, en lugar de las migraciones de TypeORM, porque el esquema usa restricciones que el ORM no genera (índices únicos parciales, exclusión GiST, triggers). Hacer intercambiable el almacenamiento de archivos para que Docker funcione sin Supabase.
 
 **Problema o bloqueo**
 
-COMPLETAR
+Las migraciones no levantaban una base vacía: 002 repetía lo del 001 y faltaban GERENTE_SEDE y la tabla de push. Con 25 sedes, la pantalla de reservar clases hacía más de 100 pedidos y la API respondía 429. El merge con la reestructura de carpetas de Martín dio conflictos en package.json, main.ts y el exportador de Swagger, que estaba duplicado: me quedé con el suyo.
 
 **Commits**
 
