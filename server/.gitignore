@@ -40,3 +40,5 @@ lerna-debug.log*
 .env
 .env.development.local
 .env.test.local
+# Archivos subidos con STORAGE_PROVIDER=local
+/archivos

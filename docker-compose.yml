@@ -1,0 +1,80 @@
+# FitZone Sports — entorno completo con un solo comando:
+#
+#   docker compose up --build
+#
+# Levanta Postgres, la API (aplica migraciones y carga los datos de prueba
+# la primera vez) y el portal web. Al terminar:
+#   Portal y consola   http://localhost:8080
+#   API                http://localhost:3000
+#   Swagger UI         http://localhost:3000/api
+#
+# No necesita Supabase ni cuentas externas: los archivos se guardan en un
+# volumen local y los links de verificación de mail se imprimen en el log de
+# la API. Los valores por defecto son solo de desarrollo; para cambiarlos,
+# copiar .env.example a .env en esta carpeta.
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fitzone}
+      POSTGRES_USER: ${DB_USERNAME:-fitzone}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fitzone-local}
+    ports:
+      - "${DB_PUERTO_HOST:-5433}:5432"
+    volumes:
+      - datos-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./server
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      FRONTEND_URL: http://localhost:8080
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-fitzone}
+      DB_PASSWORD: ${DB_PASSWORD:-fitzone-local}
+      DB_NAME: ${DB_NAME:-fitzone}
+      DB_SSL: "false"
+      JWT_SECRET: ${JWT_SECRET:-solo-para-desarrollo-local-cambiar}
+      JWT_EXPIRATION: 8h
+      SEED: "true"
+      STORAGE_PROVIDER: local
+      STORAGE_LOCAL_DIR: /app/archivos
+      PUBLIC_API_URL: http://localhost:8080/api
+      SUPABASE_BUCKET_FOTOS: fotos-usuarios
+      SUPABASE_BUCKET_COMPROBANTES: comprobantes
+      MAIL_PROVIDER: gmail
+      MAIL_DEV_LOG_LINKS: "true"
+      GMAIL_USER: ${GMAIL_USER:-}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
+    ports:
+      - "3000:3000"
+    volumes:
+      - archivos:/app/archivos
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  web:
+    build: ./client
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+
+volumes:
+  datos-db:
+  archivos:
