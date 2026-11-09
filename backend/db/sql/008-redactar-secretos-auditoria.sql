@@ -2,7 +2,7 @@
 -- Redacta password / token / secret / hash / authorization en las filas YA
 -- guardadas de `auditoria.detalle`. Antes de la corrección del interceptor, el
 -- body de algunas requests (login, cambio de contraseña, etc.) se guardaba tal
--- cual. Misma regla de claves que server/src/auditoria/redactar-secretos.helper.ts:
+-- cual. Misma regla de claves que backend/src/auditoria/redactar-secretos.helper.ts:
 --     /pass(word)?|token|secret|hash|authorization/i   → valor "[REDACTADO]"
 --
 -- NO SE EJECUTÓ. Correr a mano en el SQL Editor de Supabase, en este orden:

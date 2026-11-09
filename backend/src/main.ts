@@ -2,9 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
+import { crearConfigSwagger } from './swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,12 +23,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   // Configuración de Swagger
   if (process.env.NODE_ENV !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('FitZone Sports API')
-      .setDescription('API del sistema de gestión de gimnasios')
-      .setVersion('1.0')
-      .addCookieAuth('token') // documenta que auth usa la cookie httpOnly
-      .build();
+    const config = crearConfigSwagger();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api', app, document);
   }
