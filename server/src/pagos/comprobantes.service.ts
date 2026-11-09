@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Comprobante, Pago } from '../entities';
-import { SupabaseStorageService } from '../storage/supabase-storage.service';
+import { Almacenamiento } from '../storage/almacenamiento';
 import { PdfGeneratorService } from './comprobantes/pdf-generator.service';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class ComprobantesService {
     @InjectRepository(Pago)
     private readonly pagosRepo: Repository<Pago>,
     private readonly pdfGenerator: PdfGeneratorService,
-    private readonly storageService: SupabaseStorageService,
+    private readonly storageService: Almacenamiento,
     private readonly config: ConfigService,
   ) {}
 

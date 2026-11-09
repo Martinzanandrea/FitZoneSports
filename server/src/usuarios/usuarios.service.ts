@@ -15,7 +15,7 @@ import { Sede, TipoActor, Usuario } from '../entities';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
-import { SupabaseStorageService } from '../storage/supabase-storage.service';
+import { Almacenamiento } from '../storage/almacenamiento';
 import { ConfigService } from '@nestjs/config';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
@@ -43,7 +43,7 @@ export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuariosRepo: Repository<Usuario>,
-    private readonly storageService: SupabaseStorageService,
+    private readonly storageService: Almacenamiento,
     private readonly config: ConfigService,
     private readonly jwtService: JwtService,
     private readonly emailVerificacion: EmailVerificacionService,

@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
+import { Almacenamiento } from './almacenamiento';
 
 @Injectable()
-export class SupabaseStorageService {
+export class SupabaseStorageService extends Almacenamiento {
   private readonly client: SupabaseClient;
 
   constructor(private readonly config: ConfigService) {
+    super();
     this.client = createClient(
       this.config.get<string>('SUPABASE_URL')!,
       this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -47,5 +49,14 @@ export class SupabaseStorageService {
     );
     const { error } = await this.client.storage.from(bucket).remove([nombre]);
     return !error;
+  }
+
+  // Descarga un archivo propio (la URL debe ser de nuestro Supabase).
+  async leerArchivo(urlPublica: string): Promise<Buffer | null> {
+    const base = this.config.get<string>('SUPABASE_URL') ?? '';
+    if (!base || !urlPublica.startsWith(base)) return null;
+    const res = await fetch(urlPublica);
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
   }
 }

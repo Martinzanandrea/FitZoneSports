@@ -9,6 +9,12 @@ import { EstadoPago, TipoActor } from '../entities/enums';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { HistorialPagosService, puedeVerPago } from './historial-pagos.service';
 import { PagosService } from './pagos.service';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
+
+// El almacenamiento real de Supabase, con la config de prueba: así se verifica
+// que solo se descarga de la URL del Supabase configurado.
+const almacenamiento = (config: unknown) =>
+  new SupabaseStorageService(config as never);
 
 const u = (
   tipoActor: TipoActor,
@@ -35,7 +41,7 @@ function armarHistorial(filas: unknown[] = []) {
   });
   const config = { get: jest.fn().mockReturnValue('https://x.supabase.co') };
   return {
-    service: new HistorialPagosService({ query } as never, config as never),
+    service: new HistorialPagosService({ query } as never, almacenamiento(config)),
     query,
   };
 }
@@ -215,7 +221,7 @@ describe('acceso a comprobantes', () => {
     const config = { get: jest.fn().mockReturnValue('https://x.supabase.co') };
     const service = new HistorialPagosService(
       { query } as never,
-      config as never,
+      almacenamiento(config),
     );
     await expect(service.obtenerArchivo('c1', socio)).rejects.toBeInstanceOf(
       NotFoundException,
@@ -228,7 +234,7 @@ describe('acceso a comprobantes', () => {
   it('404 si el comprobante no existe', async () => {
     const service = new HistorialPagosService(
       { query: jest.fn().mockResolvedValue([]) } as never,
-      { get: jest.fn() } as never,
+      { leerArchivo: jest.fn() } as never,
     );
     await expect(service.obtenerArchivo('c1', gg)).rejects.toBeInstanceOf(
       NotFoundException,
@@ -259,7 +265,7 @@ describe('acceso a comprobantes', () => {
     const config = { get: jest.fn().mockReturnValue('https://x.supabase.co') };
     const service = new HistorialPagosService(
       { query } as never,
-      config as never,
+      almacenamiento(config),
     );
     const r = await service.obtenerArchivo('c1', socio);
     expect(r.buffer).toEqual(Buffer.from([1, 2, 3]));

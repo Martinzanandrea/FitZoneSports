@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Almacenamiento } from '../storage/almacenamiento';
 import { DataSource } from 'typeorm';
 import { TipoActor } from '../entities/enums';
 import type { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
@@ -130,7 +130,7 @@ export function puedeVerPago(
 export class HistorialPagosService {
   constructor(
     private readonly dataSource: DataSource,
-    private readonly config: ConfigService,
+    private readonly almacenamiento: Almacenamiento,
   ) {}
 
   // Historial del personal: GG ve todas las sedes (filtro opcional); recepcionista
@@ -299,13 +299,10 @@ export class HistorialPagosService {
     ) {
       throw new NotFoundException('Comprobante no encontrado');
     }
-    const base = this.config.get<string>('SUPABASE_URL') ?? '';
-    // Solo se descarga de nuestro propio Supabase.
-    if (!base || !fila.pdf_path.startsWith(base)) {
-      throw new NotFoundException('Comprobante no disponible');
-    }
-    const res = await fetch(fila.pdf_path);
-    if (!res.ok) throw new NotFoundException('Comprobante no disponible');
-    return { buffer: Buffer.from(await res.arrayBuffer()) };
+    // Solo se lee de nuestro propio almacenamiento (Supabase o disco local):
+    // una URL de otro host devuelve null y termina en 404.
+    const buffer = await this.almacenamiento.leerArchivo(fila.pdf_path);
+    if (!buffer) throw new NotFoundException('Comprobante no disponible');
+    return { buffer };
   }
 }

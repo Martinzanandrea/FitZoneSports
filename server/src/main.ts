@@ -5,6 +5,12 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
+import { static as servirEstaticos } from 'express';
+import { ConfigService } from '@nestjs/config';
+import {
+  RUTA_ARCHIVOS_LOCALES,
+  directorioArchivosLocales,
+} from './storage/local-storage.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,7 +19,25 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  app.use(helmet());
+  // Con STORAGE_PROVIDER=local (docker compose) los archivos subidos se
+  // sirven desde el disco, igual que las URLs públicas de Supabase Storage.
+  // El portal (otro origen) muestra esas fotos, así que en ese modo se permite
+  // la carga cross-origin; en producción helmet queda con su política por defecto.
+  const config = app.get(ConfigService);
+  const almacenamientoLocal = config.get<string>('STORAGE_PROVIDER') === 'local';
+  app.use(
+    helmet(
+      almacenamientoLocal
+        ? { crossOriginResourcePolicy: { policy: 'cross-origin' } }
+        : undefined,
+    ),
+  );
+  if (almacenamientoLocal) {
+    app.use(
+      RUTA_ARCHIVOS_LOCALES,
+      servirEstaticos(directorioArchivosLocales(config), { index: false }),
+    );
+  }
   app.enableCors({
     origin: [process.env.FRONTEND_URL || 'http://localhost:5173'],
     credentials: true,

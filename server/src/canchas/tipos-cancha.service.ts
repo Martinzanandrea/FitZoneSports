@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cancha, TipoCancha } from '../entities';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseStorageService } from '../storage/supabase-storage.service';
+import { Almacenamiento } from '../storage/almacenamiento';
 import { CreateTipoCanchaDto } from './dto/create-tipo-cancha.dto';
 import { UpdateTipoCanchaDto } from './dto/update-tipo-cancha.dto';
 
@@ -19,7 +19,7 @@ export class TiposCanchaService {
     private readonly tiposRepo: Repository<TipoCancha>,
     @InjectRepository(Cancha)
     private readonly canchasRepo: Repository<Cancha>,
-    private readonly storageService: SupabaseStorageService,
+    private readonly storageService: Almacenamiento,
     private readonly config: ConfigService,
   ) {}
 
