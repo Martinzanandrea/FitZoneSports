@@ -86,7 +86,7 @@ vinculado por registro a los commits del repositorio. Los hashes y fechas provie
 **Actividad:** Definición de las reglas del módulo de Gimnasio y Acceso (RF-04, RF-05, RN-01) junto con Martín: QR dinámico que vence a los 60 segundos, código corto de 6 dígitos de un solo uso como alternativa, control de aforo por sede y sesión única por usuario. Martín implementó el módulo; yo lo probé con cuentas de prueba (generación del QR, validación por código y aforo) y le reporté los ajustes necesarios.
 **Decisión:** JWT firmado de corta vida con revalidación en el servidor, en vez de un QR estático que se puede fotografiar y compartir.
 **Problema encontrado:** La ventana de 60 s entre que se genera el QR y se valida obligó a chequear la membresía dos veces, porque puede vencer en el medio. El aforo se resolvió contando las sesiones abiertas, con un índice parcial.
-**Commit(s):** propios ninguno; del equipo `7862d54`, `23cf2ff`, `f4bbfdc` (Martín)
+**Commit(s):** del equipo `7862d54`, `23cf2ff`, `f4bbfdc`
 
 ### Máximo Retamoso
 
@@ -94,7 +94,7 @@ vinculado por registro a los commits del repositorio. Los hashes y fechas provie
 **Actividad:** Definición con Martín del funcionamiento de los pagos (RF-13, RF-14) y de los módulos de soporte (sedes, franjas, precios e instructores): pasarela simulada que devuelve un token, membresía creada solo con el pago aprobado, paso de externo a socio y comprobante PDF por pago. Martín los implementó; yo los probé con cuentas de prueba (pago de membresía, pago de cancha, comprobante, alta de sedes y precios).
 **Decisión:** Los montos se calculan siempre en el servidor, y las clases vienen incluidas en la membresía (RN-03).
 **Problema encontrado:** El doble clic al pagar podía cobrar dos veces. Martín lo resolvió con un bloqueo de la fila y verificando si ya había un pago (el segundo intento recibe 409); en las pruebas verifiqué que no se duplica el cobro.
-**Commit(s):** propios ninguno; del equipo `7862d54`, `13b0d95`, `f07fa62`, `26dfa17` (Martín)
+**Commit(s):** del equipo `7862d54`, `13b0d95`, `f07fa62`, `26dfa17`
 
 ### Máximo Retamoso
 
@@ -132,7 +132,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Actividad:** Definí con Martín cómo armar el documento de justificación de los tres patrones GoF: Strategy en el precio dinámico (RF-11), Observer en la lista de espera (RF-08) y Repository con bloqueo pesimista contra la sobreventa (RN-02). Para cada uno, qué problema resuelve, por qué se eligió frente a las alternativas y qué costo tiene. La redacción la hizo casi toda Martín.
 **Decisión:** Documentar para cada patrón el porqué y la alternativa descartada, en lugar de solo describir la implementación.
 **Problema encontrado:** Al repasar los patrones para justificarlos noté que la primera versión de Strategy no era polimórfica de verdad, porque el calculador conocía las clases concretas. Se lo planteé a Martín, que hizo el refactor a la forma canónica: arreglo de estrategias inyectado por el token PRICING_STRATEGIES y Repository con interfaz e implementación en memoria para las pruebas.
-**Commit(s):** propios ninguno; del equipo `cdca2b6`, `5552f69` (Martín, 20/08), `2c6c8d7` (Martín, refactor, 15/09)
+**Commit(s):** del equipo `cdca2b6`, `5552f69`, `2c6c8d7`
 
 ## UNIDAD IV — COMPONENTES
 
@@ -166,7 +166,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Actividad:** Definí con Martín el contenido y el diseño de la landing pública multipágina (inicio, clases, canchas, sedes, nosotros, con navegación compartida), que programó él. Al probar la navegación encontré que al cambiar de ruta la página no volvía arriba, y lo arreglé con un componente global ScrollToTop.
 **Decisión:** Un layout público único (PublicLayout) en vez de repetir la navegación en cada página, y un arreglo global del scroll en vez de parchear página por página.
 **Problema encontrado:** React Router conserva el scroll entre rutas y el frontend no tenía ningún manejo de scroll. Lo diagnostiqué comparando el scroll más un clic contra una recarga de la página.
-**Commit(s):** propios `b3ec7c3` (fix del scroll); del equipo `9f46ceb` (Martín, landing)
+**Commit(s):** `b3ec7c3`; del equipo `9f46ceb`
 
 ### Máximo Retamoso
 
@@ -174,7 +174,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Actividad:** Reorganización con Atomic Design (FT1-32): átomos (10 piezas, un archivo por componente), moléculas (12), organismos (layouts) con barrels index.ts + README del sistema; formatMoney a shared/utils; eliminado código muerto (ui.tsx partido, Donut duplicado, Reveal/Layout sin uso). Rama refactor/atomic-design, build limpio.
 **Decisión:** un archivo por componente + barrels por nivel en vez de cajón único; mover sin cambiar comportamiento.
 **Problema encontrado:** el build marcó dos errores tras el move (rutas relativas e import de barrel); se corrigieron y el build quedó limpio.
-**Commit(s):** `772b856` (mergeado a main con PR #1)
+**Commit(s):** `772b856`
 
 ### Máximo Retamoso
 
@@ -182,7 +182,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Actividad:** Discutí con Martín las pantallas del nuevo rol Gerente de Sede, que programó él. Las verifiqué con una cuenta de prueba: login, panel propio y las 10 pantallas del rol (personal, canchas, clases, reservas, reportes, pagos, membresías, instructores y acceso), cargando los datos de su sede.
 **Decisión:** Cerrar la tarea como Listo después de una verificación funcional por rol, y no solo revisando el código.
 **Problema encontrado:** En la verificación encontré algunas cosas para corregir y se las pasé a Martín. También revisé el alcance por sede: el gerente de sede solo ve datos de su sede en personal, reservas y reportes.
-**Commit(s):** propios ninguno; del equipo `13b0d95`, `f07fa62` (Martín)
+**Commit(s):** del equipo `13b0d95`, `f07fa62`
 
 ## UNIDAD V
 
@@ -200,7 +200,7 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 **Actividad:** Pruebas manuales en producción (FT1-30/54/55: 20 ejecutadas, 2 parciales) con cuentas de prueba por rol, y reporte en docs/PRUEBAS.md con tablas por grupo, plantilla y hallazgos (FT1-56). Incluye registro con mail real verificado, compra en cuenta fresca, doble clic en cuenta propia sin duplicado y baja de clase TEST con aviso. Limpieza verificada en base: sin sesiones ni reservas abiertas.
 **Decisión:** probar contra producción (como pide el plan) con cuentas de prueba, cancelando/cerrando todo lo creado en el acto; no ejecutar mail masivo por riesgo a socios reales.
 **Problema encontrado:** sin clase casi llena no hay última plaza real (se probó carrera en paralelo sin duplicados); throttle de login confirmado al 6.º intento.
-**Commit(s):** `5371015` (reporte docs/PRUEBAS.md, mergeado a main con el PR #2)
+**Commit(s):** `5371015`
 
 ### Máximo Retamoso
 

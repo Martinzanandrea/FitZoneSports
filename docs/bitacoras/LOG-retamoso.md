@@ -1,6 +1,6 @@
 # Bitácora — Retamoso, Máximo — Rol P4
 
-Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 a 5 vienen de `docs/LOG.md` (bitácora grupal original). En cada entrada, los commits se separan en propios (usuario de Git `maxi`) y del equipo (autor indicado entre paréntesis).
+Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 a 5 vienen de `docs/LOG.md` (bitácora grupal original). En cada entrada, los commits se separan en propios y del equipo.
 
 Usuario de Git: `maxi` (maxiretamosotrotta@gmail.com).
 
@@ -24,8 +24,7 @@ posiciones iniciales divididas en el equipo; se cerró con matriz de criterios (
 
 **Commits**
 
-- Propios: ninguno
-- Del equipo, relacionados con la tarea: `e22cde0` (martin, 24/08, ADR del monolito modular)
+- Del equipo, relacionados con la tarea: `e22cde0`
 
 Trabajo de diseño: el debate y el contenido del ADR-0002 se acordaron con el equipo por mensajes; el ADR lo integró Martín al repositorio.
 
@@ -51,8 +50,7 @@ numeración de ADRs con gaps tras varias iteraciones; se resolvió con renumerac
 
 **Commits**
 
-- Propios: ninguno
-- Del equipo, relacionados con la tarea: `612d9ce`, `068e8b6` (martin, 04/09 y 06/09); `e22cde0` (martin, 24/08)
+- Del equipo, relacionados con la tarea: `612d9ce`, `068e8b6`, `e22cde0`
 
 ---
 
@@ -74,8 +72,7 @@ La ventana de 60 s entre que se genera el QR y se valida obligó a chequear la m
 
 **Commits**
 
-- Propios: ninguno
-- Del equipo, relacionados con la tarea: `7862d54` (martin, 15/08), `23cf2ff` (martin, 16/09), `f4bbfdc` (martin, 30/09)
+- Del equipo, relacionados con la tarea: `7862d54`, `23cf2ff`, `f4bbfdc`
 
 ---
 
@@ -97,8 +94,7 @@ El doble clic al pagar podía cobrar dos veces. Martín lo resolvió con un bloq
 
 **Commits**
 
-- Propios: ninguno
-- Del equipo, relacionados con la tarea: `7862d54` (martin, 15/08), `13b0d95` (martin, 01/10), `f07fa62` (martin, 07/10), `26dfa17` (martin, 09/10)
+- Del equipo, relacionados con la tarea: `7862d54`, `13b0d95`, `f07fa62`, `26dfa17`
 
 ---
 
@@ -120,8 +116,7 @@ el detalle JSON guardaba tokens; se agregó redacción automática de secretos +
 
 **Commits**
 
-- Propios: ninguno
-- Del equipo, relacionados con la tarea: `1802fc4` (martin, 29/08), `068e8b6` (martin, 06/09)
+- Del equipo, relacionados con la tarea: `1802fc4`, `068e8b6`
 
 ---
 
@@ -145,8 +140,7 @@ Al repasar los patrones para justificarlos noté que la primera versión de Stra
 
 **Commits**
 
-- Propios: ninguno
-- Del equipo, relacionados con la tarea: `cdca2b6`, `5552f69` (martin, 20/08), `2c6c8d7` (martin, 15/09)
+- Del equipo, relacionados con la tarea: `cdca2b6`, `5552f69`, `2c6c8d7`
 
 ---
 
@@ -170,8 +164,9 @@ React Router conserva el scroll entre rutas y el frontend no tenía ningún mane
 
 **Commits**
 
-- Propios: `b3ec7c3` (11/10, fix del scroll al cambiar de ruta)
-- Del equipo, relacionados con la tarea: `9f46ceb` (martin, 23/09, landing pública)
+- `b3ec7c3`
+
+- Del equipo, relacionados con la tarea: `9f46ceb`
 
 ---
 
@@ -193,7 +188,7 @@ el build marcó dos errores tras el move (rutas relativas e import de barrel); s
 
 **Commits**
 
-- Propios: `772b856` (11/10, mergeado con el PR #1)
+- `772b856`
 
 ---
 
@@ -215,8 +210,7 @@ En la verificación encontré algunas cosas para corregir y se las pasé a Mart�
 
 **Commits**
 
-- Propios: ninguno
-- Del equipo, relacionados con la tarea: `13b0d95` (martin, 01/10), `f07fa62` (martin, 07/10)
+- Del equipo, relacionados con la tarea: `13b0d95`, `f07fa62`
 
 La tarjeta está en el sprint 4 aunque la verificación se cerró el 11/10, después de la fecha de fin del sprint.
 
@@ -242,9 +236,7 @@ sin clase casi llena no hay última plaza real (se probó carrera en paralelo si
 
 **Commits**
 
-- Propios: `5371015` (13/10, reporte `docs/PRUEBAS.md`, mergeado con el PR #2)
-
-Las pruebas se hicieron el 13/10, antes de la fecha de inicio del sprint en el tablero.
+- `5371015`
 
 ---
 
@@ -266,7 +258,7 @@ Ese mismo día Martín subió el ingreso por DNI y chocaba con mi versión: me q
 
 **Commits**
 
-- Propios: `009914b` (QR de un solo uso y 23505 como 409), `c2d8e0e` (pruebas de integración, umbral de cobertura y CI)
+- `009914b`, `c2d8e0e`
 
 ---
 
@@ -290,9 +282,7 @@ COMPLETAR
 
 **Commits**
 
-- Propios: ninguno
-
----
+-
 
 ## Sprint 7 — Integración — Unidad Cierre — 2026-11-05 al 2026-11-19
 
@@ -314,8 +304,8 @@ Las migraciones no levantaban una base vacía: 002 repetía lo del 001 y faltaba
 
 **Commits**
 
-- Propios: `b101898`, `5f5f7b6`, `a63719c`, `6b33468`, `ab9b759`, `532fb99`, `849e354`, `74894a6`, `6713502`, `458225c`, `7a7b3a3`, `8b605ad`, `86452ab`, `a5b6a03`, `79faad7`, `32a2ca8`
-- Del equipo, relacionados con la tarea: `1eec536` (martin, 09/11, reestructura backend/frontend que se integró)
+- `b101898`, `5f5f7b6`, `a63719c`, `6b33468`, `ab9b759`, `532fb99`, `849e354`, `74894a6`, `6713502`, `458225c`, `7a7b3a3`, `8b605ad`, `86452ab`, `a5b6a03`, `79faad7`, `32a2ca8`
+- Del equipo, relacionados con la tarea: `1eec536`
 
 ---
 
