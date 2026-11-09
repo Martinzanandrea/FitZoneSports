@@ -1,0 +1,28 @@
+%% C4 nivel 1 · Contexto del sistema FitZone Sports
+%% Autor: Retamoso, Máximo · Fecha: 2026-11-09 · Versión: 2.0
+%% Fuente editable (Mermaid). La versión 1.0 en draw.io está en docs/C4/ModeloContextoc4.drawio.
+C4Context
+  title FitZone Sports · Contexto (C4-1)
+
+  Person(socio, "Socio activo", "Membresía vigente. Ingresa a cualquier sede con su QR, reserva clases y canchas con descuento.")
+  Person(externo, "Cliente externo", "Sin membresía. Solo alquila canchas pagando por uso.")
+  Person(recepcion, "Recepcionista / Admin. de sede", "Valida ingresos, controla el aforo, cobra en mostrador y gestiona la agenda de su sede.")
+  Person(gerente, "Gerente central", "Define precios, da de alta sedes y lee reportes consolidados de la cadena.")
+
+  System(fitzone, "FitZone Sports", "Plataforma web (PWA) de gestión de 25+ sedes: acceso, clases, canchas, membresías y pagos.")
+
+  System_Ext(pasarela, "Pasarela de pagos", "Simulacro de Mercado Pago / MODO. Devuelve un token; FitZone nunca guarda datos de tarjeta.")
+  System_Ext(correo, "Proveedor de correo", "Brevo (API HTTPS) en producción; Gmail SMTP en desarrollo.")
+  System_Ext(push, "Servicio Web Push", "FCM / Mozilla / Apple Push, con claves VAPID.")
+  System_Ext(storage, "Supabase Storage", "Fotos de usuarios y comprobantes PDF.")
+
+  Rel(socio, fitzone, "Muestra su QR, reserva y paga", "HTTPS")
+  Rel(externo, fitzone, "Reserva y paga canchas", "HTTPS")
+  Rel(recepcion, fitzone, "Valida ingresos y cobra", "HTTPS")
+  Rel(gerente, fitzone, "Configura y consulta reportes", "HTTPS")
+  Rel(fitzone, pasarela, "Solicita el cobro", "HTTPS")
+  Rel(fitzone, correo, "Verificación de email y avisos", "HTTPS / SMTP")
+  Rel(fitzone, push, "Notificaciones a dispositivos", "Web Push")
+  Rel(fitzone, storage, "Guarda y lee archivos", "HTTPS")
+
+  UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")

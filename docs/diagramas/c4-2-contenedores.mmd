@@ -1,0 +1,37 @@
+%% C4 nivel 2 · Contenedores
+%% Autor: Retamoso, Máximo · Fecha: 2026-11-09 · Versión: 2.0
+%% Fuente editable (Mermaid). La versión 1.0 en draw.io está en docs/C4/Diagramacontenedoresc4.drawio.
+%% El terminal de sede es la misma PWA abierta en el puesto de recepción. Su modo
+%% offline está propuesto en ADR-003 y ADR-007 y no está implementado.
+C4Container
+  title FitZone Sports · Contenedores (C4-2)
+
+  Person(socio, "Socio / Cliente externo")
+  Person(staff, "Personal de sede y gerencia")
+
+  System_Boundary(fz, "FitZone Sports") {
+    Container(portal, "Portal del socio", "React 19 + Vite, PWA", "Responsive: QR rotativo, reservas, pagos, comprobantes, notificaciones.")
+    Container(consola, "Consola de administración", "React 19, misma SPA en /admin", "Paneles por rol: acceso, agenda, canchas, cobros, reportes.")
+    Container(terminal, "Terminal de sede", "PWA instalada en recepción", "Lector de QR por cámara, código de 6 dígitos o DNI; aforo en tiempo real. Modo offline propuesto.")
+    Container(api, "API backend", "NestJS 11 + TypeORM, Node 20", "Monolito modular: usuarios, membresías, acceso, clases, canchas, pagos, sedes, notificaciones.")
+    ContainerDb(db, "Base de datos", "PostgreSQL 17", "Datos transaccionales; índices únicos parciales (RN-01, RN-02); exclusión de membresías.")
+    ContainerDb(archivos, "Almacenamiento de archivos", "Supabase Storage o volumen local", "Fotos y comprobantes PDF.")
+  }
+
+  System_Ext(pasarela, "Pasarela de pagos (mock)")
+  System_Ext(correo, "Brevo / Gmail")
+  System_Ext(push, "Web Push")
+
+  Rel(socio, portal, "Usa", "HTTPS")
+  Rel(staff, consola, "Usa", "HTTPS")
+  Rel(staff, terminal, "Escanea QR", "Cámara")
+  Rel(portal, api, "JSON, cookie httpOnly con JWT", "HTTPS /api")
+  Rel(consola, api, "JSON, cookie httpOnly con JWT", "HTTPS /api")
+  Rel(terminal, api, "POST /acceso/validar", "HTTPS /api")
+  Rel(api, db, "SQL, transacciones, SELECT FOR UPDATE", "TCP 5432 / TLS")
+  Rel(api, archivos, "Sube y lee archivos", "HTTPS / disco")
+  Rel(api, pasarela, "procesarPago() devuelve token", "Interfaz PasarelaPago")
+  Rel(api, correo, "Envía mails", "HTTPS / SMTP")
+  Rel(api, push, "Envía notificaciones", "Web Push + VAPID")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

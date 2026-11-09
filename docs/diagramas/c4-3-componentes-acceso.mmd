@@ -1,0 +1,41 @@
+%% C4 nivel 3 · Componentes del módulo M2 Gimnasio y acceso
+%% Autor: Retamoso, Máximo · Fecha: 2026-11-09 · Versión: 1.0
+%% Incluye el camino offline del QR propuesto en ADR-003 y ADR-007 (marcado "propuesto": no implementado).
+C4Component
+  title Módulo Acceso (M2) · Componentes (C4-3)
+
+  Container(portal, "Portal del socio", "React PWA", "MiQr: QR nuevo cada 60 s y código de 6 dígitos.")
+
+  Container_Boundary(term, "Terminal de sede (PWA en recepción)") {
+    Component(control, "ControlAcceso + LectorQr", "React", "Cámara, pegado, código de 6 dígitos o DNI; aforo y personas dentro.")
+    Component(cache, "Copia local de vigencias (propuesto)", "IndexedDB", "Clave pública del QR y socios vigentes con fecha de fin.")
+    Component(cola, "Cola de ingresos offline (propuesto)", "IndexedDB", "Ingresos validados sin conexión, con id idempotente.")
+  }
+
+  Container_Boundary(m2, "server/src/acceso") {
+    Component(ctrl, "AccesoController", "Controlador Nest", "qr/:id, validar, validar-codigo, validar-dni, egreso, aforo, dentro/:sedeId.")
+    Component(svc, "AccesoService", "Servicio", "Genera el QR (JWT de 60 s con jti) y registra ingresos (RF-04, RF-05).")
+    Component(jwt, "JwtService", "@nestjs/jwt", "Firma y verifica el QR.")
+    Component(usados, "QR usados y códigos cortos", "Mapas en memoria", "Un solo uso por jti y por código.")
+    Component(reglas, "registrarIngresoValidado", "Regla común", "Scope por sede, membresía vigente, aforo, RN-01; 23505 a 409.")
+    Component(sync, "Sincronización (propuesto)", "Endpoint", "Recibe la cola offline y resuelve conflictos RN-01.")
+  }
+
+  ContainerDb(db, "PostgreSQL", "control_acceso, membresias, usuarios")
+  Component_Ext(vigencia, "vigencia.ts", "M1", "Vigente hoy por fechas, hora argentina.")
+  Component_Ext(scope, "assertSedeScope", "auth", "El recepcionista opera solo su sede.")
+
+  Rel(portal, ctrl, "GET /acceso/qr/:id", "HTTPS")
+  Rel(control, ctrl, "POST /acceso/validar", "HTTPS")
+  Rel(ctrl, svc, "usa")
+  Rel(svc, jwt, "sign / verify")
+  Rel(svc, usados, "reserva jti o código")
+  Rel(svc, reglas, "registra")
+  Rel(reglas, scope, "verifica")
+  Rel(reglas, vigencia, "verifica")
+  Rel(reglas, db, "INSERT; uq_acceso_abierto_por_usuario", "SQL")
+  Rel(control, cache, "valida sin conexión (propuesto)")
+  Rel(control, cola, "encola (propuesto)")
+  Rel(cola, sync, "al reconectar (propuesto)", "HTTPS")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

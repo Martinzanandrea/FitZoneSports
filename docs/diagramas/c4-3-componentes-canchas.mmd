@@ -1,0 +1,40 @@
+%% C4 nivel 3 · Componentes del módulo M4 Canchas deportivas
+%% Autor: Retamoso, Máximo · Fecha: 2026-11-09 · Versión: 1.0
+%% Servicio de reservas, estrategia de precios (Strategy), repositorio (Repository) y gestor de bloqueos.
+C4Component
+  title Módulo Canchas (M4) · Componentes (C4-3)
+
+  Container(spa, "Portal / Consola", "React", "ReservarCanchas, CanchasPage, GestionReservasCanchas")
+
+  Container_Boundary(m4, "server/src/canchas") {
+    Component(ctrlCanchas, "CanchasController, TiposCanchaController", "Controladores Nest", "Canchas por sede (RF-09), mantenimiento y bloqueos (RF-12), catálogo de tipos.")
+    Component(ctrlReservas, "ReservasCanchaController", "Controlador Nest", "POST /reservas-cancha, /cotizar, /:id/cancelar; grilla de turnos (RF-10).")
+    Component(svcReservas, "ReservasCanchaService", "Facade", "Existencia, scope por sede, turno válido, precio y creación segura.")
+    Component(turnos, "turnos-cancha.ts", "Funciones puras", "Turnos de 1 h en punto, 08 a 22 h; solape con bloqueos.")
+    Component(pricing, "PricingCalculatorService", "Contexto Strategy", "Aplica las estrategias inyectadas con el token PRICING_STRATEGIES.")
+    Component(estrategias, "MemberDiscountPricing, PeakHourPricing", "PricingStrategy", "-15 % socio al día; recargo 19 a 21 h. Socio en mora: tarifa de externo (RN-03).")
+    Component(repo, "IBookingCanchaRepository", "Repository", "crearReservaSegura(datos, manager?)")
+    Component(repoTypeorm, "TypeOrmBookingCanchaRepository", "Gestor de bloqueos", "Transacción + SELECT FOR UPDATE sobre la cancha; mantenimiento, bloqueos y duplicados (RN-02).")
+    Component(repoMem, "InMemoryBookingCanchaRepository", "Doble de pruebas", "Misma interfaz, sin base.")
+    Component(tipos, "TiposCanchaService", "Servicio", "Catálogo editable de tipos (p. ej. Tenis).")
+  }
+
+  ContainerDb(db, "PostgreSQL", "canchas, reservas_cancha, bloqueos_cancha, tipos_cancha")
+  Component_Ext(membresias, "MembresiasService, estado-membresia", "M1", "¿Socio al día? (patrón State)")
+  Component_Ext(pagos, "PagosService, ComprobantesService", "M5", "Cobro con la pasarela y PDF (RF-13, RF-14).")
+
+  Rel(spa, ctrlReservas, "JSON", "HTTPS")
+  Rel(spa, ctrlCanchas, "JSON", "HTTPS")
+  Rel(ctrlReservas, svcReservas, "usa")
+  Rel(ctrlCanchas, tipos, "usa")
+  Rel(svcReservas, turnos, "valida turno")
+  Rel(svcReservas, membresias, "estado del socio")
+  Rel(svcReservas, pricing, "calcula precio")
+  Rel(pricing, estrategias, "delega")
+  Rel(svcReservas, repo, "crearReservaSegura")
+  Rel(repoTypeorm, repo, "implementa")
+  Rel(repoMem, repo, "implementa")
+  Rel(repoTypeorm, db, "FOR UPDATE + INSERT; uq_cancha_horario_confirmado", "SQL")
+  Rel(pagos, repo, "reserva + pago en una transacción")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
