@@ -19,12 +19,16 @@ import {
   hoyArgentina,
   obtenerVigente,
 } from '../membresias/vigencia';
-import { esViolacionUnique } from '../common/helpers/db-errors.helper';
+import {
+  esViolacionUnique,
+  restriccionViolada,
+} from '../common/helpers/db-errors.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import type { PaginatedResponse } from '../common/types/paginated-response.type';
 import { ClavesQrService, type ClavePublicaQr } from './claves-qr.service';
+import type { EventoOfflineDto } from './dto/sincronizar-acceso.dto';
 
 interface QrPayload {
   usuarioId: string;
@@ -42,6 +46,53 @@ interface CodigoCorto {
 
 // El snapshot offline vale 24 horas desde que se genera.
 const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000;
+
+// Sincronización de ingresos offline.
+const TOLERANCIA_RELOJ_MS = 120_000; // el reloj del terminal puede desfasarse
+const ANTIGUEDAD_MAXIMA_MS = 72 * 60 * 60 * 1000;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SQL_INSERTAR_EVENTO = `INSERT INTO eventos_acceso_offline
+  (client_event_id, sede_id, usuario_id, qr_jti, ocurrido_en, estado, codigo, mensaje, acceso_id)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`;
+const SQL_INSERTAR_ACCESO = `INSERT INTO control_acceso
+  (id, usuario_id, sede_id, hora_ingreso, metodo_ingreso, validado_offline, sincronizado_en, observacion)
+  VALUES ($1, $2, $3, $4, 'QR_OFFLINE', true, $5, $6)`;
+const SQL_ENLAZAR_ACCESO = `UPDATE eventos_acceso_offline SET acceso_id = $2 WHERE client_event_id = $1`;
+const SQL_BUSCAR_EVENTO = `SELECT estado, codigo, acceso_id FROM eventos_acceso_offline WHERE client_event_id = $1`;
+
+export type EstadoSincronizacion =
+  'CREADO' | 'OBSERVADO' | 'CONFLICTO' | 'RECHAZADO';
+
+export interface ResultadoSincronizacion {
+  clientEventId: string;
+  estado: EstadoSincronizacion;
+  codigo: string;
+  accesoId?: string;
+  mensaje?: string;
+}
+
+// Fila de eventos_acceso_offline: el resultado de procesar un evento.
+interface ResultadoOffline {
+  clientEventId: string;
+  sedeId: string;
+  usuarioId: string | null;
+  qrJti: string | null;
+  ocurridoEn: Date;
+  estado: EstadoSincronizacion;
+  codigo: string;
+  mensaje: string | null;
+  accesoId: string | null;
+}
+
+// Datos del QR ya verificados con la firma: nunca vienen del cliente.
+interface QrOfflineVerificado {
+  usuarioId: string;
+  jti: string;
+  iat: number;
+  exp: number;
+}
 
 // 60 segundos, igual que el QR (ambos se generan y vencen juntos).
 const CODIGO_CORTO_TTL_MS = 60_000;
@@ -336,6 +387,286 @@ export class AccesoService {
         hasta: m.fechaFin,
       })),
     };
+  }
+
+  // Verifica un QR emitido con ES256 ignorando solo la expiración (el ingreso
+  // ocurrió offline, la sincronización llega después). null si no es válido.
+  private verificarQrOffline(qrToken: string): QrOfflineVerificado | null {
+    const clave = this.claves.publica;
+    const pem = this.claves.claveVerificacion;
+    if (!clave || !pem) return null;
+    const dec = this.jwtService.decode<{
+      header?: { alg?: string; kid?: string };
+    } | null>(qrToken, { complete: true });
+    if (dec?.header?.alg !== 'ES256' || dec.header.kid !== clave.kid) {
+      return null;
+    }
+    let p: Partial<QrPayload> & { iat?: number };
+    try {
+      p = this.jwtService.verify<Partial<QrPayload> & { iat?: number }>(
+        qrToken,
+        { secret: pem, algorithms: ['ES256'], ignoreExpiration: true },
+      );
+    } catch {
+      return null;
+    }
+    if (
+      p.tipo !== 'qr-acceso' ||
+      typeof p.usuarioId !== 'string' ||
+      !UUID_RE.test(p.usuarioId) ||
+      typeof p.jti !== 'string' ||
+      !UUID_RE.test(p.jti) ||
+      typeof p.iat !== 'number' ||
+      typeof p.exp !== 'number'
+    ) {
+      return null;
+    }
+    return { usuarioId: p.usuarioId, jti: p.jti, iat: p.iat, exp: p.exp };
+  }
+
+  private async buscarEventoOffline(
+    clientEventId: string,
+  ): Promise<ResultadoSincronizacion | null> {
+    const filas: Array<{
+      estado: EstadoSincronizacion;
+      codigo: string;
+      acceso_id: string | null;
+    }> = await this.accesoRepo.manager.query(SQL_BUSCAR_EVENTO, [
+      clientEventId,
+    ]);
+    const previo = filas[0];
+    if (!previo) return null;
+    return {
+      clientEventId,
+      estado: previo.estado,
+      codigo: 'YA_PROCESADO',
+      ...(previo.acceso_id ? { accesoId: previo.acceso_id } : {}),
+      mensaje: `Evento ya procesado antes (${previo.codigo})`,
+    };
+  }
+
+  private paramsEvento(r: ResultadoOffline, accesoId: string | null) {
+    return [
+      r.clientEventId,
+      r.sedeId,
+      r.usuarioId,
+      r.qrJti,
+      r.ocurridoEn,
+      r.estado,
+      r.codigo,
+      r.mensaje,
+      accesoId,
+    ];
+  }
+
+  private aResultado(r: ResultadoOffline): ResultadoSincronizacion {
+    return {
+      clientEventId: r.clientEventId,
+      estado: r.estado,
+      codigo: r.codigo,
+      ...(r.accesoId ? { accesoId: r.accesoId } : {}),
+      ...(r.mensaje ? { mensaje: r.mensaje } : {}),
+    };
+  }
+
+  // Deja la fila del evento en una transacción nueva y corta (nunca sobre una
+  // transacción abortada por un 23505). Si en el medio otro proceso tomó el
+  // jti, se guarda sin él; si ganó el mismo clientEventId, se devuelve lo suyo.
+  private async registrarResultadoOffline(
+    r: ResultadoOffline,
+  ): Promise<ResultadoSincronizacion> {
+    try {
+      await this.accesoRepo.manager.transaction((tx) =>
+        tx.query(SQL_INSERTAR_EVENTO, this.paramsEvento(r, r.accesoId)),
+      );
+    } catch (err) {
+      if (!esViolacionUnique(err)) throw err;
+      if (restriccionViolada(err).includes('jti') && r.qrJti) {
+        return this.registrarResultadoOffline({ ...r, qrJti: null });
+      }
+      const previo = await this.buscarEventoOffline(r.clientEventId);
+      if (previo) return previo;
+      throw err;
+    }
+    return this.aResultado(r);
+  }
+
+  private async membresiaPermiteAcceso(usuarioId: string): Promise<boolean> {
+    const membresia = await obtenerVigente(this.membresiasRepo, usuarioId);
+    return !!membresia && estadoDesde(membresia).puedeGenerarQr();
+  }
+
+  // Sincroniza los ingresos que el terminal registró sin conexión. Los fallos
+  // por evento viajan dentro del resultado; el orden de la respuesta es el del
+  // request, aunque se procesen por ocurridoEn.
+  async sincronizarIngresosOffline(
+    sedeId: string,
+    eventos: EventoOfflineDto[],
+    currentUser: UsuarioAutenticado,
+  ): Promise<{ resultados: ResultadoSincronizacion[] }> {
+    assertSedeScope(currentUser, sedeId);
+    const sede = await this.sedesRepo.findOne({ where: { id: sedeId } });
+    if (!sede) throw new NotFoundException(`Sede ${sedeId} no encontrada`);
+
+    const orden = eventos
+      .map((evento, indice) => ({ evento, indice }))
+      .sort(
+        (a, b) =>
+          new Date(a.evento.ocurridoEn).getTime() -
+            new Date(b.evento.ocurridoEn).getTime() || a.indice - b.indice,
+      );
+    const resultados: ResultadoSincronizacion[] = new Array(eventos.length);
+    for (const { evento, indice } of orden) {
+      resultados[indice] = await this.procesarEventoOffline(sedeId, evento);
+    }
+    return { resultados };
+  }
+
+  private async procesarEventoOffline(
+    sedeId: string,
+    evento: EventoOfflineDto,
+  ): Promise<ResultadoSincronizacion> {
+    // 1. Idempotencia: un evento ya procesado devuelve lo guardado y nada más.
+    const previo = await this.buscarEventoOffline(evento.clientEventId);
+    if (previo) return previo;
+
+    const ahora = new Date();
+    let ocurrido = new Date(evento.ocurridoEn);
+    const base = {
+      clientEventId: evento.clientEventId,
+      sedeId,
+      ocurridoEn: ocurrido,
+      accesoId: null,
+    };
+    // Rechazos y conflictos no reservan el jti: otro evento válido del mismo
+    // QR no debe quedar bloqueado por un envío mal formado.
+    const rechazo = (
+      codigo: string,
+      mensaje: string,
+      usuarioId: string | null = null,
+    ) =>
+      this.registrarResultadoOffline({
+        ...base,
+        usuarioId,
+        qrJti: null,
+        estado: 'RECHAZADO',
+        codigo,
+        mensaje,
+      });
+
+    // 2. Firma, algoritmo, kid y tipo.
+    const qr = this.verificarQrOffline(evento.qrToken);
+    if (!qr) return rechazo('TOKEN_INVALIDO', 'El QR no es válido');
+
+    const usuario = await this.usuariosRepo.findOne({
+      where: { id: qr.usuarioId },
+    });
+
+    // 3. Ventana de validez del QR, con tolerancia de reloj.
+    const desde = qr.iat * 1000 - TOLERANCIA_RELOJ_MS;
+    const hasta = qr.exp * 1000 + TOLERANCIA_RELOJ_MS;
+    if (ocurrido.getTime() < desde || ocurrido.getTime() > hasta) {
+      return rechazo(
+        'QR_VENCIDO',
+        'El ingreso ocurrió fuera de la ventana de validez del QR',
+        usuario?.id ?? null,
+      );
+    }
+
+    // 4. Fecha: demasiado vieja se rechaza; futura se acota a ahora.
+    const observaciones: string[] = [];
+    if (ocurrido.getTime() < ahora.getTime() - ANTIGUEDAD_MAXIMA_MS) {
+      return rechazo(
+        'FECHA_INVALIDA',
+        'El ingreso tiene más de 72 horas de antigüedad',
+        usuario?.id ?? null,
+      );
+    }
+    if (ocurrido.getTime() > ahora.getTime()) {
+      observaciones.push(
+        `ocurridoEn en el futuro (${evento.ocurridoEn}): se registró con la hora de sincronización`,
+      );
+      ocurrido = ahora;
+    }
+
+    // 5. Usuario.
+    if (!usuario) {
+      return rechazo('USUARIO_INEXISTENTE', 'El usuario del QR no existe');
+    }
+
+    // Observaciones: el ingreso ya ocurrió, así que se registra igual.
+    let codigoObservado: string | null = null;
+    if (!usuario.activo || !(await this.membresiaPermiteAcceso(usuario.id))) {
+      codigoObservado = 'MEMBRESIA_NO_VIGENTE';
+      observaciones.push(
+        'Membresía no vigente o usuario inactivo al sincronizar',
+      );
+    }
+    const { actual, maximo } = await this.obtenerAforo(sedeId);
+    if (actual >= maximo) {
+      codigoObservado ??= 'AFORO_EXCEDIDO';
+      observaciones.push('La sede superaba su aforo máximo al sincronizar');
+    }
+    const observacion = observaciones.length ? observaciones.join('. ') : null;
+
+    const accesoId = randomUUID();
+    const fila: ResultadoOffline = {
+      ...base,
+      ocurridoEn: new Date(evento.ocurridoEn),
+      usuarioId: usuario.id,
+      qrJti: qr.jti,
+      estado: codigoObservado ? 'OBSERVADO' : 'CREADO',
+      codigo: codigoObservado ?? 'OK',
+      mensaje: observacion,
+      accesoId,
+    };
+
+    // 6 y 7. Todo en una transacción: primero el evento (el índice único del
+    // jti detecta el QR reusado), después el ingreso (el índice único parcial
+    // detecta la sesión abierta).
+    try {
+      await this.accesoRepo.manager.transaction(async (tx) => {
+        await tx.query(SQL_INSERTAR_EVENTO, this.paramsEvento(fila, null));
+        await tx.query(SQL_INSERTAR_ACCESO, [
+          accesoId,
+          usuario.id,
+          sedeId,
+          ocurrido,
+          ahora,
+          observacion,
+        ]);
+        await tx.query(SQL_ENLAZAR_ACCESO, [evento.clientEventId, accesoId]);
+      });
+    } catch (err) {
+      if (!esViolacionUnique(err)) throw err;
+      // Un 23505 abortó la transacción: ya está revertida; el resultado se
+      // registra en una nueva.
+      const restriccion = restriccionViolada(err);
+      const conflicto = (codigo: string, mensaje: string, jti: string | null) =>
+        this.registrarResultadoOffline({
+          ...fila,
+          qrJti: jti,
+          estado: 'CONFLICTO',
+          codigo,
+          mensaje,
+          accesoId: null,
+        });
+      if (restriccion.includes('jti')) {
+        return conflicto('QR_REUSADO', 'Este QR ya fue registrado', null);
+      }
+      if (restriccion.includes('uq_acceso_abierto')) {
+        return conflicto(
+          'SESION_ABIERTA',
+          'El usuario ya tiene un ingreso abierto',
+          qr.jti,
+        );
+      }
+      // Carrera por el mismo clientEventId: gana quien llegó primero.
+      const ganador = await this.buscarEventoOffline(evento.clientEventId);
+      if (ganador) return ganador;
+      throw err;
+    }
+    return this.aResultado(fila);
   }
 
   // RN01 + RF04/RF05: valida el QR, chequea aforo, y ahora también

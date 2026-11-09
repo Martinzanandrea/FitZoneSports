@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -14,6 +15,7 @@ import { AccesoService } from './acceso.service';
 import { ValidarQrDto } from './dto/validar-qr.dto';
 import { ValidarCodigoDto } from './dto/validar-codigo.dto';
 import { ValidarDniDto } from './dto/validar-dni.dto';
+import { SincronizarAccesoDto } from './dto/sincronizar-acceso.dto';
 import { RegistrarEgresoDto } from './dto/registrar-egreso.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -97,6 +99,25 @@ export class AccesoController {
     @CurrentUser() user: UsuarioAutenticado,
   ) {
     return this.accesoService.obtenerSnapshot(sedeId, user);
+  }
+
+  // Ingresos que el terminal registró sin conexión. Un resultado por evento,
+  // en el orden del request; los fallos por evento van dentro del 200.
+  @Roles(TipoActor.RECEPCIONISTA)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Auditable('SINCRONIZACION_ACCESO_OFFLINE', 'ControlAcceso')
+  @Post('sincronizar')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Sincronizar ingresos registrados offline' })
+  sincronizar(
+    @Body() dto: SincronizarAccesoDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.accesoService.sincronizarIngresosOffline(
+      dto.sedeId,
+      dto.eventos,
+      user,
+    );
   }
 
   // Ingreso manual por DNI: alternativa cuando el socio no puede mostrar su QR.

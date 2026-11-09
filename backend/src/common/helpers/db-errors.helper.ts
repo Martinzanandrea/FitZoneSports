@@ -14,6 +14,12 @@ export function esViolacionUnique(err: unknown): boolean {
   return (e?.driverError?.code ?? e?.code) === '23505';
 }
 
+// Nombre de la restricción o índice que originó el error de base (si lo trae).
+export function restriccionViolada(err: unknown): string {
+  const e = err as ErrorDeBase | null;
+  return e?.driverError?.constraint ?? e?.constraint ?? '';
+}
+
 // Violación de una restricción de exclusión de Postgres (23P01), p. ej. dos
 // membresías del mismo usuario con períodos superpuestos.
 export function esViolacionExclusion(err: unknown): boolean {
