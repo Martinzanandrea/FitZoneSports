@@ -19,7 +19,11 @@ import { leerPoolConfig, opcionesDePool } from './pool.config';
         entities: ALL_ENTITIES,
         synchronize: false, // nunca poner en true,la db ya la creamos.
         logging: false,
-        ssl: { rejectUnauthorized: false },
+        // Supabase exige SSL; el Postgres local de docker compose no lo tiene.
+        ssl:
+          config.get<string>('DB_SSL') === 'false'
+            ? false
+            : { rejectUnauthorized: false },
         // Pool explícito (ver pool.config.ts y el README del servidor).
         ...opcionesDePool(leerPoolConfig((k) => config.get<string>(k))),
       }),

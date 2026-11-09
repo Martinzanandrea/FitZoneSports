@@ -9,14 +9,20 @@
 -- dividido en PARTE 1 y PARTE 2: ejecutar la PARTE 1, esperar a que
 -- termine (commit), y recién después ejecutar la PARTE 2.
 --
+-- Con el script de migraciones (server/db/migrar.js) el archivo se ejecuta
+-- solo: la marca "migrar:sin-transaccion" hace que cada tramo separado por
+-- "migrar:corte" se confirme por separado, como pide Postgres.
+-- migrar:sin-transaccion
+--
 -- NOTA 'GERENTE': Postgres no permite quitar valores de un enum
 -- fácilmente, así que 'GERENTE' queda en el tipo aunque no se use
 -- más. No eliminarlo: rompería backups/dumps que lo mencionen.
 
 -- ============ PARTE 1 (primera ejecución) ============
-ALTER TYPE public.tipo_actor ADD VALUE 'GERENTE_GENERAL';
--- Segunda sentencia separada (algunos editores la piden aparte):
--- ALTER TYPE public.tipo_actor ADD VALUE 'GERENTE_SEDE';
+ALTER TYPE public.tipo_actor ADD VALUE IF NOT EXISTS 'GERENTE_GENERAL';
+-- migrar:corte
+ALTER TYPE public.tipo_actor ADD VALUE IF NOT EXISTS 'GERENTE_SEDE';
+-- migrar:corte
 
 -- ============ PARTE 2 (segunda ejecución, DESPUÉS del commit de la PARTE 1) ============
 -- Migra a todos los Gerentes actuales a Gerente General (nadie pierde acceso).
