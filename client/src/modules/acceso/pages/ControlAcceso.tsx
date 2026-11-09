@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { accesoApi } from '../acceso.api';
-import type { SesionAbierta } from '../acceso.types';
+import type { EstadoMembresiaVista, SesionAbierta, VistaPreviaSocio } from '../acceso.types';
 import { sedesApi } from '../../sedes/sedes.api';
 import { LectorQr } from '../components/LectorQr';
 import { Donut } from '../../../shared/components/atoms';;
@@ -15,7 +15,22 @@ import { useAhora } from '../../../shared/hooks/useAhora';
 import { useTitulo } from '../../../shared/hooks/useTitulo';
 import { TEXTO_REQUIERE_CONEXION, useEstadoConexion } from '../../../shared/hooks/useEstadoConexion';
 
-type Modo = 'camara' | 'manual' | 'codigo';
+type Modo = 'camara' | 'manual' | 'codigo' | 'dni';
+
+const ESTADO_MEMBRESIA: Record<EstadoMembresiaVista, { texto: string; clase: string }> = {
+  VIGENTE: { texto: 'Membresía vigente', clase: 'badge-success' },
+  PROXIMA: { texto: 'Membresía próxima, aún no comenzó', clase: 'badge-warning' },
+  SUSPENDIDA: { texto: 'Membresía suspendida', clase: 'badge-danger' },
+  VENCIDA: { texto: 'Membresía vencida', clase: 'badge-danger' },
+  SIN_MEMBRESIA: { texto: 'Sin membresía', clase: 'badge-neutral' },
+};
+
+// Mensaje que devuelve el servidor, o uno genérico si no llegó respuesta.
+function mensajeDeError(e: unknown, porDefecto: string): string {
+  const ax = e as { response?: { data?: { message?: string | string[] } } };
+  const raw = ax.response?.data?.message;
+  return Array.isArray(raw) ? raw.join(', ') : raw ?? porDefecto;
+}
 
 export function ControlAcceso() {
   useTitulo('Control de acceso');
@@ -37,6 +52,10 @@ export function ControlAcceso() {
   const [codigo, setCodigo] = useState('');
   const [validandoCodigo, setValidandoCodigo] = useState(false);
   const codigoRef = useRef<HTMLInputElement>(null);
+  const [dni, setDni] = useState('');
+  const [buscandoDni, setBuscandoDni] = useState(false);
+  const [confirmandoDni, setConfirmandoDni] = useState(false);
+  const [socioDni, setSocioDni] = useState<VistaPreviaSocio | null>(null);
 
   useEffect(() => {
     if (tab === 'codigo') codigoRef.current?.focus();
@@ -179,6 +198,60 @@ export function ControlAcceso() {
     if (limpio.length === 6 && !validandoCodigo) void handleValidarCodigo(limpio);
   }
 
+  function handleDniChange(valor: string) {
+    setDni(valor.replace(/\D/g, '').slice(0, 9));
+    // Cambiar el DNI invalida la tarjeta de confirmación anterior.
+    setSocioDni(null);
+    setResultado(null);
+  }
+
+  async function handleBuscarDni() {
+    if (!sedeId) {
+      setResultado({ type: 'err', text: 'No tenés sede asignada.' });
+      return;
+    }
+    if (!/^\d{6,9}$/.test(dni)) {
+      setResultado({ type: 'err', text: 'Ingresá un DNI de 6 a 9 dígitos.' });
+      return;
+    }
+    if (!navigator.onLine) {
+      setResultado({ type: 'err', text: `Sin conexión a internet. ${TEXTO_REQUIERE_CONEXION}` });
+      return;
+    }
+    setBuscandoDni(true);
+    setResultado(null);
+    setSocioDni(null);
+    try {
+      setSocioDni(await accesoApi.buscarDni({ dni, sedeId }));
+    } catch (e: unknown) {
+      setResultado({ type: 'err', text: mensajeDeError(e, 'No se pudo buscar al socio.') });
+    } finally {
+      setBuscandoDni(false);
+    }
+  }
+
+  async function handleConfirmarDni() {
+    if (!sedeId || !socioDni) return;
+    if (!navigator.onLine) {
+      setResultado({ type: 'err', text: `Sin conexión a internet. ${TEXTO_REQUIERE_CONEXION}` });
+      return;
+    }
+    setConfirmandoDni(true);
+    setResultado(null);
+    try {
+      await accesoApi.validarDni({ dni, sedeId });
+      setResultado({ type: 'ok', text: `Ingreso validado: ${socioDni.nombre} ${socioDni.apellido}` });
+      setDni('');
+      setSocioDni(null);
+      void cargarAforo();
+      void cargarDentro();
+    } catch (e: unknown) {
+      setResultado({ type: 'err', text: mensajeDeError(e, 'No se pudo validar el ingreso.') });
+    } finally {
+      setConfirmandoDni(false);
+    }
+  }
+
   // Egreso directo por fila: la lista ya trae el usuarioId, no se pide nada a mano.
   async function handleEgresoDirecto(usuarioId: string, nombre: string) {
     setEgresandoId(usuarioId);
@@ -242,6 +315,7 @@ export function ControlAcceso() {
                   { id: 'camara', label: 'Cámara' },
                   { id: 'manual', label: 'Pegado' },
                   { id: 'codigo', label: 'Código' },
+                  { id: 'dni', label: 'DNI' },
                 ] as const
               ).map((t) => (
                 <button
@@ -330,6 +404,73 @@ export function ControlAcceso() {
                 >
                   {validandoCodigo ? 'Validando...' : 'Validar código'}
                 </button>
+              </div>
+            )}
+
+            {tab === 'dni' && (
+              <div className="stack-gap">
+                <label className="auth-field">
+                  <span className="field-label">DNI DEL SOCIO</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    maxLength={9}
+                    className="field-input"
+                    value={dni}
+                    onChange={(e) => handleDniChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !buscandoDni && online && dni) void handleBuscarDni();
+                    }}
+                    placeholder="Sin puntos"
+                    style={{ minHeight: 44 }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => void handleBuscarDni()}
+                  disabled={buscandoDni || !online || dni.length < 6}
+                >
+                  {buscandoDni ? 'Buscando...' : 'Buscar'}
+                </button>
+                <p style={{ fontSize: 11 }}>Usalo solo cuando el socio no puede mostrar su QR. Confirmá su identidad con la foto antes de registrar el ingreso.</p>
+
+                {socioDni && (
+                  <div className="profile-head" aria-label="Socio encontrado">
+                    {socioDni.fotoUrl ? (
+                      <span className="profile-photo">
+                        <img src={socioDni.fotoUrl} alt={`Foto de ${socioDni.nombre} ${socioDni.apellido}`} />
+                      </span>
+                    ) : (
+                      <span className="profile-photo" aria-hidden>
+                        {`${socioDni.nombre[0] ?? ''}${socioDni.apellido[0] ?? ''}`.toUpperCase()}
+                      </span>
+                    )}
+                    <div>
+                      <h2>{`${socioDni.nombre} ${socioDni.apellido}`}</h2>
+                      <span className={`badge ${ESTADO_MEMBRESIA[socioDni.estadoMembresia].clase}`}>
+                        <i />
+                        {ESTADO_MEMBRESIA[socioDni.estadoMembresia].texto}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {socioDni && socioDni.estadoMembresia !== 'VIGENTE' && (
+                  <p role="status" className="notice notice-err">
+                    La membresía no está vigente: no se puede registrar el ingreso.
+                  </p>
+                )}
+                {socioDni && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void handleConfirmarDni()}
+                    disabled={confirmandoDni || !online || socioDni.estadoMembresia !== 'VIGENTE'}
+                  >
+                    {confirmandoDni ? 'Registrando...' : 'Confirmar ingreso'}
+                  </button>
+                )}
               </div>
             )}
 

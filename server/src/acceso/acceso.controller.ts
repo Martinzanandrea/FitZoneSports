@@ -13,6 +13,7 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { AccesoService } from './acceso.service';
 import { ValidarQrDto } from './dto/validar-qr.dto';
 import { ValidarCodigoDto } from './dto/validar-codigo.dto';
+import { ValidarDniDto } from './dto/validar-dni.dto';
 import { RegistrarEgresoDto } from './dto/registrar-egreso.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { assertOwnerOrStaff } from '../auth/helpers/ownership.helper';
@@ -29,6 +30,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { TODOS_LOS_ROLES } from '../auth/roles.constants';
+import { Throttle } from '@nestjs/throttler';
+import { Auditable } from '../auditoria/decorators/auditable.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Acceso')
@@ -73,6 +76,42 @@ export class AccesoController {
     @CurrentUser() user: UsuarioAutenticado,
   ) {
     return this.accesoService.validarCodigo(dto.codigo, dto.sedeId, user);
+  }
+
+  // Ingreso manual por DNI: alternativa cuando el socio no puede mostrar su QR.
+  // Queda en la auditoría como INGRESO_MANUAL_DNI, con el actor que lo hizo.
+  @Roles(
+    TipoActor.RECEPCIONISTA,
+    TipoActor.GERENTE_SEDE,
+    TipoActor.GERENTE_GENERAL,
+  )
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Auditable('INGRESO_MANUAL_DNI', 'ControlAcceso')
+  @Post('validar-dni')
+  @ApiOperation({ summary: 'Registrar el ingreso de un socio por DNI' })
+  validarDni(
+    @Body() dto: ValidarDniDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.accesoService.validarDni(dto.dni, dto.sedeId, user);
+  }
+
+  // Previsualización previa a confirmar: solo nombre, foto y estado.
+  @Roles(
+    TipoActor.RECEPCIONISTA,
+    TipoActor.GERENTE_SEDE,
+    TipoActor.GERENTE_GENERAL,
+  )
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @Post('buscar-dni')
+  @ApiOperation({
+    summary: 'Buscar un socio por DNI (nombre, foto y estado de membresía)',
+  })
+  buscarDni(
+    @Body() dto: ValidarDniDto,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.accesoService.buscarPorDni(dto.dni, dto.sedeId, user);
   }
 
   @Roles(TipoActor.RECEPCIONISTA) // escanear y registrar: solo el mostrador

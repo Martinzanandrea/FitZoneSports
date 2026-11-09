@@ -9,9 +9,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ControlAcceso, Membresia, Usuario, Sede } from '../entities';
-import { TipoActor } from '../entities/enums';
+import { EstadoMembresia, TipoActor } from '../entities/enums';
 import { estadoDesde } from '../membresias/estado-membresia';
-import { obtenerVigente } from '../membresias/vigencia';
+import {
+  esProxima,
+  esVigente,
+  hoyArgentina,
+  obtenerVigente,
+} from '../membresias/vigencia';
+import { esViolacionUnique } from '../common/helpers/db-errors.helper';
 import { assertSedeScope } from '../auth/helpers/sede-scope.helper';
 import { UsuarioAutenticado } from '../auth/types/usuario-autenticado.type';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -29,6 +35,17 @@ interface CodigoCorto {
 
 // 60 segundos, igual que el QR (ambos se generan y vencen juntos).
 const CODIGO_CORTO_TTL_MS = 60_000;
+
+export type EstadoMembresiaVista =
+  'VIGENTE' | 'PROXIMA' | 'SUSPENDIDA' | 'VENCIDA' | 'SIN_MEMBRESIA';
+
+// Lo único que ve el recepcionista antes de confirmar un ingreso por DNI.
+export interface VistaPreviaSocio {
+  nombre: string;
+  apellido: string;
+  fotoUrl: string | null;
+  estadoMembresia: EstadoMembresiaVista;
+}
 
 export interface ResumenAccesoSede {
   sedeId: string;
@@ -61,9 +78,7 @@ export class AccesoService {
 
   // RF-04: el QR de acceso es exclusivo de Socios con membresía activa.
   // Mismo criterio que RN-03 en reserva-clase.service.ts.
-  private async exigirSocioConMembresiaActiva(
-    usuario: Usuario,
-  ): Promise<void> {
+  private async exigirSocioConMembresiaActiva(usuario: Usuario): Promise<void> {
     if (usuario.tipoActor !== TipoActor.SOCIO) {
       throw new ForbiddenException('El acceso por QR es exclusivo de socios');
     }
@@ -113,7 +128,10 @@ export class AccesoService {
 
   private generarCodigoCortoUnico(): string {
     for (let i = 0; i < 10; i++) {
-      const codigo = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0');
+      const codigo = String(Math.floor(Math.random() * 1_000_000)).padStart(
+        6,
+        '0',
+      );
       if (!this.codigosCortos.has(codigo)) return codigo;
     }
     throw new ConflictException('No se pudo generar un código, reintentá');
@@ -153,7 +171,13 @@ export class AccesoService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
   // RN01 + RF04/RF05: valida el QR, chequea aforo, y ahora también
@@ -248,6 +272,74 @@ export class AccesoService {
 
     const registro = this.accesoRepo.create({ usuario, sede });
     return this.accesoRepo.save(registro);
+  }
+
+  // Socio activo por DNI. Un DNI inexistente y el de alguien que no es socio
+  // dan el mismo 404: la búsqueda no revela datos de otros tipos de usuario.
+  private async buscarSocioPorDni(dni: string): Promise<Usuario> {
+    const usuario = await this.usuariosRepo.findOne({ where: { dni } });
+    if (!usuario || usuario.tipoActor !== TipoActor.SOCIO) {
+      throw new NotFoundException('No existe un socio con ese DNI');
+    }
+    if (!usuario.activo) throw new BadRequestException('Usuario inactivo');
+    return usuario;
+  }
+
+  // Previsualización del ingreso manual por DNI: solo nombre, foto y estado
+  // de la membresía. No registra nada.
+  async buscarPorDni(
+    dni: string,
+    sedeId: string,
+    currentUser: UsuarioAutenticado,
+  ): Promise<VistaPreviaSocio> {
+    assertSedeScope(currentUser, sedeId);
+    const usuario = await this.buscarSocioPorDni(dni);
+
+    const membresias = await this.membresiasRepo.find({
+      where: { usuario: { id: usuario.id } },
+    });
+    const hoy = hoyArgentina();
+    let estadoMembresia: EstadoMembresiaVista = 'SIN_MEMBRESIA';
+    if (membresias.some((m) => esVigente(m, hoy))) estadoMembresia = 'VIGENTE';
+    else if (membresias.some((m) => esProxima(m, hoy)))
+      estadoMembresia = 'PROXIMA';
+    else if (membresias.some((m) => m.estado === EstadoMembresia.SUSPENDIDO))
+      estadoMembresia = 'SUSPENDIDA';
+    else if (membresias.length > 0) estadoMembresia = 'VENCIDA';
+
+    return {
+      nombre: usuario.nombre,
+      apellido: usuario.apellido,
+      fotoUrl: usuario.fotoUrl ?? null,
+      estadoMembresia,
+    };
+  }
+
+  // Ingreso manual por DNI, cuando el socio no puede mostrar su QR. Pasa por
+  // la misma lógica que el QR y el código corto (sede, vigencia, aforo, RN01).
+  async validarDni(
+    dni: string,
+    sedeId: string,
+    currentUser: UsuarioAutenticado,
+  ): Promise<ControlAcceso> {
+    assertSedeScope(currentUser, sedeId);
+    const usuario = await this.buscarSocioPorDni(dni);
+    try {
+      return await this.registrarIngresoValidado(
+        usuario.id,
+        sedeId,
+        currentUser,
+        'Socio no encontrado',
+      );
+    } catch (err) {
+      // Dos ingresos a la vez: el índice único de RN01 rechaza al segundo.
+      if (esViolacionUnique(err)) {
+        throw new ConflictException(
+          'El usuario ya tiene un ingreso abierto en otra sede (o en esta misma sin egreso registrado)',
+        );
+      }
+      throw err;
+    }
   }
 
   // Ahora recibe currentUser para validar que el recepcionista que cierra
@@ -347,6 +439,12 @@ export class AccesoService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 }

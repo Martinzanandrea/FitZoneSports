@@ -35,3 +35,13 @@ export interface ResumenAccesos {
   totalIngresosHoy: number;
   totalEgresosHoy: number;
 }
+
+// Respuesta de POST /acceso/buscar-dni: lo mínimo para confirmar a la persona.
+export type EstadoMembresiaVista = 'VIGENTE' | 'PROXIMA' | 'SUSPENDIDA' | 'VENCIDA' | 'SIN_MEMBRESIA';
+
+export interface VistaPreviaSocio {
+  nombre: string;
+  apellido: string;
+  fotoUrl: string | null;
+  estadoMembresia: EstadoMembresiaVista;
+}

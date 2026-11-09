@@ -1,5 +1,5 @@
 import { api } from "../../api/axios";
-import type { Aforo, HistorialAcceso, ResumenAccesos, SesionAbierta } from "./acceso.types";
+import type { Aforo, HistorialAcceso, ResumenAccesos, SesionAbierta, VistaPreviaSocio } from "./acceso.types";
 import type { PaginatedResponse } from "../../shared/types/pagination";
 // Funciones para hablar con el backend en todo lo referido al ingreso a las sedes.
 export const accesoApi = {
@@ -21,6 +21,12 @@ export const accesoApi = {
   // misma seguridad que el QR, más práctico para dictar a mano.
   validarCodigo: (payload: { codigo: string; sedeId: string }) =>
     api.post("/acceso/validar-codigo", payload).then((res) => res.data),
+  // Ingreso manual por DNI, para cuando el socio no puede mostrar su QR.
+  // Primero se busca (solo nombre, foto y estado) y luego se confirma.
+  buscarDni: (payload: { dni: string; sedeId: string }) =>
+    api.post<VistaPreviaSocio>("/acceso/buscar-dni", payload).then((res) => res.data),
+  validarDni: (payload: { dni: string; sedeId: string }) =>
+    api.post("/acceso/validar-dni", payload).then((res) => res.data),
   // Registra que una persona salió (el usuarioId dice quién), para liberar su lugar en el aforo.
   registrarEgreso: (payload: { usuarioId: string }) =>
     api.post("/acceso/egreso", payload).then((res) => res.data),
