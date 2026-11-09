@@ -298,7 +298,7 @@ COMPLETAR
 
 ### 2026-11-09 · 4 h
 
-**Tarjeta(s) Jira:** COMPLETAR (tarjetas a crear en el tablero)
+**Tarjeta(s) Jira:** FT1-95 a FT1-104 (y FT1-86, escaneo de secretos, que está en el sprint 5)
 
 **Actividad**
 
