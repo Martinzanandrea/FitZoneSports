@@ -1,16 +1,16 @@
 # Informe de auditoría de testing — FitZone Sports
 
-Fecha: 2026-10-29. Alcance: `server/` (Jest) y `client/`. Solo lectura de código y ejecución de `jest`; no se modificó nada salvo este archivo.
+Fecha: 2026-10-29. Alcance: `backend/` (Jest) y `frontend/`. Solo lectura de código y ejecución de `jest`; no se modificó nada salvo este archivo.
 
 ## Resumen ejecutivo
 
-1. `npx jest` en `server/`: **37 suites, 648 pruebas, todas pasan** (0 skip, 0 todo).
+1. `npx jest` en `backend/`: **37 suites, 648 pruebas, todas pasan** (0 skip, 0 todo).
 2. Cobertura global: **71,0 % sentencias / 63,0 % ramas / 48,8 % funciones / 72,1 % líneas**. Los servicios de Acceso, Auth, Sedes, Precios, Auditoría y Reparto de horas están por debajo del 40 %.
 3. **Ninguna prueba usa base de datos real**: todo es unitario con mocks o con una "base simulada" en memoria. RN01, RN02 y RN03 se prueban solo parcialmente y la concurrencia es simulada, no real.
 4. Huecos de mayor riesgo: ingreso por QR (`acceso.service`), `auth.service`, alta de reserva online de cancha ante choque de horario, `precios.service`, interceptor de auditoría.
-5. `client/` no tiene runner de pruebas y no existe `.github/workflows` (no hay CI). La prueba e2e de `server/test` es la plantilla de Nest y no está en `npm test`.
+5. `frontend/` no tiene runner de pruebas y no existe `.github/workflows` (no hay CI). La prueba e2e de `backend/test` es la plantilla de Nest y no está en `npm test`.
 
-## 1. Inventario por módulo (`server/src`)
+## 1. Inventario por módulo (`backend/src`)
 
 | Módulo | Archivo spec | Pruebas | Tipo |
 |---|---|---:|---|
@@ -53,9 +53,9 @@ Fecha: 2026-10-29. Alcance: `server/` (Jest) y `client/`. Solo lectura de códig
 | usuarios | `usuarios-sede.spec.ts` | 4 | Unitaria con mocks |
 | **Total** | **37 suites** | **648** | |
 
-Módulos de `server/src` **sin ningún spec propio**: `admin`, `auditoria` (servicio/interceptor), `auth` (servicio/controlador/estrategia), `instructores`, `precios`, `sedes`, `storage`. (`auditoria` y `precios`, `sedes`, `auth` reciben cobertura indirecta de `auditoria-endpoints` y `seguridad-lecturas`.)
+Módulos de `backend/src` **sin ningún spec propio**: `admin`, `auditoria` (servicio/interceptor), `auth` (servicio/controlador/estrategia), `instructores`, `precios`, `sedes`, `storage`. (`auditoria` y `precios`, `sedes`, `auth` reciben cobertura indirecta de `auditoria-endpoints` y `seguridad-lecturas`.)
 
-Otros runners: `server/test/app.e2e-spec.ts` (`npm run test:e2e`, config `test/jest-e2e.json`) importa `AppModule` completo y espera `GET /` → `Hello World!`. **No lo ejecuté**: levantar `AppModule` abre conexión a la base. Es la plantilla por defecto de Nest. No hay Playwright/Cypress ni otro runner en el repo.
+Otros runners: `backend/test/app.e2e-spec.ts` (`npm run test:e2e`, config `test/jest-e2e.json`) importa `AppModule` completo y espera `GET /` → `Hello World!`. **No lo ejecuté**: levantar `AppModule` abre conexión a la base. Es la plantilla por defecto de Nest. No hay Playwright/Cypress ni otro runner en el repo.
 
 ## 2. Cobertura (Jest `--coverage`, salida de texto)
 
@@ -141,15 +141,15 @@ Nota de lectura: no corrí los tests con la base ni medí la concurrencia real; 
 | 8 | Reparto de horas (7 %) | Sin pruebas | Medio | Probar algoritmo |
 | 9 | Integración con base real (Postgres de prueba) | Inexistente | Alto transversal | Contenedor Postgres en CI para índices únicos y concurrencia |
 
-## 7. Cliente (`client/`)
+## 7. Cliente (`frontend/`)
 
-- `client/package.json` no declara `test`, `vitest`, `jest`, `playwright`, `cypress` ni `@testing-library`, y no hay archivos `*.test.*`/`*.spec.*` en `client/src`. **No hay runner.**
+- `frontend/package.json` no declara `test`, `vitest`, `jest`, `playwright`, `cypress` ni `@testing-library`, y no hay archivos `*.test.*`/`*.spec.*` en `frontend/src`. **No hay runner.**
 - Qué probar primero (sugerencia, no verificado en código del cliente): Vitest + Testing Library; funciones puras de formateo/fechas/precios y de mapeo de estados de membresía; luego formularios de login y pago con la API mockeada.
 
 ## 8. CI
 
 - **No existe `.github/workflows`** (verificado: la ruta no existe). No hay CI.
-- Las pruebas de `npm test` (Jest) no requieren variables de entorno ni base de datos para pasar: `crear-enviador.spec` define las suyas y `comprobante-pdf` solo usa una opcional. En un entorno limpio con `npm ci` deberían correr; no lo probé en un entorno limpio real (mi ejecución fue en esta máquina, con `server/.env` presente aunque no lo leí). `npm run test:e2e` sí necesitaría base y variables.
+- Las pruebas de `npm test` (Jest) no requieren variables de entorno ni base de datos para pasar: `crear-enviador.spec` define las suyas y `comprobante-pdf` solo usa una opcional. En un entorno limpio con `npm ci` deberían correr; no lo probé en un entorno limpio real (mi ejecución fue en esta máquina, con `backend/.env` presente aunque no lo leí). `npm run test:e2e` sí necesitaría base y variables.
 - Faltante: no hay script de lint/typecheck/test unificado ni reporte de cobertura con umbral (`jest` no define `coverageThreshold`).
 
 ## Lo que no pude verificar

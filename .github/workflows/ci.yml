@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: server
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: server/package-lock.json
+          cache-dependency-path: backend/package-lock.json
 
       - name: Instalar dependencias
         run: npm ci
@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cobertura-servidor
-          path: server/coverage
+          path: backend/coverage
           if-no-files-found: ignore
 
   cliente:
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: client
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +55,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Instalar dependencias
         run: npm ci

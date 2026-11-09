@@ -1,7 +1,7 @@
 -- ============================================================
 -- 002-auditoria-tabla-y-trigger.sql
 -- Tabla de auditoría (capa 1: interceptor de aplicación, ver
--- server/src/auditoria/) + trigger de Postgres en pagos (capa 2,
+-- backend/src/auditoria/) + trigger de Postgres en pagos (capa 2,
 -- defensa ante cambios hechos fuera de la aplicación).
 -- Ver docs/adr/0008-sistema-de-auditoria.md
 -- ============================================================

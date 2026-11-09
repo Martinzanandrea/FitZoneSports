@@ -3,7 +3,7 @@
 -- Export del schema real (pg_dump --schema-only) contra la base de
 -- Supabase del proyecto. TypeORM corre con synchronize:false — este
 -- archivo es la referencia versionada de la estructura real, generada
--- el 9 de septiembre de 2026. Ver server/src/entities/*.entity.ts como fuente
+-- el 9 de septiembre de 2026. Ver backend/src/entities/*.entity.ts como fuente
 -- de verdad del código; este .sql es el reflejo de la base ya creada.
 -- Ver docs/adr/0002, 0003 y 0004 para las decisiones detrás de este
 -- modelo.
