@@ -315,7 +315,7 @@ export function ReservarClases() {
 
       {!errorCarga && (
       <section className="glass panel" style={{ marginTop: 14 }} aria-label="Mis reservas de clases">
-        <SectionHeader title="Mis reservas" description="Cancelá sin cargo hasta 6 h antes." />
+        <SectionHeader title="Mis reservas" description="Podés cancelar sin cargo hasta 2 h antes del inicio." />
         {reservasMostrables.length === 0 ? (
           <EmptyState
             title="Todavía no tenés reservas"

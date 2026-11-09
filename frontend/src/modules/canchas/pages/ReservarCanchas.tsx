@@ -398,7 +398,7 @@ export function ReservarCanchas() {
             {reservando ? 'Reservando...' : 'Confirmar reserva'} <ArrowRight size={17} aria-hidden />
           </button>
           <small style={{ fontSize: 9, color: 'var(--muted)', marginTop: 10 }}>
-            Cancelación sin cargo hasta 6 h antes.
+            Podés cancelar la reserva sin cargo.
           </small>
         </aside>
       </div>
@@ -422,7 +422,7 @@ export function ReservarCanchas() {
 
       {misReservasHoy.length > 0 && (
         <div className="glass panel" style={{ marginTop: 14 }}>
-          <SectionHeader title={`Mis reservas para ${fecha}`} description="Cancelá sin cargo hasta 6 h antes." />
+          <SectionHeader title={`Mis reservas para ${fecha}`} description="Podés cancelar sin cargo." />
           <div className="stack-list">
             {misReservasHoy.map((r) => (
               <div className="list-row" key={r.id}>
