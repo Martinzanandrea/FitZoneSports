@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clasificarError } from "./clasificarError";
 /*Configuración de conexion para axios, para que todas las peticiones vayan a la URL del backend y
 para que envíe las cookies de sesión (si las hubiera) en cada petición.*/
 /**
@@ -67,6 +68,10 @@ api.interceptors.response.use(
       window.location.pathname === "/admin/login";
     const esCheckDeSesion = url.includes("/auth/me");
     const status = error.response?.status;
+
+    // Sin respuesta (sin red, timeout, servidor inalcanzable) no hay veredicto sobre la sesión:
+    // nunca cierra sesión, redirige ni revalida. Esto mantiene vivo el modo offline.
+    if (clasificarError(error) === "RED") return Promise.reject(error);
 
     if (status === 401 && !esCheckDeSesion && !enPaginaDeLogin) {
       if (!redirigiendo) {

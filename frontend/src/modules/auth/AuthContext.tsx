@@ -1,11 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registrarManejadorSesion } from '../../api/axios';
+import { decidirTrasFalloAlArrancar } from '../../api/clasificarError';
 import { rutaPanelStaff } from '../../shared/utils/rutaPanel';
 import { unaVez } from '../../shared/utils/unaVez';
 import { desuscribirDispositivo, reenviarSuscripcionExistente } from '../notificaciones/push.cliente';
 import { authApi } from './auth.api';
 import type { UsuarioAutenticado } from './auth.types';
+import { borrarUsuarioLocal, guardarUsuarioLocal, leerUsuarioLocal } from './sesionLocal';
+
+// Mientras no hay red, el servidor no puede confirmar la sesión: se reintenta cada tanto.
+const REINTENTO_VERIFICACION_MS = 30_000;
 
 const CANAL = 'fitzone-auth';
 const CLAVE_STORAGE = 'fitzone-auth-evento';
@@ -19,6 +24,9 @@ const enLogin = () => ['/login', '/admin/login'].includes(window.location.pathna
 interface AuthContextValue {
   user: UsuarioAutenticado | null;
   loading: boolean;
+  // true si la app arrancó sin poder consultar al servidor y se conserva el usuario
+  // guardado localmente; se verifica sola al volver la conexión.
+  sesionSinVerificar: boolean;
   login: (email: string, password: string) => Promise<UsuarioAutenticado>; // 👈 ahora devuelve el usuario
   logout: () => Promise<void>;
   // Vuelve a pedir /auth/me y actualiza el usuario (p. ej. tras pasar de EXTERNO a SOCIO).
@@ -30,15 +38,29 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UsuarioAutenticado | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sesionSinVerificar, setSesionSinVerificar] = useState(false);
   const navigate = useNavigate();
   // Refs: los listeners (axios, eventos, canal) viven más que cada render.
   const userRef = useRef<UsuarioAutenticado | null>(null);
   const canalRef = useRef<BroadcastChannel | null>(null);
+  const sinVerificarRef = useRef(false);
 
-  const aplicarUsuario = useCallback((u: UsuarioAutenticado | null) => {
-    userRef.current = u;
-    setUser(u);
+  const marcarSinVerificar = useCallback((valor: boolean) => {
+    sinVerificarRef.current = valor;
+    setSesionSinVerificar(valor);
   }, []);
+
+  const aplicarUsuario = useCallback(
+    (u: UsuarioAutenticado | null) => {
+      userRef.current = u;
+      setUser(u);
+      marcarSinVerificar(false);
+      // Copia local solo del usuario (sin tokens) para poder abrir la app sin red.
+      if (u) guardarUsuarioLocal(u);
+      else borrarUsuarioLocal();
+    },
+    [marcarSinVerificar],
+  );
 
   // Avisa a las demás pestañas que cambió la sesión (sin token: solo la señal).
   const avisarOtrasPestanas = useCallback((tipo: 'login' | 'logout') => {
@@ -61,9 +83,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       real = await unaVez('auth-me', () => authApi.me());
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } }).response?.status;
-      // Error de red o servidor caído: no se toca la sesión.
-      if (status !== 401) return false;
+      // Error de red o servidor caído: no se toca la sesión. Con la sesión sin
+      // verificar, un 403 también la invalida (usuario desactivado).
+      const invalida = status === 401 || (status === 403 && sinVerificarRef.current);
+      if (!invalida) return false;
       real = null;
+    }
+    if (real) {
+      // El servidor confirmó la sesión: deja de estar "sin verificar" y renueva la copia local.
+      marcarSinVerificar(false);
+      guardarUsuarioLocal(real);
     }
     const previo = userRef.current;
     if (!esOtraSesion(previo, real)) return false;
@@ -77,15 +106,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     return true;
-  }, [aplicarUsuario, navigate]);
+  }, [aplicarUsuario, marcarSinVerificar, navigate]);
 
   useEffect(() => {
     authApi
       .me()
       .then(aplicarUsuario)
-      .catch(() => aplicarUsuario(null))
+      .catch((err: unknown) => {
+        const local = leerUsuarioLocal();
+        if (local && decidirTrasFalloAlArrancar(err, navigator.onLine, true) === 'CONSERVAR_SIN_VERIFICAR') {
+          // Sin red (o servidor caído): se sigue con el usuario guardado, sin renovar su copia.
+          userRef.current = local;
+          setUser(local);
+          marcarSinVerificar(true);
+        } else {
+          aplicarUsuario(null);
+        }
+      })
       .finally(() => setLoading(false));
-  }, [aplicarUsuario]);
+  }, [aplicarUsuario, marcarSinVerificar]);
+
+  // Con la sesión sin verificar: al volver la conexión (y cada tanto, por si el
+  // servidor estaba caído con red) se reintenta la verificación en segundo plano.
+  useEffect(() => {
+    if (!sesionSinVerificar) return;
+    const verificar = () => void sincronizar();
+    window.addEventListener('online', verificar);
+    const id = setInterval(() => {
+      if (navigator.onLine) verificar();
+    }, REINTENTO_VERIFICACION_MS);
+    return () => {
+      window.removeEventListener('online', verificar);
+      clearInterval(id);
+    };
+  }, [sesionSinVerificar, sincronizar]);
 
   // Con sesión y permiso ya concedido, reasocia la suscripción push de este dispositivo al usuario actual.
   const usuarioId = user?.id;
@@ -158,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [aplicarUsuario]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refrescarUsuario }}>
+    <AuthContext.Provider value={{ user, loading, sesionSinVerificar, login, logout, refrescarUsuario }}>
       {children}
     </AuthContext.Provider>
   );
