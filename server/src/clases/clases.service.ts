@@ -766,6 +766,88 @@ export class ClasesService {
     return pagina;
   }
 
+  // Ocurrencias de todas las clases visibles en un rango de fechas, en UNA
+  // consulta y agrupadas por clase. Reemplaza al pedido por clase que hacía la
+  // pantalla de reservas: con 25 sedes eran más de 100 requests por carga y el
+  // límite de la API (200/min) devolvía 429. Mismas reglas de visibilidad que
+  // findAll y listarOcurrencias: el personal de sede queda en su sede, y los
+  // no gerentes solo ven clases activas y fechas programadas.
+  async listarOcurrenciasPorClase(
+    desde: string,
+    hasta: string,
+    sedeId?: string,
+    currentUser?: UsuarioAutenticado,
+  ): Promise<Record<string, (ClaseOcurrencia | OcurrenciaVistaCliente)[]>> {
+    for (const fecha of [desde, hasta]) {
+      if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+        throw new BadRequestException(
+          'desde y hasta son obligatorios, con formato YYYY-MM-DD',
+        );
+      }
+    }
+    const dias =
+      (Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) /
+      86_400_000;
+    if (dias < 0 || dias > 31) {
+      throw new BadRequestException('El rango debe ser de 0 a 31 días');
+    }
+    if (
+      currentUser?.tipoActor === TipoActor.GERENTE_SEDE ||
+      currentUser?.tipoActor === TipoActor.RECEPCIONISTA
+    ) {
+      if (!currentUser.sedeId) return {};
+      sedeId = currentUser.sedeId;
+    }
+
+    const qb = this.ocurrenciasRepo
+      .createQueryBuilder('ocurrencia')
+      .innerJoin('ocurrencia.clase', 'clase')
+      .addSelect('clase.id', 'clase_id_agrupar')
+      .where('ocurrencia.fecha >= :desde', { desde })
+      .andWhere('ocurrencia.fecha <= :hasta', { hasta })
+      .orderBy('ocurrencia.fecha', 'ASC')
+      .addOrderBy('ocurrencia.horaInicio', 'ASC');
+    if (sedeId) qb.andWhere('clase.sede_id = :sedeId', { sedeId });
+    if (!esGerente(currentUser)) {
+      qb.andWhere('clase.activa = true').andWhere(
+        'ocurrencia.estado = :programada',
+        { programada: EstadoOcurrenciaClase.PROGRAMADA },
+      );
+    }
+    const { entities, raw } = await qb.getRawAndEntities<{
+      clase_id_agrupar: string;
+    }>();
+    if (entities.length === 0) return {};
+
+    const filas = await this.ocurrenciasRepo.manager
+      .createQueryBuilder(ReservaClase, 'r')
+      .select('r.ocurrencia_id', 'ocurrenciaId')
+      .addSelect('COUNT(*)', 'cupo')
+      .where('r.ocurrencia_id IN (:...ids)', { ids: entities.map((o) => o.id) })
+      .andWhere('r.estado = :estado', { estado: EstadoResClase.RESERVADA })
+      .groupBy('r.ocurrencia_id')
+      .getRawMany<{ ocurrenciaId: string; cupo: string }>();
+    const cupos = new Map(filas.map((f) => [f.ocurrenciaId, Number(f.cupo)]));
+
+    const porClase: Record<string, (ClaseOcurrencia | OcurrenciaVistaCliente)[]> = {};
+    entities.forEach((o, i) => {
+      o.cupoOcupado = cupos.get(o.id) ?? 0;
+      const claseId = raw[i].clase_id_agrupar;
+      const item = esCliente(currentUser)
+        ? {
+            id: o.id,
+            fecha: o.fecha,
+            horaInicio: o.horaInicio,
+            horaFin: o.horaFin,
+            estado: o.estado,
+            cupoOcupado: o.cupoOcupado,
+          }
+        : o;
+      (porClase[claseId] ??= []).push(item);
+    });
+    return porClase;
+  }
+
   // Acción acotada, distinta de update(): GG y GS con scope a la sede de
   // la clase. RECEPCIONISTA ya no accede.
   async asignarInstructor(

@@ -1323,6 +1323,51 @@
         ]
       }
     },
+    "/clases/ocurrencias": {
+      "get": {
+        "operationId": "ClasesController_listarOcurrenciasPorClase",
+        "parameters": [
+          {
+            "name": "desde",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasta",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sedeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ],
+        "summary": "Ocurrencias de todas las clases visibles en un rango (máx. 31 días), agrupadas por clase",
+        "tags": [
+          "Clases"
+        ]
+      }
+    },
     "/clases/{id}": {
       "get": {
         "operationId": "ClasesController_findOne",

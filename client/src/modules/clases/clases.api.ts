@@ -115,6 +115,12 @@ export const clasesApi = {
   // Trae las fechas concretas generadas de una clase (el claseId dice cuál);
   // desde/hasta recortan el rango con formato "YYYY-MM-DD" y son opcionales.
   // También viene paginado.
+  // Ocurrencias de todas las clases visibles entre dos fechas (máx. 31 días),
+  // agrupadas por id de clase, en un solo pedido.
+  getOcurrenciasPorClase: (desde: string, hasta: string, sedeId?: string) =>
+    api
+      .get<Record<string, ClaseOcurrencia[]>>('/clases/ocurrencias', { params: { desde, hasta, sedeId } })
+      .then((r) => r.data),
   getOcurrencias: (claseId: string, desde?: string, hasta?: string, page = 1, limit = 20) =>
     api
       .get<PaginatedResponse<ClaseOcurrencia>>(`/clases/${claseId}/ocurrencias`, { params: { desde, hasta, page, limit } })
@@ -164,7 +170,7 @@ function aYMD(d: Date): string {
 }
 
 // Plantillas + ocurrencias en ventana de días (cada una con su cupoOcupado
-// agregado). Una clase que falla aporta lista vacía, no rompe el resto.
+// agregado). Una clase sin fechas en la ventana aporta lista vacía.
 export async function fetchMapaClases(ventanaDias = 14): Promise<{
   clases: Clase[];
   occMap: Record<string, ClaseOcurrencia[]>;
@@ -173,15 +179,10 @@ export async function fetchMapaClases(ventanaDias = 14): Promise<{
   const clases = clasesRes.data;
   const hoy = aYMD(new Date());
   const hasta = aYMD(new Date(Date.now() + ventanaDias * 24 * 60 * 60 * 1000));
+  // Una sola consulta para todas las clases (antes era una por clase, y con
+  // 25 sedes la API respondía 429 por exceso de pedidos).
+  const agrupadas = await clasesApi.getOcurrenciasPorClase(hoy, hasta);
   const occMap: Record<string, ClaseOcurrencia[]> = {};
-  await Promise.all(
-    clases.map(async (c) => {
-      try {
-        occMap[c.id] = (await clasesApi.getOcurrencias(c.id, hoy, hasta)).data;
-      } catch {
-        occMap[c.id] = [];
-      }
-    }),
-  );
+  for (const c of clases) occMap[c.id] = agrupadas[c.id] ?? [];
   return { clases, occMap };
 }

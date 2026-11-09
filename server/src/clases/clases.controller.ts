@@ -148,6 +148,22 @@ export class ClasesController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...TODOS_LOS_ROLES)
+  @Get('ocurrencias')
+  @ApiOperation({
+    summary:
+      'Ocurrencias de todas las clases visibles en un rango (máx. 31 días), agrupadas por clase',
+  })
+  listarOcurrenciasPorClase(
+    @Query('desde') desde: string,
+    @Query('hasta') hasta: string,
+    @Query('sedeId') sedeId?: string,
+    @CurrentUser() user?: UsuarioAutenticado,
+  ) {
+    return this.clasesService.listarOcurrenciasPorClase(desde, hasta, sedeId, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...TODOS_LOS_ROLES)
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una clase por ID' })
   @ApiParam({ name: 'id', description: 'UUID de la clase' })
