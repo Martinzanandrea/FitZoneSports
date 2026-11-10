@@ -1,6 +1,6 @@
 # Diagramas de FitZone Sports
 
-Cada vista tiene una fuente Mermaid editable y dos exportaciones. El SVG conserva la nitidez al ampliar y el PNG sirve para insertar la lámina en el dossier. El encabezado de la fuente identifica al equipo, la fecha y la versión.
+Cada vista tiene una fuente Mermaid editable y dos exportaciones. El SVG conserva la nitidez al ampliar y el PNG sirve para insertar la lámina en el dossier. El encabezado de la fuente identifica al autor (según el historial de git), la fecha y la versión.
 
 Para ver el recorrido del QR sin conexión, empezá por el C4 de Acceso y seguí con la secuencia. El C4 muestra dónde viven los componentes. La secuencia muestra la preparación con red, el ingreso local y la conciliación al reconectar.
 
