@@ -10,10 +10,11 @@ Proyecto académico de la cátedra de Programación V, Licenciatura en Sistemas 
 
 | Integrante | Rol | Usuario de Git |
 |---|---|---|
-| Zanandrea, Martín | COMPLETAR (P1 a P4) | `martin` / `Martin Zanandrea` (martinzanandrea09@gmail.com) |
-| Ava, Teo | COMPLETAR (P1 a P4) | `Teo` (teoava3@gmail.com) |
-| Retamoso, Máximo | COMPLETAR (P1 a P4) | `maxi` (maxiretamosotrotta@gmail.com) |
-| COMPLETAR | COMPLETAR (P1 a P4) | COMPLETAR |
+| Zanandrea, Martín | Backend, líder técnico | `martin` / `Martin Zanandrea` (martinzanandrea09@gmail.com) |
+| Ava, Teo | Frontend | `Teo` (teoava3@gmail.com) |
+| Retamoso, Máximo | Calidad, DevOps y documentación | `maxi` (maxiretamosotrotta@gmail.com) |
+
+El equipo está formado por estos tres integrantes. Las responsabilidades de cada uno por tarjeta están en [`docs/planificacion/PLANIFICACION.md`](docs/planificacion/PLANIFICACION.md) y su trabajo en commits está en las [bitácoras](docs/bitacoras/).
 
 ## 3. Puesta en marcha
 
@@ -62,13 +63,14 @@ Cada una de las 25 sedes tiene su gerente, su recepcionista, cuatro socios y un 
 
 ## 6. Estado de las pruebas
 
-| Suite | Comando (en `backend/`) | Resultado |
+| Suite | Comando | Resultado |
 |---|---|---|
-| Unitarias | `npm test` | 748 pruebas en 39 suites, todas en verde |
-| Integración contra PostgreSQL (RN-01, RN-02, cupo de clases) | `npm run test:integracion` | 13 pruebas en 4 suites, todas en verde |
-| Sistema (`docker compose up --build`) | job `docker` del CI | Levanta y responde |
+| Unitarias del backend | `npm test` (en `backend/`) | 848 pruebas en 42 suites, todas en verde |
+| Integración contra PostgreSQL (RN-01, RN-02, cupo de clases, sincronización offline) | `npm run test:integracion` (en `backend/`) | 18 pruebas en 5 suites. Requieren una base PostgreSQL y no se corrieron en esta revisión; las corre el job `integracion` del CI |
+| Unitarias del frontend | `npm test` (en `frontend/`) | 153 pruebas en 7 archivos, todas en verde |
+| Sistema (`docker compose up --build`) | job `docker` del CI | Levanta y responde en el CI; no se corrió localmente en esta revisión |
 
-**Cobertura** de las pruebas unitarias: **72,2 % de sentencias**, 62,8 % de ramas, 56,8 % de funciones y 72,4 % de líneas. El umbral mínimo (70 / 60 / 55 / 70 %) está declarado en [ADR-008](docs/adr/ADR-008-estrategia-de-pruebas.md) y el CI falla si no se alcanza. Informe detallado: `npm run test:cov` y abrir `backend/coverage/lcov-report/index.html`.
+**Cobertura** de las pruebas unitarias del backend: **73,65 % de sentencias**, 64,30 % de ramas, 58,99 % de funciones y 73,88 % de líneas. El frontend no tiene umbral ni informe de cobertura. El umbral mínimo (70 / 60 / 55 / 70 %) está declarado en [ADR-008](docs/adr/ADR-008-estrategia-de-pruebas.md) y el CI falla si no se alcanza. Informe detallado: `npm run test:cov` y abrir `backend/coverage/lcov-report/index.html`.
 
 El pipeline de GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) corre en cada push y pull request a `main`: escaneo de secretos, tipos, pruebas con umbral de cobertura, build, contrato OpenAPI, pruebas de integración con migraciones reversibles, levantado con Docker y build del portal.
 
@@ -95,6 +97,17 @@ frontend/   portal del socio y consola de administración (React)
 docs/       adr, diagramas, manuales, bitácoras, planificación, rnf
 docker-compose.yml
 ```
+
+## Declaración de uso de asistentes de IA y de bibliotecas de terceros
+
+**Asistentes de IA.** El equipo usó asistentes de inteligencia artificial como apoyo durante el desarrollo, las pruebas y la redacción de documentación. Se usó Claude Code (Anthropic) en este repositorio. Los integrantes revisaron el código y los documentos que entregan y pueden explicarlos y modificarlos en la defensa. [Pendiente: cada integrante debe confirmar si usó otros asistentes y para qué tareas.]
+
+**Bibliotecas de terceros.** Todas se instalan con `npm ci` desde los `package-lock.json`; las versiones exactas están ahí.
+
+- **Backend:** NestJS 11 (`@nestjs/common`, `core`, `config`, `jwt`, `passport`, `swagger`, `throttler`, `typeorm`, `schedule`, `event-emitter`, `platform-express`), TypeORM, `pg`, Passport, `bcrypt`, `class-validator`, `class-transformer`, `helmet`, `cookie-parser`, `multer`, `nodemailer`, `web-push`, `pdfkit`, `@supabase/supabase-js` y RxJS. Pruebas y calidad: Jest, ts-jest, supertest, ESLint y Prettier.
+- **Frontend:** React 19, React Router, Vite, Tailwind CSS 4, `axios`, `html5-qrcode`, `qrcode.react`, `lucide-react`, `vite-plugin-pwa` y `@vercel/analytics`. Pruebas y calidad: Vitest, jsdom, `fake-indexeddb` y ESLint.
+- **Servicios externos:** Supabase (PostgreSQL y Storage), Render, Vercel y Brevo (correo). La pasarela de pagos es simulada.
+- **Material de terceros:** [Pendiente: el equipo debe indicar la procedencia y la licencia de las imágenes de `frontend/public/images/landing/`; no se pudo verificar en el repositorio.]
 
 ## Licencia
 
