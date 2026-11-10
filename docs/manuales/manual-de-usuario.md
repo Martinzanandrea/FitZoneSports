@@ -159,7 +159,7 @@ Tus reservas aparecen en **Mis reservas**, debajo de la lista de clases, y en el
 4. Revisá el precio y pagá con Mercado Pago o MODO.
 
 ![Reservar canchas](img/06-socio-reservar-canchas.png)
-*Figura 7. Reservar canchas: grilla de turnos libres por cancha.*
+*Figura 7. Reservar canchas: filtros de sede y deporte, selector de fecha y lista de canchas con su precio por hora.*
 
 **Cómo se calcula el precio.** Cada cancha tiene un precio por hora. Sobre ese precio:
 
@@ -236,7 +236,7 @@ Al volver internet, la pantalla envía sola los ingresos pendientes y muestra el
 En **Reservas de clases** ves las clases de tu sede día por día, con el cupo ocupado. Con **Anotar socio** podés reservarle una clase a un socio que está en el mostrador (hasta 30 minutos antes del inicio).
 
 ![Reservas de clases](img/13-recepcion-reservas-clases.png)
-*Figura 12. Reservas de clases de la sede, por día.*
+*Figura 12. Reservas de clases de la sede (captura tomada mientras se cargaban los datos).*
 
 La creación y modificación de clases (horarios, instructor, cupo) la hace el gerente de sede (ver 5.4).
 
@@ -269,7 +269,7 @@ El recepcionista ve esas canchas y turnos como no disponibles.
 El gerente general ingresa por `/admin/login` y ve toda la cadena. El gerente de sede ve las mismas pantallas, limitadas a su sede y sin edición de precios.
 
 ![Panel general](img/14-gerente-panel.png)
-*Figura 13. Panel general: indicadores de toda la red.*
+*Figura 13. Panel general de la red (captura tomada mientras se cargaban algunos indicadores).*
 
 ### 5.1 Alta y configuración de una sede
 
