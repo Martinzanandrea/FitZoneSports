@@ -1,3 +1,5 @@
+> **Informe histórico.** Este informe es anterior al 09/11/2026 (se hizo sobre `a0c3e5b`, el último commit del 29/10/2026). Describe el estado del repositorio en ese momento y **no refleja el estado entregado**: desde entonces se agregaron `docker-compose.yml`, los Dockerfiles, `LICENSE`, `swagger.json`, el seed, las migraciones reversibles, los ADR, los diagramas, los manuales, las bitácoras, la planificación y el acceso sin conexión, y las carpetas `server/` y `client/` pasaron a llamarse `backend/` y `frontend/`. Para el estado vigente, ver el README, `docs/adr/` y `docs/manuales/`.
+
 # Auditoría de estado de entrega — FitZone Sports
 
 Fecha: 2026-11-09 · Rama `main` (HEAD `a0c3e5b`) · Auditoría de solo lectura (único archivo creado: este informe).
