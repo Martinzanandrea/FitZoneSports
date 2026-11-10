@@ -1,0 +1,15 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+flowchart TB
+  A([Cancela una reserva])
+  V{"¿Era RESERVADA?"}
+  E["Emite CLASE_CUPO_LIBERADO"]
+  L["Listener bloquea la ocurrencia<br/>y revisa el cupo"]
+  P{"¿Hay cupo y alguien en espera?"}
+  O["Promueve al primero<br/>por fecha de creación"]
+  N["Publica una notificación"]
+  F([Fin])
+  A --> V
+  V -->|Sí| E --> L --> P
+  V -->|No| F
+  P -->|Sí| O --> N --> F
+  P -->|No| F

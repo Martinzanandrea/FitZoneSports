@@ -1,0 +1,10 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+stateDiagram-v2
+  [*] --> Activo: Alta aprobada
+  Activo --> Vencido: Fecha de fin alcanzada
+  Activo --> Suspendido: Cancelación
+  Suspendido --> Activo: Reactivación si el período sigue vigente
+  note right of Vencido
+    Renovar crea una nueva vigencia.
+    La vigencia efectiva se calcula por fechas.
+  end note

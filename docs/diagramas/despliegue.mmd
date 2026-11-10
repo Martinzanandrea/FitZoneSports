@@ -1,43 +1,17 @@
-%% Diagrama de despliegue
-%% Autor: Retamoso, Máximo · Fecha: 2026-11-09 · Versión: 1.0
-%% Producción y entorno de desarrollo/corrección con docker compose.
-%% Ante una caída de la conexión principal hoy no sigue funcionando la validación
-%% de ingresos: el modo offline del terminal está propuesto (ADR-003, ADR-007).
-flowchart TB
-  subgraph clientes["Dispositivos"]
-    tel["Teléfono del socio<br/>PWA instalada"]
-    rec["Terminal de sede<br/>PWA en recepción, cámara"]
-    pc["Navegador del personal<br/>consola /admin"]
-  end
-
-  subgraph prod["Producción"]
-    vercel["Vercel (CDN)<br/>SPA estática + service worker<br/>rewrite /api/* a Render"]
-    render["Render (Web Service)<br/>Node 20 · NestJS<br/>plan gratuito, se suspende sin uso"]
-    subgraph supa["Supabase"]
-      pg[("PostgreSQL 17<br/>pooler Supavisor")]
-      st[("Storage<br/>fotos y comprobantes")]
-    end
-    brevo["Brevo<br/>API de correo"]
-  end
-
-  subgraph dev["docker compose up --build"]
-    web["web: nginx 1.27<br/>puerto 8080, /api a api:3000"]
-    api["api: node 20<br/>puerto 3000, migra y carga datos<br/>Swagger en /api"]
-    db[("db: postgres 17<br/>puerto 5433, volumen datos-db")]
-    vol[("volumen archivos<br/>STORAGE_PROVIDER=local")]
-  end
-
-  tel -- HTTPS --> vercel
-  pc -- HTTPS --> vercel
-  rec -- HTTPS --> vercel
-  vercel -- "HTTPS /api" --> render
-  render -- "TLS 5432" --> pg
-  render -- HTTPS --> st
-  render -- HTTPS --> brevo
-  web --> api
-  api --> db
-  api --> vol
-  rec -. "sin conexión: validación local del QR<br/>y cola de ingresos (propuesto)" .-> offline["Copia local en IndexedDB<br/>(propuesto)"]
-
-  class offline propuesto
-  classDef propuesto stroke-dasharray: 5 5,stroke:#888,color:#555
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v2.0
+flowchart LR
+  N["Navegador del socio"]
+  T["Terminal de sede"]
+  L[("IndexedDB<br/>Copia de sede y cola local")]
+  W["Vercel<br/>SPA y proxy /api"]
+  A["Render<br/>NestJS"]
+  D[("Supabase<br/>PostgreSQL y Storage")]
+  E["Brevo"]
+  N -->|HTTPS| W
+  T -->|HTTPS al reconectar| W
+  T <-->|Disponible sin red| L
+  W -->|HTTPS| A
+  A -->|SQL y HTTPS| D
+  A -->|HTTPS| E
+  classDef foco fill:#dbeafe,stroke:#2563eb,color:#172554
+  class T,L foco

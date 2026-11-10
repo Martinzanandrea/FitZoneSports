@@ -1,30 +1,48 @@
-# Diagramas
+# Diagramas de FitZone Sports
 
-Cada diagrama tiene su **fuente editable** en Mermaid (`.mmd`, texto plano versionable) y su **exportación** en SVG (vectorial) y PNG. El autor, la fecha y la versión figuran en el encabezado de cada fuente y en esta tabla.
+Cada vista tiene una fuente Mermaid editable y dos exportaciones. El SVG conserva la nitidez al ampliar y el PNG sirve para insertar la lámina en el dossier. El encabezado de la fuente identifica al equipo, la fecha y la versión.
 
-Para editar: abrir el `.mmd` en [mermaid.live](https://mermaid.live) o en VS Code con la extensión *Markdown Preview Mermaid Support*, y volver a exportar SVG y PNG con el mismo nombre.
+Para ver el recorrido del QR sin conexión, empezá por el C4 de Acceso y seguí con la secuencia. El C4 muestra dónde viven los componentes. La secuencia muestra la preparación con red, el ingreso local y la conciliación al reconectar.
 
-| Diagrama | Fuente | Exportación | Autor | Fecha | Versión |
-|---|---|---|---|---|---|
-| C4-1 Contexto | [c4-1-contexto.mmd](c4-1-contexto.mmd) | [SVG](c4-1-contexto.svg) · [PNG](c4-1-contexto.png) | Retamoso, Máximo | 2026-11-09 | 2.0 |
-| C4-2 Contenedores | [c4-2-contenedores.mmd](c4-2-contenedores.mmd) | [SVG](c4-2-contenedores.svg) · [PNG](c4-2-contenedores.png) | Retamoso, Máximo | 2026-11-09 | 2.0 |
-| C4-3 Componentes — Canchas (M4) | [c4-3-componentes-canchas.mmd](c4-3-componentes-canchas.mmd) | [SVG](c4-3-componentes-canchas.svg) · [PNG](c4-3-componentes-canchas.png) | Retamoso, Máximo | 2026-11-09 | 1.0 |
-| C4-3 Componentes — Acceso (M2) | [c4-3-componentes-acceso.mmd](c4-3-componentes-acceso.mmd) | [SVG](c4-3-componentes-acceso.svg) · [PNG](c4-3-componentes-acceso.png) | Retamoso, Máximo | 2026-11-09 | 1.0 |
-| DER físico | [der-fisico.mmd](der-fisico.mmd) | [SVG](der-fisico.svg) · [PNG](der-fisico.png) | Retamoso, Máximo | 2026-11-09 | 1.0 |
-| Despliegue | [despliegue.mmd](despliegue.mmd) | [SVG](despliegue.svg) · [PNG](despliegue.png) | Retamoso, Máximo | 2026-11-09 | 1.0 |
-| Arquitectura del pipeline | [pipeline.mmd](pipeline.mmd) | [SVG](pipeline.svg) · [PNG](pipeline.png) | Retamoso, Máximo | 2026-11-09 | 1.0 |
+## Arquitectura
 
-Las versiones 1.0 de los diagramas C4 de contexto, contenedores y componentes (draw.io, septiembre de 2026) siguen en [`docs/C4/`](../C4/) como registro histórico.
+| Vista | Fuente | Exportaciones |
+|---|---|---|
+| C4-1 · Contexto | [Mermaid](c4-1-contexto.mmd) | [SVG](c4-1-contexto.svg) · [PNG](c4-1-contexto.png) |
+| C4-2 · Contenedores | [Mermaid](c4-2-contenedores.mmd) | [SVG](c4-2-contenedores.svg) · [PNG](c4-2-contenedores.png) |
+| C4-3 · Canchas | [Mermaid](c4-3-componentes-canchas.mmd) | [SVG](c4-3-componentes-canchas.svg) · [PNG](c4-3-componentes-canchas.png) |
+| C4-3 · Acceso | [Mermaid](c4-3-componentes-acceso.mmd) | [SVG](c4-3-componentes-acceso.svg) · [PNG](c4-3-componentes-acceso.png) |
+| Despliegue | [Mermaid](despliegue.mmd) | [SVG](despliegue.svg) · [PNG](despliegue.png) |
+| Pipeline de integración | [Mermaid](pipeline.mmd) | [SVG](pipeline.svg) · [PNG](pipeline.png) |
 
-## Notas de lectura
+## Modelo físico
 
-- **DER físico:** generado desde la base que crean las migraciones `001` a `011` (`backend/db/migrar.js`), así que coincide con el esquema real. PK, FK y UK van como marca del atributo; los índices y restricciones se anotan como comentario. Las que sostienen las reglas de negocio:
-  - `uq_cancha_horario_confirmado` en `reservas_cancha (cancha_id, fecha, hora_inicio) WHERE estado = 'CONFIRMADA'`: impide la sobreventa (RN-02).
-  - `uq_acceso_abierto_por_usuario` en `control_acceso (usuario_id) WHERE hora_egreso IS NULL`: un socio no puede estar en dos sedes (RN-01).
-  - `excl_membresia_sin_superposicion` (EXCLUDE GiST) en `membresias`: sin períodos superpuestos.
-  - `idx_reservas_cancha_disponibilidad (cancha_id, fecha, hora_inicio)`: consulta de disponibilidad (RNF-03).
-- **Elementos "propuesto":** el camino offline del QR (copia local, cola y sincronización) aparece en el C4 de Acceso, en contenedores y en despliegue tal como lo describen ADR-003 y ADR-007, marcado como propuesto porque todavía no está implementado.
+| Vista | Fuente | Exportaciones |
+|---|---|---|
+| DER · Mapa general | [Mermaid](der-fisico.mmd) | [SVG](der-fisico.svg) · [PNG](der-fisico.png) |
+| Sedes, socios y acceso | [Mermaid](der-acceso.mmd) | [SVG](der-acceso.svg) · [PNG](der-acceso.png) |
+| Canchas y pagos | [Mermaid](der-canchas-pagos.mmd) | [SVG](der-canchas-pagos.svg) · [PNG](der-canchas-pagos.png) |
+| Clases y reservas | [Mermaid](der-clases.mmd) | [SVG](der-clases.svg) · [PNG](der-clases.png) |
+| Auditoría y avisos | [Mermaid](der-auditoria-avisos.mmd) | [SVG](der-auditoria-avisos.svg) · [PNG](der-auditoria-avisos.png) |
 
-## Pendientes respecto de los lineamientos (5.3)
+## UML
 
-Faltan los diagramas UML: clases del dominio, secuencia de reserva con pago, secuencia de reserva concurrente, secuencia de validación offline, estados de membresía, estados de reserva y actividad de lista de espera.
+| Vista | Fuente | Exportaciones |
+|---|---|---|
+| Clases del dominio | [Mermaid](uml-clases-dominio.mmd) | [SVG](uml-clases-dominio.svg) · [PNG](uml-clases-dominio.png) |
+| Secuencia · Reserva y pago | [Mermaid](uml-secuencia-reserva-pago.mmd) | [SVG](uml-secuencia-reserva-pago.svg) · [PNG](uml-secuencia-reserva-pago.png) |
+| Secuencia · Reserva concurrente (RN-02) | [Mermaid](uml-secuencia-reserva-concurrente.mmd) | [SVG](uml-secuencia-reserva-concurrente.svg) · [PNG](uml-secuencia-reserva-concurrente.png) |
+| Secuencia · QR offline (RNF-01) | [Mermaid](uml-secuencia-acceso-offline.mmd) | [SVG](uml-secuencia-acceso-offline.svg) · [PNG](uml-secuencia-acceso-offline.png) |
+| Estados · Membresía | [Mermaid](uml-estados-membresia.mmd) | [SVG](uml-estados-membresia.svg) · [PNG](uml-estados-membresia.png) |
+| Estados · Reserva | [Mermaid](uml-estados-reserva.mmd) | [SVG](uml-estados-reserva.svg) · [PNG](uml-estados-reserva.png) |
+| Actividad · Lista de espera | [Mermaid](uml-actividad-lista-espera.mmd) | [SVG](uml-actividad-lista-espera.svg) · [PNG](uml-actividad-lista-espera.png) |
+
+## Correspondencia con el código
+
+- **Canchas.** El controlador es `ReservasCanchaController`. `ReservasCanchaService` delega el precio a `PricingCalculatorService` y la reserva a `IBookingCanchaRepository`. `CanchasService` gestiona los bloqueos de la cancha.
+- **Acceso.** `ClavesQrService` prepara las claves ES256. El terminal verifica el QR con `verificarQr.ts` y guarda los pendientes con `colaIngresos.ts`. Al reconectar, `AccesoService` concilia el lote. El diagrama asume una clave ES256 configurada y un snapshot vigente.
+- **DER físico.** El mapa general sirve como índice. Las cuatro vistas de detalle conservan campos, claves e índices y muestran el evento agregado por la migración 012. Las tablas de referencia se repiten con su clave cuando una relación cruza de vista.
+- **Concurrencia.** `uq_cancha_horario_confirmado` protege el turno confirmado (RN-02). `uq_acceso_abierto_por_usuario` protege la sesión única (RN-01). `uq_evento_offline_jti` detecta QR repetidos en la conciliación.
+- **Estados de reserva.** El flujo de cancha persiste `CONFIRMADA` o `CANCELADA`. El pago se modela aparte. El código no tiene estados persistidos de cancha «pendiente de pago» o «cumplida» ni aplica penalidad en esa cancelación. La reserva de clase sí tiene lista de espera y una restricción horaria para la cancelación del socio.
+
+Las fuentes se pueden abrir en [Mermaid Live](https://mermaid.live). Las exportaciones de esta revisión se generaron con Mermaid 11.12.0. Las versiones anteriores de los C4 en draw.io están en [docs/C4](../C4/).

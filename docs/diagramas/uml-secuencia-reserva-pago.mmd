@@ -1,0 +1,30 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+sequenceDiagram
+  actor S as Socio
+  participant UI as Portal
+  participant R as Reservas
+  participant P as Precio
+  participant B as PostgreSQL
+  participant C as Pagos
+  S->>UI: Elige cancha y fecha
+  UI->>R: Consultar ocupación
+  R->>B: Leer reservas y bloqueos
+  R-->>UI: Grilla de turnos
+  UI->>R: Cotizar turno
+  R->>P: Aplicar estrategias
+  P-->>R: Precio calculado
+  R-->>UI: Precio mostrado
+  UI->>R: Confirmar reserva
+  R->>P: Calcular precio definitivo
+  R->>B: Bloquear cancha, revisar solapes y guardar
+  R-->>UI: Reserva confirmada
+  UI->>C: Pagar por pasarela
+  C->>B: Bloquear reserva y verificar pago previo
+  C->>C: Simular el cobro
+  C->>B: Guardar el pago y confirmar transacción
+  alt Pago aprobado
+    C->>C: Generar comprobante PDF
+    C-->>UI: Pago y comprobante
+  else Pago rechazado
+    C-->>UI: Pago rechazado
+  end

@@ -1,0 +1,16 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+sequenceDiagram
+  actor A as Socio A
+  actor B as Socio B
+  participant API as BookingCanchaRepository
+  participant DB as PostgreSQL
+  A->>API: Reserva la cancha a las 19
+  B->>API: Solicita el mismo turno
+  API->>DB: Transacción A adquiere FOR UPDATE
+  API->>DB: Transacción B espera por la misma cancha
+  API->>DB: A comprueba solape, inserta y confirma
+  API-->>A: Reserva confirmada
+  DB-->>API: B adquiere el bloqueo
+  API->>DB: B consulta el solape
+  DB-->>API: El turno ya está reservado
+  API-->>B: 409 Conflict

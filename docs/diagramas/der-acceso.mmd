@@ -1,0 +1,76 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+%% Las entidades externas se muestran solo con su clave.
+erDiagram
+  direction TB
+  sedes {
+    uuid id PK
+    varchar nombre
+    varchar direccion
+    int aforo_maximo
+    bool activa
+    timestamptz creada_en
+  }
+  usuarios {
+    uuid id PK
+    tipo_actor tipo_actor "IDX idx_usuarios_tipo"
+    varchar dni UK "null"
+    varchar nombre
+    varchar apellido
+    varchar email UK
+    varchar telefono "null"
+    text foto_url "null"
+    text password_hash
+    uuid sede_id FK "null"
+    bool activo
+    timestamptz creado_en
+    bool email_verificado
+  }
+  membresias {
+    uuid id PK
+    uuid usuario_id FK "EXCLUDE gist excl_membresia_sin_superposicion; IDX idx_membresias_usuario_estado; IDX idx_membresias_vigencia"
+    tipo_plan plan
+    estado_membresia estado
+    date fecha_inicio
+    date fecha_fin
+    bool renovacion_auto
+    uuid sede_alta_id FK
+    timestamptz creada_en
+  }
+  control_acceso {
+    uuid id PK
+    uuid usuario_id FK "UQ parcial RN-01 uq_acceso_abierto_por_usuario"
+    uuid sede_id FK "IDX idx_acceso_sede_abiertos"
+    timestamptz hora_ingreso
+    timestamptz hora_egreso "null"
+    bool validado_offline
+    timestamptz sincronizado_en "null"
+    varchar metodo_ingreso
+    text observacion "null"
+  }
+  eventos_acceso_offline {
+    uuid client_event_id PK
+    uuid sede_id FK
+    uuid usuario_id FK "null"
+    uuid qr_jti "UQ parcial uq_evento_offline_jti"
+    timestamptz ocurrido_en
+    timestamptz recibido_en
+    varchar estado
+    varchar codigo
+    text mensaje "null"
+    uuid acceso_id FK "null"
+  }
+  franjas_horarias {
+    uuid id PK
+    uuid sede_id FK "IDX idx_franjas_sede"
+    time apertura
+    time cierre
+  }
+  sedes ||--o{ control_acceso : "sede_id"
+  usuarios ||--o{ control_acceso : "usuario_id"
+  sedes ||--o{ franjas_horarias : "sede_id"
+  sedes ||--o{ membresias : "sede_alta_id"
+  usuarios ||--o{ membresias : "usuario_id"
+  sedes |o--o{ usuarios : "sede_id"
+  sedes ||--o{ eventos_acceso_offline : "sede_id"
+  usuarios |o--o{ eventos_acceso_offline : "usuario_id"
+  control_acceso |o--o{ eventos_acceso_offline : "acceso_id"

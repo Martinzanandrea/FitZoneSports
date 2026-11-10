@@ -1,0 +1,19 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+stateDiagram-v2
+  state Cancha {
+    [*] --> CONFIRMADA: Se guarda el turno
+    CONFIRMADA --> CANCELADA: Cancelación
+    CANCELADA --> [*]
+  }
+  state Clase {
+    [*] --> RESERVADA: Hay cupo
+    [*] --> LISTA_ESPERA: Clase sin cupo
+    LISTA_ESPERA --> RESERVADA: Promoción
+    LISTA_ESPERA --> CanceladaClase: Cancelación
+    RESERVADA --> CanceladaClase: Cancelación
+    state "CANCELADA" as CanceladaClase
+  }
+  note right of Clase
+    El enum también declara ASISTIO y NO_ASISTIO.
+    No hay transición de asistencia en el flujo actual.
+  end note

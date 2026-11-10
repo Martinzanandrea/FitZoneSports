@@ -1,0 +1,86 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+%% Las entidades externas se muestran solo con su clave.
+erDiagram
+  direction TB
+  canchas {
+    uuid id PK
+    uuid sede_id FK "IDX idx_canchas_sede"
+    varchar nombre
+    numeric costo_hora_base
+    estado_cancha estado
+    timestamptz creada_en
+    uuid tipo_id FK
+  }
+  tipos_cancha {
+    uuid id PK
+    varchar nombre UK
+    varchar imagen_url "null"
+    bool activo
+    timestamptz creado_en
+  }
+  bloqueos_cancha {
+    uuid id PK
+    uuid cancha_id FK "IDX idx_bloqueos_cancha_rango"
+    timestamptz desde
+    timestamptz hasta
+    varchar motivo "null"
+    timestamptz creado_en
+  }
+  reservas_cancha {
+    uuid id PK
+    uuid cancha_id FK "IDX idx_reservas_cancha_disponibilidad; UQ parcial RN-02 uq_cancha_horario_confirmado"
+    uuid usuario_id FK
+    date fecha
+    time hora_inicio
+    time hora_fin
+    tipo_estrategia_precio estrategia_precio
+    numeric precio_final
+    estado_res_cancha estado
+    timestamptz creada_en
+    timestamptz cancelada_en "null"
+  }
+  pagos {
+    uuid id PK
+    uuid usuario_id FK "IDX idx_pagos_usuario"
+    uuid membresia_id FK "null; IDX idx_pagos_membresia"
+    uuid reserva_clase_id "null; IDX idx_pagos_reserva_clase"
+    uuid reserva_cancha_id FK "null; IDX idx_pagos_reserva_cancha"
+    metodo_pago metodo
+    numeric monto
+    varchar token_pasarela "null"
+    uuid registrado_por_id FK "null; IDX idx_pagos_registrado_por"
+    estado_pago estado
+    timestamptz pagado_en "null"
+    timestamptz creado_en
+  }
+  comprobantes {
+    uuid id PK
+    uuid pago_id FK,UK
+    text pdf_path
+    timestamptz generado_en
+  }
+  precios_plan {
+    uuid id PK
+    tipo_plan plan UK
+    numeric precio
+    timestamptz actualizado_en
+  }
+  membresias {
+    uuid id PK
+  }
+  sedes {
+    uuid id PK
+  }
+  usuarios {
+    uuid id PK
+  }
+  canchas ||--o{ bloqueos_cancha : "cancha_id"
+  sedes ||--o{ canchas : "sede_id"
+  tipos_cancha ||--o{ canchas : "tipo_id"
+  pagos ||--o{ comprobantes : "pago_id"
+  membresias |o--o{ pagos : "membresia_id"
+  usuarios |o--o{ pagos : "registrado_por_id"
+  reservas_cancha |o--o{ pagos : "reserva_cancha_id"
+  usuarios ||--o{ pagos : "usuario_id"
+  canchas ||--o{ reservas_cancha : "cancha_id"
+  usuarios ||--o{ reservas_cancha : "usuario_id"

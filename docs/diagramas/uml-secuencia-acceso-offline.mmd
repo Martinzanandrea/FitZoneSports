@@ -1,0 +1,27 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+sequenceDiagram
+  actor S as Socio
+  participant API as AccesoService
+  participant T as Terminal
+  participant L as IndexedDB
+  participant DB as PostgreSQL
+  par Preparación con conexión
+    T->>API: GET /acceso/snapshot/:sedeId
+    API-->>T: Snapshot de la sede
+  and Clave para validar firmas
+    T->>API: GET /acceso/clave-publica
+    API-->>T: Clave pública ES256
+  end
+  T->>L: Guarda snapshot y clave pública
+  S->>API: Pide QR rotativo con conexión
+  API-->>S: QR ES256 de 60 s
+  Note over T,L: La sede pierde conexión
+  S->>T: Presenta el QR
+  T->>L: Lee snapshot y clave
+  Note right of T: Verifica firma, vigencia, sesión y aforo
+  T->>L: Guarda evento con clientEventId
+  Note over T,API: La sede recupera conexión
+  T->>API: POST /acceso/sincronizar
+  API->>DB: Verifica duplicados y concilia
+  API-->>T: Resultado por evento
+  T->>L: Actualiza la cola

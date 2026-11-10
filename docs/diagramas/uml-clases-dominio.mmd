@@ -1,0 +1,49 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+classDiagram
+  direction LR
+  class Usuario {
+    +UUID id
+    +TipoActor tipoActor
+  }
+  class Membresia {
+    +EstadoMembresia estado
+    +Date fechaInicio
+    +Date fechaFin
+  }
+  class Cancha {
+    +UUID id
+    +EstadoCancha estado
+  }
+  class ReservaCancha {
+    +EstadoResCancha estado
+    +Date fecha
+  }
+  class ClaseOcurrencia {
+    +Date fecha
+    +Time horaInicio
+  }
+  class ReservaClase {
+    +EstadoResClase estado
+  }
+  class PricingStrategy {
+    <<interface>>
+    +aplica()
+    +calcular()
+  }
+  class IBookingCanchaRepository {
+    <<interface>>
+    +crearReservaSegura()
+  }
+  class ReservasCanchaService
+  class PricingCalculatorService
+  class ReservasClaseService
+  class ListaEsperaListener
+  Usuario "1" --> "0..*" Membresia
+  Usuario "1" --> "0..*" ReservaCancha
+  Cancha "1" --> "0..*" ReservaCancha
+  Usuario "1" --> "0..*" ReservaClase
+  ClaseOcurrencia "1" --> "0..*" ReservaClase
+  ReservasCanchaService ..> IBookingCanchaRepository : Repository
+  ReservasCanchaService ..> PricingCalculatorService
+  PricingCalculatorService ..> PricingStrategy : Strategy
+  ReservasClaseService ..> ListaEsperaListener : Observer por evento

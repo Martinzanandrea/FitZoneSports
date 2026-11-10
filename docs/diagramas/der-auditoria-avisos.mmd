@@ -1,0 +1,59 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+%% Las entidades externas se muestran solo con su clave.
+erDiagram
+  direction TB
+  auditoria {
+    uuid id PK
+    uuid actor_id FK "null; IDX idx_auditoria_actor"
+    varchar accion
+    varchar entidad "IDX idx_auditoria_entidad"
+    uuid entidad_id "null"
+    jsonb detalle "null"
+    timestamptz creado_en "IDX idx_auditoria_creado"
+  }
+  envios_notificacion {
+    uuid id PK
+    varchar titulo
+    varchar mensaje
+    varchar audiencia
+    uuid sede_id FK "null"
+    uuid usuario_id FK "null"
+    text canales
+    uuid creado_por_id FK
+    timestamptz creada_en "IDX idx_envios_notificacion_creada_en"
+    int total_destinatarios
+    int emails_enviados
+    int emails_fallidos
+  }
+  notificaciones {
+    uuid id PK
+    uuid usuario_id FK "IDX idx_notificaciones_usuario"
+    varchar tipo
+    varchar titulo
+    varchar mensaje
+    timestamptz creada_en
+    timestamptz leida_en "null"
+    uuid envio_id FK "null"
+  }
+  push_suscripciones {
+    uuid id PK
+    uuid usuario_id FK "IDX idx_push_suscripciones_usuario"
+    text endpoint UK
+    text p256dh
+    text auth
+    text user_agent "null"
+    timestamptz creado_en
+  }
+  sedes {
+    uuid id PK
+  }
+  usuarios {
+    uuid id PK
+  }
+  usuarios |o--o{ auditoria : "actor_id"
+  usuarios ||--o{ envios_notificacion : "creado_por_id"
+  sedes |o--o{ envios_notificacion : "sede_id"
+  usuarios |o--o{ envios_notificacion : "usuario_id"
+  envios_notificacion |o--o{ notificaciones : "envio_id"
+  usuarios ||--o{ notificaciones : "usuario_id"
+  usuarios ||--o{ push_suscripciones : "usuario_id"

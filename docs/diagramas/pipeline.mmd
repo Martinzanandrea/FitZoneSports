@@ -1,24 +1,17 @@
-%% Arquitectura del pipeline de integración y entrega continuas
-%% Autor: Retamoso, Máximo · Fecha: 2026-11-09 · Versión: 1.0
-%% Fuente: .github/workflows/ci.yml
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v2.0
 flowchart LR
-  pr["Pull Request a main<br/>rama de trabajo, tarjeta FT1-nn"] --> ci
-
-  subgraph ci["GitHub Actions: CI, jobs en paralelo"]
-    direction TB
-    sec["secretos<br/>gitleaks sobre todo el historial"]
-    srv["servidor<br/>tsc, unitarias con umbral de cobertura,<br/>build, swagger.json al día"]
-    int["integración<br/>servicio postgres 17, migraciones,<br/>RN-01, RN-02, cupo de clases,<br/>revertir todo y volver a subir"]
-    dock["docker<br/>docker compose up --build --wait,<br/>portal, API, Swagger, 25 sedes"]
-    cli["cliente<br/>tsc -b y vite build"]
-  end
-
-  ci --> gate{"Todos los checks en verde<br/>(protección de rama)"}
-  gate -- no --> bloq["Merge bloqueado"]
-  gate -- sí --> rev["Revisión y aprobación"]
-  rev --> merge["Merge a main"]
-  merge --> deployApi["Render<br/>despliegue automático de la API"]
-  merge --> deployWeb["Vercel<br/>despliegue automático del portal"]
-  deployApi --> pruebas["Entorno de pruebas<br/>fit-zone-sports.vercel.app"]
-  deployWeb --> pruebas
-  merge -.-> tag["Cierre: tag anotado v1.0-entrega"]
+  A["Push o pull request"]
+  C["GitHub Actions"]
+  D["Servidor<br/>Tipos, pruebas y OpenAPI"]
+  E["Integración<br/>PostgreSQL y migraciones"]
+  F["Docker Compose<br/>Arranque y smoke test"]
+  G["Cliente<br/>Tipos y build"]
+  H["Secretos<br/>Gitleaks"]
+  A --> C
+  C --> D
+  C --> E
+  C --> F
+  C --> G
+  C --> H
+  classDef foco fill:#dbeafe,stroke:#2563eb,color:#172554
+  class C foco

@@ -1,0 +1,58 @@
+%% FitZone Sports · Equipo del proyecto · 2026-11-09 · v1.0
+%% Las entidades externas se muestran solo con su clave.
+erDiagram
+  direction TB
+  clases {
+    uuid id PK
+    uuid sede_id FK "IDX idx_clases_sede"
+    varchar tipo_clase
+    uuid instructor_id FK
+    int capacidad
+    numeric horas_semanales_totales
+    bool activa
+    timestamptz creada_en
+  }
+  instructores {
+    uuid id PK
+    varchar nombre
+    varchar especialidad "null"
+    varchar telefono "null"
+    bool activo
+  }
+  clase_horario_semanal {
+    uuid id PK
+    uuid clase_id FK "IDX idx_horario_semanal_clase"
+    smallint dia_semana "IDX idx_horario_semanal_dia; IDX idx_horario_semanal_solape"
+    time hora_inicio
+    time hora_fin
+  }
+  clase_ocurrencia {
+    uuid id PK
+    uuid clase_id FK,UK "IDX idx_ocurrencia_clase; UQ uq_ocurrencia_clase_fecha_hora"
+    date fecha UK "IDX idx_ocurrencia_fecha"
+    time hora_inicio UK
+    time hora_fin
+    estado_ocurrencia_clase estado
+    timestamptz creada_en
+  }
+  reservas_clase {
+    uuid id PK
+    uuid ocurrencia_id FK,UK "UQ uq_reserva_usuario_ocurrencia"
+    uuid usuario_id FK,UK "IDX idx_reservas_clase_usuario"
+    estado_res_clase estado "IDX idx_reservas_clase_estado"
+    bool notificado
+    timestamptz creada_en
+    timestamptz cancelada_en "null"
+  }
+  sedes {
+    uuid id PK
+  }
+  usuarios {
+    uuid id PK
+  }
+  clases ||--o{ clase_horario_semanal : "clase_id"
+  clases ||--o{ clase_ocurrencia : "clase_id"
+  instructores ||--o{ clases : "instructor_id"
+  sedes ||--o{ clases : "sede_id"
+  clase_ocurrencia ||--o{ reservas_clase : "ocurrencia_id"
+  usuarios ||--o{ reservas_clase : "usuario_id"
