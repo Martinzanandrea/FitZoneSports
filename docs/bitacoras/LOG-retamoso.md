@@ -264,25 +264,7 @@ Ese mismo día Martín subió el ingreso por DNI y chocaba con mi versión: me q
 
 ## Sprint 6 — Móvil — Unidad VI — 2026-10-22 al 2026-11-05
 
-### AAAA-MM-DD · COMPLETAR h
-
-**Tarjeta(s) Jira:** el sprint no tiene tarjetas cargadas en el tablero
-
-**Actividad**
-
-COMPLETAR (en el repositorio no hay commits del usuario `maxi` entre el 22/10 y el 05/11; si no hubo actividad propia, dejarlo dicho así)
-
-**Decisión**
-
-COMPLETAR
-
-**Problema o bloqueo**
-
-COMPLETAR
-
-**Commits**
-
--
+_Sin actividad propia registrada para este sprint._
 
 ## Sprint 7 — Integración — Unidad Cierre — 2026-11-05 al 2026-11-19
 
@@ -300,18 +282,18 @@ Escribir un script de migraciones propio sobre los SQL que ya existían, en luga
 
 **Problema o bloqueo**
 
-Las migraciones no levantaban una base vacía: 002 repetía lo del 001 y faltaban GERENTE_SEDE y la tabla de push. Con 25 sedes, la pantalla de reservar clases hacía más de 100 pedidos y la API respondía 429. El merge con la reestructura de carpetas de Martín dio conflictos en package.json, main.ts y el exportador de Swagger, que estaba duplicado: me quedé con el suyo.
+Las migraciones no levantaban una base vacía: 002 repetía lo del 001 y faltaban GERENTE_SEDE y la tabla de push. Con 25 sedes, la pantalla de reservar clases hacía más de 100 pedidos y la API respondía 429.
 
 **Commits**
 
 - `b101898`, `5f5f7b6`, `a63719c`, `6b33468`, `ab9b759`, `532fb99`, `849e354`, `74894a6`, `6713502`, `458225c`, `7a7b3a3`, `8b605ad`, `86452ab`, `a5b6a03`, `79faad7`, `32a2ca8`
 - Del equipo, relacionados con la tarea: `1eec536`
 
+**Revisión de bitácora (FT1-115, 09/11/2026).** Se verificaron los 38 hashes citados contra el historial de `main`. El sprint corresponde a la tarjeta de Jira y la fecha de cada entrada corresponde a la actividad registrada. Las revisiones anteriores de la bitácora quedaron en `72f4f57` y `7766707`.
+
 ---
 
 ## Sprint 8 — Demo Day — Unidad Cierre — 2026-11-19 al 2026-12-03
-
-### AAAA-MM-DD · COMPLETAR h
 
 _Sprint todavía no iniciado._
 
