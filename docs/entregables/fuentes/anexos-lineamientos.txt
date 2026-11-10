@@ -1,0 +1,92 @@
+ANEXOS A, D, E Y F DE LOS LINEAMIENTOS DE ENTREGA
+Programación V · Trabajo Integrador Final · Caso «FitZone Sports» · UNER · FCAD · 2026
+Prof. Lic. Aguirre, Juan José
+
+Nota de procedencia: transcripción de los Anexos A, D, E y F del documento «Lineamientos de Entrega — Trabajo Integrador Final» (Lineamientos_Entrega_TIF_FitZone_Sports_2do_Cuatrimestre_2026.pdf, 25 páginas, páginas 18, 21 y 22). El texto se extrajo del PDF y se ordenó a mano; el documento original de la cátedra prevalece ante cualquier diferencia. Salvedad: la cantidad de integrantes y el rango de códigos de rol del Anexo A se adaptaron al equipo; consultar el original. Se usa como fuente de verdad para verificar la documentación entregada.
+
+Equipo 08 · tres integrantes (Zanandrea, Ava, Retamoso).
+
+----------------------------------------------------------------------
+ANEXO A — PORTADA E ÍNDICE DEL DOSSIER
+----------------------------------------------------------------------
+El dossier en PDF que se sube al campus se arma con esta estructura.
+
+PORTADA
+Universidad Nacional de Entre Ríos — Facultad de Ciencias de la Administración
+Licenciatura en Sistemas — Programación V — Año 2026
+Trabajo Integrador Final — Caso «FitZone Sports»
+Equipo NN
+Integrantes: apellido y nombre, legajo, rol y usuario de Git
+Fecha de entrega — URL del repositorio — Tag — Hash del commit
+
+1. Resumen ejecutivo del sistema (1 página)
+2. Arquitectura: diagramas C4 de los niveles 1, 2 y 3
+3. Registros de decisión arquitectónica: ADR-001 a ADR-0NN
+4. Modelado: clases, secuencia, estados, actividad, DER y despliegue
+5. Patrones de diseño aplicados y su justificación
+6. Estrategia de pruebas y reporte de cobertura
+7. Cumplimiento de los requisitos no funcionales, con su evidencia
+8. Planificación: plan, cronograma, trazabilidad, seguimiento y riesgos
+9. Bitácoras individuales de los integrantes
+10. Índice de los manuales entregados, con su ubicación en el repositorio
+11. Anexo: tablero del proyecto exportado
+
+----------------------------------------------------------------------
+ANEXO D — ÍNDICE DEL MANUAL DE USUARIO
+----------------------------------------------------------------------
+1. Qué es FitZone Sports y para qué sirve
+2. Cómo leer este manual · Glosario de términos
+3. Manual del Socio
+   3.1 Registro y carga del perfil
+   3.2 Contratación y renovación de la membresía
+   3.3 Obtención del código QR desde el portal e ingreso al gimnasio
+   3.4 Qué hacer si el QR no es aceptado o la sede está sin conexión
+   3.5 Reserva de clases grupales y lista de espera
+   3.6 Reserva de canchas y cómo se calcula el precio
+   3.7 Cancelaciones, plazos y penalidades
+   3.8 Comprobantes de pago
+4. Manual del Recepcionista / Administrador de sede
+   4.1 Validación de ingreso y lectura del aforo
+   4.2 Gestión de la agenda de clases
+   4.3 Inhabilitación de una cancha por mantenimiento
+   4.4 Problemas frecuentes del mostrador y cómo resolverlos
+5. Manual del Gerente central
+   5.1 Alta y configuración de una sede
+   5.2 Definición de precios, descuentos y horario pico
+   5.3 Lectura de los reportes consolidados
+6. Preguntas frecuentes
+
+----------------------------------------------------------------------
+ANEXO E — ÍNDICE DEL MANUAL DE INSTALACIÓN Y OPERACIÓN
+----------------------------------------------------------------------
+1. Requisitos previos · Versiones exactas de software
+2. Puesta en marcha en entorno de desarrollo
+3. Puesta en marcha en entorno de producción
+4. Variables de entorno: tabla completa
+5. Base de datos: migraciones, reversión y datos semilla
+6. Despliegue: estrategia adoptada y procedimiento de reversión
+7. Respaldo y restauración
+8. Operación degradada: caída de la conexión principal y resincronización
+9. Alta de una sede nueva sin detener el sistema
+10. Monitoreo: registros, métricas y verificación de estado
+11. Resolución de problemas de instalación
+
+----------------------------------------------------------------------
+ANEXO F — ÍNDICE DEL MANUAL TÉCNICO
+----------------------------------------------------------------------
+1. Visión arquitectónica · Diagramas C4 · Índice de ADR
+2. Los cinco módulos funcionales y sus responsabilidades
+3. Modelo de datos y convenciones de persistencia
+4. Patrones de diseño aplicados y su ubicación en el código
+   4.1 Strategy — precio dinámico de canchas
+   4.2 Observer — lista de espera de clases
+   4.3 Repository — abstracción de la persistencia
+   4.4 Patrones creacionales y estructurales
+5. Control de concurrencia en las reservas
+6. Arquitectura offline del control de acceso
+7. Guía de extensión
+   7.1 Caso resuelto: agregar canchas de tenis
+   7.2 Caso resuelto: agregar una estrategia de precio
+8. Pruebas: cómo correrlas y cómo leer la cobertura
+9. Pipeline de integración y entrega continuas
+10. Convenciones de código, ramas y mensajes de commit
