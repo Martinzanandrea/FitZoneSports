@@ -160,5 +160,8 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Pruebas unitarias (vitest)
+        run: npm test
+
       - name: Compilar (tsc y vite)
         run: npm run build

@@ -313,7 +313,7 @@ Archivo: `.github/workflows/ci.yml`. Se ejecuta en cada push y pull request a `m
 | `servidor` | `npm ci`, `tsc --noEmit`, pruebas con cobertura, `npm run build`, `npm run swagger:export` y comparación | Error de tipos, prueba roja, cobertura bajo el umbral o `swagger.json` desactualizado |
 | `integracion` | Servicio `postgres:17`, pruebas de integración, revertir todas las migraciones y volver a aplicarlas con el seed | Falla una regla bajo concurrencia o una migración no es reversible |
 | `docker` | `docker compose up --build --wait`, chequeo de portal, API, Swagger y 25 sedes | El sistema no levanta desde cero |
-| `cliente` | `npm ci`, `tsc -b`, `vite build` | El portal no compila |
+| `cliente` | `npm ci`, `npm test` (vitest), `tsc -b`, `vite build` | Falla una prueba del portal o el portal no compila |
 
 Con la protección de la rama `main` configurada para exigir estos checks, un pull request no se puede mergear con el pipeline en rojo. Después del merge, Render y Vercel despliegan automáticamente. Ver el [diagrama](../diagramas/pipeline.svg).
 

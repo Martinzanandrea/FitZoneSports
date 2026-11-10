@@ -72,7 +72,7 @@ Cada una de las 25 sedes tiene su gerente, su recepcionista, cuatro socios y un 
 
 **Cobertura** de las pruebas unitarias del backend: **73,65 % de sentencias**, 64,30 % de ramas, 58,99 % de funciones y 73,88 % de líneas. El frontend no tiene umbral ni informe de cobertura. El umbral mínimo (70 / 60 / 55 / 70 %) está declarado en [ADR-008](docs/adr/ADR-008-estrategia-de-pruebas.md) y el CI falla si no se alcanza. Informe detallado: `npm run test:cov` y abrir `backend/coverage/lcov-report/index.html`.
 
-El pipeline de GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) corre en cada push y pull request a `main`: escaneo de secretos, tipos, pruebas con umbral de cobertura, build, contrato OpenAPI, pruebas de integración con migraciones reversibles, levantado con Docker y build del portal.
+El pipeline de GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) corre en cada push y pull request a `main`: escaneo de secretos, tipos, pruebas con umbral de cobertura, build, contrato OpenAPI, pruebas de integración con migraciones reversibles, levantado con Docker, y pruebas y build del portal.
 
 ---
 
