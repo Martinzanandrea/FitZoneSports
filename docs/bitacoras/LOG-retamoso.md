@@ -1,6 +1,6 @@
 # Bitácora — Retamoso, Máximo — Rol P4
 
-Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 a 8 vienen de `docs/LOG.md` (bitácora grupal original). En cada entrada, los commits se separan en propios y del equipo.
+Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 al 8.
 
 Usuario de Git: `maxi` (maxiretamosotrotta@gmail.com).
 
@@ -24,7 +24,7 @@ posiciones iniciales divididas en el equipo; se cerró con matriz de criterios (
 
 **Commits**
 
-- Del equipo, relacionados con la tarea: `e22cde0`
+- Del equipo: `e22cde0`
 
 Trabajo de diseño: el debate y el contenido del ADR-0002 se acordaron con el equipo por mensajes; el ADR lo integró Martín al repositorio.
 
@@ -50,7 +50,7 @@ numeración de ADRs con gaps tras varias iteraciones; se resolvió con renumerac
 
 **Commits**
 
-- Del equipo, relacionados con la tarea: `612d9ce`, `068e8b6`, `e22cde0`
+- Del equipo: `612d9ce`, `068e8b6`, `e22cde0`
 
 ---
 
@@ -72,7 +72,7 @@ La ventana de 60 s entre que se genera el QR y se valida obligó a chequear la m
 
 **Commits**
 
-- Del equipo, relacionados con la tarea: `7862d54`, `23cf2ff`, `f4bbfdc`
+- Del equipo: `7862d54`, `23cf2ff`, `f4bbfdc`
 
 ---
 
@@ -94,7 +94,7 @@ El doble clic al pagar podía cobrar dos veces. Martín lo resolvió con un bloq
 
 **Commits**
 
-- Del equipo, relacionados con la tarea: `7862d54`, `13b0d95`, `f07fa62`, `26dfa17`
+- Del equipo: `7862d54`, `13b0d95`, `f07fa62`, `26dfa17`
 
 ---
 
@@ -116,7 +116,7 @@ el detalle JSON guardaba tokens; se agregó redacción automática de secretos +
 
 **Commits**
 
-- Del equipo, relacionados con la tarea: `1802fc4`, `068e8b6`
+- Del equipo: `1802fc4`, `068e8b6`
 
 ---
 
@@ -140,7 +140,7 @@ Al repasar los patrones para justificarlos noté que la primera versión de Stra
 
 **Commits**
 
-- Del equipo, relacionados con la tarea: `cdca2b6`, `5552f69`, `2c6c8d7`
+- Del equipo: `cdca2b6`, `5552f69`, `2c6c8d7`
 
 ---
 
@@ -166,7 +166,7 @@ React Router conserva el scroll entre rutas y el frontend no tenía ningún mane
 
 - `b3ec7c3`
 
-- Del equipo, relacionados con la tarea: `9f46ceb`
+- Del equipo: `9f46ceb`
 
 ---
 
@@ -210,7 +210,7 @@ En la verificación encontré algunas cosas para corregir y se las pasé a Mart�
 
 **Commits**
 
-- Del equipo, relacionados con la tarea: `13b0d95`, `f07fa62`
+- Del equipo: `13b0d95`, `f07fa62`
 
 La tarjeta está en el sprint 4 aunque la verificación se cerró el 11/10, después de la fecha de fin del sprint.
 
@@ -287,7 +287,8 @@ Las migraciones no levantaban una base vacía: 002 repetía lo del 001 y faltaba
 **Commits**
 
 - `b101898`, `5f5f7b6`, `a63719c`, `6b33468`, `ab9b759`, `532fb99`, `849e354`, `74894a6`, `6713502`, `458225c`, `7a7b3a3`, `8b605ad`, `86452ab`, `a5b6a03`, `79faad7`, `32a2ca8`
-- Del equipo, relacionados con la tarea: `1eec536`
+
+- Del equipo: `1eec536`
 
 **Revisión de bitácora (FT1-115, 09/11/2026).** Se verificaron los 38 hashes citados contra el historial de `main`. El sprint corresponde a la tarjeta de Jira y la fecha de cada entrada corresponde a la actividad registrada. Las revisiones anteriores de la bitácora quedaron en `72f4f57` y `7766707`.
 
