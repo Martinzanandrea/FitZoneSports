@@ -22,11 +22,11 @@ Docker Desktop incluye Engine y Compose en Windows y macOS.
 
 | Software | Versión |
 |---|---|
-| Node.js | 20 LTS (probado también con 24) |
+| Node.js | 22 LTS o superior (el CI y las imágenes usan 22; probado también con 24) |
 | npm | 10 o superior |
 | PostgreSQL | 17 (cualquier 15+ con la extensión `btree_gist`) |
 
-**Imágenes que usa el compose:** `postgres:17`, `node:20-bookworm-slim` (API) y `nginx:1.27-alpine` (portal).
+**Imágenes que usa el compose:** `postgres:17`, `node:22-bookworm-slim` (API y compilación del portal) y `nginx:1.27-alpine` (portal).
 
 **Puertos que deben estar libres:** 8080 (portal), 3000 (API) y 5433 (Postgres en la máquina).
 
@@ -85,7 +85,7 @@ La producción actual corre en planes administrados:
 | Componente | Plataforma | Configuración |
 |---|---|---|
 | Portal | Vercel | Proyecto con *Root Directory* `frontend`; build `npm run build`; salida `dist`. `vercel.json` reenvía `/api/*` a la API |
-| API | Render (Web Service) | *Root Directory* `backend`; build `npm ci && npm run build`; start `npm run start:prod`; Node 20 |
+| API | Render (Web Service) | *Root Directory* `backend`; build `npm ci && npm run build`; start `npm run start:prod`; Node 22 |
 | Base de datos y archivos | Supabase | Postgres 17 con el pooler; buckets `fotos-usuarios` y `comprobantes` |
 | Correo | Brevo | API HTTPS (Render bloquea SMTP) |
 
@@ -96,10 +96,47 @@ Pasos para un entorno nuevo:
 3. Crear el servicio en Render con las variables de la sección 4 (`NODE_ENV=production`, `MAIL_PROVIDER=brevo`).
 4. Crear el proyecto en Vercel apuntando a `frontend`, con `VITE_API_URL=/api`, y ajustar el destino del rewrite en `vercel.json` a la URL de Render.
 5. En Render, `FRONTEND_URL` debe ser la URL de Vercel (CORS).
+6. Generar la clave del QR y cargarla en Render (sección 3.1).
+7. Aplicar la migración 012 en Supabase (sección 3.2).
 
-Cada merge a `main` despliega automáticamente en Render y Vercel, después de que el CI pasa (sección 6).
+**Despliegue automático.** El despliegue automático de Render y de Vercel al hacer merge en `main` es **configuración manual** de cada plataforma: el repositorio no versiona un `render.yaml` y, de Vercel, solo versiona `frontend/vercel.json` (reenvío de `/api` y encabezados). Que el despliegue espere a que el CI pase depende de esa configuración y no se puede comprobar desde el repositorio.
 
-> La base de Supabase existente se creó a mano antes de que existiera el script de migraciones. Antes de usar `db:migrar` contra ella por primera vez, registrar las migraciones ya aplicadas con `node db/migrar.js marcar-aplicadas`.
+### 3.1 Clave ES256 del QR (`QR_PRIVATE_KEY`)
+
+El QR de acceso se firma con una clave privada ES256 (curva P-256) para que el terminal de sede lo verifique sin conexión con la clave pública. Sin esta clave el sistema funciona, pero el QR se firma con HS256 y **el modo sin conexión no está disponible**.
+
+1. Generar la clave **una sola vez**, en la máquina de quien administra el servicio, con Node (formato PKCS8 PEM):
+
+   ```bash
+   node -e "const {generateKeyPairSync}=require('node:crypto');const {privateKey}=generateKeyPairSync('ec',{namedCurve:'P-256'});console.log(privateKey.export({type:'pkcs8',format:'pem'}))"
+   ```
+
+2. Copiar el resultado completo (desde `-----BEGIN PRIVATE KEY-----` hasta `-----END PRIVATE KEY-----`) en la variable `QR_PRIVATE_KEY` del servicio de Render. La API acepta el PEM en varias líneas o en una sola línea con `\n` literales.
+3. Guardarla **solo** en las variables de entorno del hosting (y en el gestor de secretos del equipo). **Nunca** se escribe en un archivo del repositorio, en `.env.example`, en un ticket ni en un chat. No pegar la salida del comando en ningún lugar versionado.
+4. Opcional: `QR_KEY_ID` fija el identificador de la clave (`kid`). Si no se define, la API usa 8 caracteres hexadecimales de un hash de la clave pública.
+5. Reiniciar el servicio y verificar: `GET /acceso/clave-publica` debe responder 200 con la clave (`alg: ES256`). Una respuesta 404 indica que la clave no se cargó (sección 11).
+
+Cambiar la clave deja sin validez la clave pública guardada en los snapshots ya descargados: hasta que cada terminal renueve su snapshot (con conexión, lo renueva cuando tiene más de 1 hora), los QR nuevos no se podrán verificar sin conexión.
+
+### 3.2 Migración 012 (acceso sin conexión) en Supabase
+
+La base de producción se creó a mano y la tabla `schema_migraciones` está **vacía**. Por eso en producción **no se usa `node db/migrar.js subir`** (intentaría aplicar de nuevo desde la 001). La migración 012 se aplica a mano:
+
+1. Abrir el *SQL Editor* de Supabase.
+2. Pegar el contenido de `backend/db/sql/012-acceso-offline.sql` dentro de una transacción:
+
+   ```sql
+   BEGIN;
+   -- contenido completo de backend/db/sql/012-acceso-offline.sql
+   COMMIT;
+   ```
+
+3. Si algún paso falla, ejecutar `ROLLBACK;`: la migración no queda a medias. El archivo **no es idempotente** (la restricción `chk_acceso_metodo_ingreso` se crea sin `IF NOT EXISTS`), por lo que no se debe aplicar dos veces.
+4. Verificar que existan la tabla `eventos_acceso_offline` y las columnas `metodo_ingreso` y `observacion` de `control_acceso`.
+
+La migración es aditiva (solo agrega columnas con valor por defecto y una tabla), de modo que la API anterior sigue funcionando con ella aplicada. Su reversión, solo si hace falta, está en `backend/db/sql/reversion/012-acceso-offline.down.sql`.
+
+> Si más adelante se decide registrar las migraciones ya aplicadas en `schema_migraciones`, usar `node db/migrar.js marcar-aplicadas` **después** de aplicar a mano la 012, porque ese comando las marca todas como aplicadas sin ejecutarlas.
 
 ## 4. Variables de entorno: tabla completa
 
@@ -113,8 +150,11 @@ Cada merge a `main` despliega automáticamente en Render y Vercel, después de q
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | Sí | | Conexión a Postgres |
 | `DB_SSL` | No | `true` | `false` para un Postgres local sin SSL |
 | `DB_POOL_MAX`, `DB_POOL_IDLE_TIMEOUT_MS`, `DB_POOL_CONNECTION_TIMEOUT_MS`, `DB_STATEMENT_TIMEOUT_MS` | No | `10`, `30000`, `10000`, `30000` | Pool de conexiones |
-| `JWT_SECRET` | Sí | cadena larga aleatoria | Firma de la sesión y del QR |
+| `JWT_SECRET` | Sí | cadena larga aleatoria | Firma de la sesión (cookie JWT). Es también la clave de respaldo del QR cuando no hay `QR_PRIVATE_KEY` (el QR se firma con HS256 y no hay modo sin conexión) |
 | `JWT_EXPIRATION` | No | `8h` | Duración de la sesión |
+| `QR_PRIVATE_KEY` | Sí para el modo sin conexión | PEM PKCS8 de una clave P-256 | Clave privada ES256 con la que se firma el QR (sección 3.1). Solo en las variables del hosting, nunca en el repositorio. Sin ella el QR se firma con HS256 y `GET /acceso/clave-publica` y el snapshot responden 404 |
+| `QR_KEY_ID` | No | `fz-2026` | Identificador (`kid`) de la clave. Por defecto, 8 caracteres hexadecimales de un hash de la clave pública |
+| `QR_CLAVE_EFIMERA` | No | `true` | Solo desarrollo: si falta `QR_PRIVATE_KEY`, genera un par de claves al arrancar. Cambia en cada reinicio y los snapshots anteriores dejan de valer. Docker compose lo activa; nunca usarlo en producción |
 | `STORAGE_PROVIDER` | No | `supabase` / `local` | Dónde se guardan los archivos |
 | `STORAGE_LOCAL_DIR` | Con `local` | `archivos` | Carpeta de archivos |
 | `PUBLIC_API_URL` | Con `local` | `http://localhost:3000` | URL pública de la API, base de las URLs de archivos |
@@ -135,13 +175,13 @@ Cada merge a `main` despliega automáticamente en Render y Vercel, después de q
 
 ### Docker compose (`.env` en la raíz, opcional)
 
-`DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `DB_PUERTO_HOST`, `JWT_SECRET`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`. Ver `.env.example` en la raíz. Sin ese archivo se usan valores de desarrollo.
+`DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `DB_PUERTO_HOST`, `JWT_SECRET`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`. Ver `.env.example` en la raíz. Sin ese archivo se usan valores de desarrollo. El compose define `QR_CLAVE_EFIMERA=true` para que el modo sin conexión funcione sin configurar una clave.
 
 **Nunca se versionan archivos `.env`**: solo los `.env.example`, sin valores reales.
 
 ## 5. Base de datos: migraciones, reversión y datos semilla
 
-Las migraciones son scripts SQL en `backend/db/sql/NNN-nombre.sql`; cada una tiene su reversión en `backend/db/sql/reversion/NNN-nombre.down.sql`. El script `backend/db/migrar.js` registra cuáles se aplicaron en la tabla `schema_migraciones`. Los scripts con `diagnostico` en el nombre son consultas de solo lectura para revisar datos a mano y no se ejecutan como migraciones.
+Las migraciones son scripts SQL en `backend/db/sql/NNN-nombre.sql`; cada una tiene su reversión en `backend/db/sql/reversion/NNN-nombre.down.sql`. El script `backend/db/migrar.js` registra cuáles se aplicaron en la tabla `schema_migraciones`. Los scripts con `diagnostico` en el nombre (007 y 009) son consultas de solo lectura para revisar datos a mano y no se ejecutan como migraciones; por eso la tabla de abajo no los incluye y no tienen reversión.
 
 | Comando (desde `backend/`) | Qué hace |
 |---|---|
@@ -163,8 +203,9 @@ Las migraciones son scripts SQL en `backend/db/sql/NNN-nombre.sql`; cada una tie
 | 008 | Redacción de secretos en auditoría | Irreversible a propósito (no se recuperan contraseñas) |
 | 010 | Membresías sin superposición | Quita la restricción |
 | 011 | Suscripciones push | Borra la tabla |
+| 012 | Acceso sin conexión: columnas `metodo_ingreso` y `observacion` de `control_acceso` y tabla `eventos_acceso_offline` | Borra la tabla y las columnas |
 
-**Agregar una migración:** crear `backend/db/sql/012-descripcion.sql` y `backend/db/sql/reversion/012-descripcion.down.sql`. Si usa `ALTER TYPE ... ADD VALUE`, separar las sentencias con `-- migrar:corte` y marcar el archivo con `-- migrar:sin-transaccion`.
+**Agregar una migración:** crear `backend/db/sql/013-descripcion.sql` y `backend/db/sql/reversion/013-descripcion.down.sql`. Si usa `ALTER TYPE ... ADD VALUE`, separar las sentencias con `-- migrar:corte` y marcar el archivo con `-- migrar:sin-transaccion`.
 
 El CI aplica todas las migraciones en una base vacía, las revierte todas y las vuelve a aplicar en cada push.
 
@@ -178,7 +219,7 @@ El CI aplica todas las migraciones en una base vacía, las revierte todas y las 
 2. **Vercel:** proyecto → *Deployments* → deployment anterior → *Promote to Production*.
 3. **En el repositorio:** `git revert <commit del merge>` y push; el pipeline despliega la versión revertida.
 
-**Reversión de la base:** primero un respaldo (sección 7), después `npm run db:revertir` con las variables de producción. Revertir datos de 008 no es posible por diseño.
+**Reversión de la base:** primero un respaldo (sección 7), después `npm run db:revertir` con las variables de producción. Revertir datos de 008 no es posible por diseño. En producción la reversión de una migración también se aplica a mano en el *SQL Editor* (sección 3.2), porque `schema_migraciones` está vacía.
 
 **Docker:** para volver a una versión anterior, `git checkout v1.0-entrega` (o el tag que corresponda) y `docker compose up --build`.
 
@@ -206,17 +247,66 @@ Los archivos (fotos y comprobantes) se respaldan aparte: en Supabase, descargand
 
 ## 8. Operación degradada: caída de la conexión principal y resincronización
 
-**Estado actual:** la validación de ingresos requiere conexión con la API. Si la sede pierde internet, la pantalla de recepción muestra *Sin conexión* y deshabilita la validación hasta que vuelve la red. El resto del portal muestra el aviso de sin conexión.
+La pantalla de **Control de acceso** del recepcionista (el terminal de sede) puede validar el QR del socio sin conexión con el servidor central. El diseño está en [ADR-003](../adr/ADR-003-estrategia-offline-del-acceso.md) y [ADR-007](../adr/ADR-007-sincronizacion-del-terminal-de-sede.md), y el detalle técnico en la sección 6 del manual técnico.
 
-**Procedimiento mientras dure la caída:**
+### 8.1 Condiciones para que funcione
 
-1. Registrar a mano (planilla) nombre, DNI y hora de cada ingreso.
-2. Verificar la membresía mirando la tarjeta del socio en su teléfono (fecha *Válida hasta*).
-3. Al volver la conexión, registrar los ingresos con el modo **DNI** de Control de acceso.
+- La API tiene `QR_PRIVATE_KEY` (sección 3.1) y la migración 012 aplicada. Sin ellas no hay modo sin conexión.
+- El terminal tiene un **snapshot vigente** de su sede. Lo descarga solo al abrir Control de acceso con conexión y lo renueva si tiene más de 1 hora; vale 24 horas. Para saber si hay uno vigente basta mirar el aviso de la pantalla: *Modo sin conexión* con tono de aviso indica datos vigentes; con tono de error indica que no hay datos vigentes y no se puede validar.
+- Se recomienda **abrir Control de acceso con conexión al inicio de cada jornada** y dejar la pantalla abierta.
+- Para recargar la página o abrirla sin conexión hace falta tener instalada la aplicación (PWA). Si no, la pantalla debe estar abierta antes de la caída.
+- No cerrar sesión, no borrar los datos del navegador ni usar una ventana privada durante la caída: la cola de ingresos pendientes está en el navegador y se perdería.
 
-**Validación offline en el terminal de sede:** está en desarrollo (RNF-01). El diseño está en [ADR-003](../adr/ADR-003-estrategia-offline-del-acceso.md) y [ADR-007](../adr/ADR-007-sincronizacion-del-terminal-de-sede.md): QR firmado verificable con clave pública, copia local de vigencias y cola de ingresos que se sincroniza al reconectar. Cuando se integre, esta sección se actualiza con el procedimiento definitivo.
+### 8.2 Qué se puede hacer sin conexión
 
-**Caída de la API o de la base:** el portal sigue cargando (es estático, servido por Vercel o nginx) pero no puede operar. Revisar la sección 10 y, si fue un despliegue, revertir (sección 6).
+| Operación | Sin conexión |
+|---|---|
+| Validar QR con la cámara o por pegado | Sí, con los datos descargados. El resultado lleva la insignia *Sin conexión* |
+| Ingreso por código de 6 dígitos | No (requiere al servidor): el campo queda deshabilitado con una leyenda |
+| Ingreso por DNI | No (requiere al servidor) |
+| Registrar egresos | No (requiere al servidor) |
+| Ver el aforo | No: muestra "No se pudo cargar el aforo" |
+| Abrir la aplicación | Sí, con la sesión guardada en el dispositivo (vence a las 24 horas) |
+
+Si el servidor responde con un error de negocio (por ejemplo, membresía vencida), ese rechazo se muestra tal cual y no se valida localmente: solo la falta de respuesta, un timeout o un error 5xx activan la validación local.
+
+### 8.3 Procedimiento durante la caída
+
+1. Verificar el aviso *Modo sin conexión* de Control de acceso y que indique datos vigentes.
+2. Validar a cada socio con la cámara o el modo *Pegado*. Si el QR es válido, el ingreso queda en la cola y el aviso muestra la cantidad de pendientes. Un socio que ya ingresó no puede volver a entrar con otro QR hasta que se registre su egreso.
+3. Si el aviso indica que **no hay datos vigentes**, o para los socios que no pueden mostrar el QR, registrar a mano (planilla) nombre, DNI y hora de cada ingreso, y verificar la membresía mirando la tarjeta del socio en su teléfono (fecha *Válida hasta*).
+4. No registrar egresos hasta que vuelva la conexión.
+
+### 8.4 Resincronización al volver la conexión
+
+1. La pantalla envía la cola sola al volver la red, y cada 30 segundos mientras queden pendientes. También se puede usar el botón **Sincronizar ahora**.
+2. Con conexión, la pantalla muestra el **resumen de la última sincronización**: cantidad de ingresos creados, observados, en conflicto y rechazados, y el detalle de cada uno que no salió creado. Se cierra con el botón *Cerrar*.
+3. Los ingresos registrados en papel (paso 3 de 8.3) se cargan por el modo **DNI**.
+
+**Qué hacer según el resultado**
+
+| Resultado | Qué significa | Qué hacer |
+|---|---|---|
+| Creado | El ingreso quedó registrado | Nada |
+| Observado (*La membresía no estaba vigente al sincronizar* o *La sede superaba su aforo máximo*) | El ingreso se registró igual, porque la persona ya entró | Avisar a la gerencia de sede para que revise la membresía o el aforo |
+| Conflicto, *El socio ya tenía un ingreso abierto* | **El ingreso offline no se registró**: el sistema ya tenía a esa persona dentro (en esta u otra sede) | Revisar en **Quién está dentro** y, si corresponde, registrar el egreso del ingreso anterior; después cargar el ingreso por el modo DNI si la persona sigue en la sede. Puede deberse a un timeout, donde el servidor sí había registrado el ingreso original |
+| Conflicto, *El código QR ya había sido registrado* | Ese QR ya se había usado | Confirmar que no sea un intento de reutilizar el QR. Si el socio está dentro, registrarlo por DNI |
+| Rechazado (*QR no válido*, *fuera de la vigencia del código QR*, *más de 72 horas de antigüedad*, *usuario inexistente*) | El servidor no aceptó el evento | Registrar el ingreso por el modo DNI si la persona entró, y avisar a la gerencia si el motivo es *no válido* |
+| *N ingreso(s) no pudieron enviarse porque el servidor rechazó el formato* | El pedido tiene datos inválidos; no se reintenta solo. Los eventos quedan guardados en el dispositivo | Avisar al equipo técnico; no borrar los datos del navegador |
+| Sincronización interrumpida | Se cortó la red, la sesión no fue aceptada o el servidor falló | Se reintenta sola. Si el motivo es la sesión, volver a iniciar sesión |
+
+Un conflicto **no genera una notificación**: solo queda en el resumen de la pantalla y en la tabla `eventos_acceso_offline`. Para revisarlos desde la base (solo lectura):
+
+```sql
+SELECT recibido_en, sede_id, estado, codigo, mensaje
+FROM eventos_acceso_offline
+WHERE estado <> 'CREADO'
+ORDER BY recibido_en DESC;
+```
+
+### 8.5 Caída de la API o de la base
+
+El portal sigue cargando (es estático, servido por Vercel o nginx) pero no puede operar, salvo la validación sin conexión de 8.2. Revisar la sección 10 y, si fue un despliegue, revertir (sección 6).
 
 ## 9. Alta de una sede nueva sin detener el sistema
 
@@ -254,4 +344,8 @@ Los logs nunca imprimen contraseñas, tokens ni direcciones de email completas.
 | `MAIL_PROVIDER=brevo requiere definir...` | Faltan variables de Brevo | Completar `BREVO_API_KEY` y `MAIL_FROM_EMAIL` |
 | Error al subir una foto o al pagar | Sin Supabase configurado | `STORAGE_PROVIDER=local` |
 | `db:migrar` falla en 010 | Hay membresías superpuestas en la base | Correr el diagnóstico `009-diagnostico-membresias-superpuestas.sql`, corregir los datos y reintentar |
+| `GET /acceso/clave-publica` y `GET /acceso/snapshot/:sedeId` responden 404, y el terminal dice que no hay datos vigentes para validar sin conexión | La API no tiene `QR_PRIVATE_KEY` (ni `QR_CLAVE_EFIMERA=true` en desarrollo): firma el QR con HS256 | Cargar la clave (sección 3.1) y reiniciar el servicio. Los QR emitidos antes expiran a los 60 segundos y el portal genera uno nuevo firmado con ES256 |
+| Tras reiniciar la API en desarrollo, los terminales pierden la validación sin conexión | Con `QR_CLAVE_EFIMERA=true` la clave cambia en cada reinicio | Esperar a que el terminal renueve su snapshot con conexión (lo hace cuando tiene más de 1 hora), o definir `QR_PRIVATE_KEY` |
+| `node db/migrar.js subir` contra producción intenta crear tablas que ya existen | `schema_migraciones` está vacía en la base de Supabase | No usar `subir` en producción. Aplicar la migración a mano (sección 3.2) |
+| Al aplicar 012: `constraint "chk_acceso_metodo_ingreso" already exists` | La migración ya se aplicó; no es idempotente | `ROLLBACK;` y verificar que la tabla `eventos_acceso_offline` exista. No volver a aplicarla |
 | Respuestas 429 *Too Many Requests* | Límite de 200 pedidos por minuto por IP (5 por minuto en el login) | Esperar un minuto |
