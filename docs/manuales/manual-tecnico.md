@@ -153,21 +153,57 @@ En el acceso (RN-01) no hay lock: dos validaciones simultáneas pueden pasar el 
 
 ## 6. Arquitectura offline del control de acceso
 
-**Implementado:**
+La decisión está en ADR-003 (estrategia) y ADR-007 (sincronización). El terminal de sede es la pantalla de **Control de acceso** del recepcionista (`ControlAcceso.tsx`), una PWA que valida el QR en el navegador cuando no hay conexión con la API.
 
-- El QR es un JWT de 60 segundos con un `jti` único, generado por `AccesoService.generarQr()`. El servidor recuerda los `jti` usados hasta que vencen: cada QR sirve una sola vez.
-- El código de 6 dígitos vive en memoria del servidor, con el mismo vencimiento y uso único.
-- La PWA detecta la falta de conexión (`useEstadoConexion`) y deshabilita la validación con un aviso.
-- La tabla `control_acceso` tiene las columnas `validado_offline` y `sincronizado_en` preparadas para la sincronización.
+### 6.1 Qué hace cada parte
 
-**En desarrollo (RNF-01, ADR-003 y ADR-007):** validación en el terminal de sede sin el servidor central. Diseño propuesto:
+| Parte | Dónde | Responsabilidad |
+|---|---|---|
+| Firma del QR | `AccesoService.generarQr()` y `ClavesQrService` (`backend/src/acceso/`) | QR de 60 segundos con `jti` único, firmado con **ES256** (clave P-256 en `QR_PRIVATE_KEY`, identificador `kid` en la cabecera). Sin clave configurada, firma con HS256 y el modo offline no está disponible |
+| Clave pública | `GET /acceso/clave-publica` | Publica la clave como JWK. Responde 404 si no hay clave ES256 |
+| Snapshot de la sede | `GET /acceso/snapshot/:sedeId` (`AccesoService.obtenerSnapshot()`) | Clave pública, aforo, quiénes están dentro y los socios con membresía vigente o próxima de la red (`id`, nombre, apellido, `desde`, `hasta`). Vale **24 horas** (`SNAPSHOT_TTL_MS`). Solo para recepcionista y gerente de sede, con alcance por sede |
+| Verificación local | `frontend/src/modules/acceso/offline/verificarQr.ts` | Verifica la firma ES256 con WebCrypto y la clave del snapshot, el vencimiento (con tolerancia de reloj) y el tipo del token |
+| Almacén local | `offline/almacenOffline.ts` | IndexedDB con tres almacenes: `snapshot`, `cola` y `meta`. Sin librerías |
+| Snapshot y cola | `offline/snapshot.ts`, `offline/colaIngresos.ts` | Descarga y vigencia del snapshot; validación contra el snapshot local (membresía, sesión abierta, aforo) y alta del ingreso en la cola |
+| Estado de la pantalla | `offline/useModoOffline.ts`, `offline/decisionesPantalla.ts` | Conexión, pendientes, vigencia del snapshot, sincronización automática, textos y reglas de la pantalla |
+| Sesión sin red | `modules/auth/sesionLocal.ts`, `api/clasificarError.ts` | Copia local del usuario (sin tokens, vence a las 24 horas) para abrir la aplicación sin conexión; un error de red nunca cierra la sesión, un 401 o 403 sí |
+| Conciliación | `POST /acceso/sincronizar` (`AccesoService.sincronizarIngresosOffline()`) | Procesa la cola. Solo para recepcionista. Tabla `eventos_acceso_offline` (migración 012) |
 
-1. Firmar el QR con una clave asimétrica (ES256); el terminal verifica con la clave pública, sin secretos en la sede.
-2. El terminal guarda en IndexedDB la clave pública y la lista de socios vigentes con su fecha de fin, y la refresca cada 5 minutos con conexión.
-3. Sin conexión, valida firma, vencimiento y vigencia local, y encola el ingreso con un id idempotente y `validado_offline = true`.
-4. Al reconectar, envía la cola; el servidor la procesa en orden, marca `sincronizado_en` y registra como conflicto los casos de RN-01 (el socio figuraba en otra sede).
+### 6.2 Flujo
 
-Hay limitaciones conocidas: los mapas de QR usados y de códigos cortos están en memoria, así que no sobreviven a un reinicio ni se comparten entre varias instancias de la API. Con más de una instancia, habría que pasarlos a la base o a Redis.
+1. **Preparación, con conexión.** Al abrir Control de acceso, la pantalla descarga la clave pública y el snapshot de la sede si no hay uno guardado o si el guardado tiene más de 1 hora, y revisa cada 5 minutos si hace falta renovarlo.
+2. **Generación del QR.** El socio obtiene en su portal un QR ES256 de 60 segundos con `jti` único.
+3. **Validación.** Con conexión se usa `POST /acceso/validar`. Sin conexión, o si la llamada falla por red, timeout o un error 5xx, la pantalla valida con los datos descargados. Un 4xx del servidor (por ejemplo, membresía vencida) se muestra como rechazo real y no pasa a validación local.
+4. **Cola.** Cada ingreso aceptado sin conexión se guarda en IndexedDB con un `clientEventId` (UUID generado en el terminal), el QR leído y la hora de ocurrencia. El snapshot local se actualiza para que el mismo socio no pueda volver a ingresar y para que el aforo local suba. La pantalla muestra la insignia "Sin conexión" y el contador de pendientes.
+5. **Sincronización.** Al volver la conexión, y cada 30 segundos mientras haya pendientes, el terminal envía la cola por `POST /acceso/sincronizar`, agrupada por sede en lotes de hasta 100 eventos. También se puede forzar con "Sincronizar ahora".
+6. **Resultado.** El servidor verifica cada evento y devuelve un resultado por evento. El terminal borra de la cola los eventos respondidos y muestra el resumen de la última sincronización.
+
+### 6.3 Conciliación en el servidor
+
+Cada evento se procesa en su propia transacción. Se verifican, en orden: la idempotencia por `clientEventId`, la firma ES256, el algoritmo, el `kid` y el tipo del token, la ventana de validez del QR con tolerancia de reloj (2 minutos), la antigüedad (hasta 72 horas; una fecha futura se acota a la actual) y la existencia del usuario. Después se inserta primero el evento (el índice único `uq_evento_offline_jti` detecta un QR repetido) y luego el ingreso (el índice parcial `uq_acceso_abierto_por_usuario` detecta una sesión abierta).
+
+| Estado | Código | Significado | ¿Se registra el ingreso? |
+|---|---|---|---|
+| `CREADO` | `OK` | Ingreso válido | Sí (`validado_offline = true`, método `QR_OFFLINE`) |
+| `OBSERVADO` | `MEMBRESIA_NO_VIGENTE` | La membresía no estaba vigente o el usuario estaba inactivo al sincronizar | Sí, con observación |
+| `OBSERVADO` | `AFORO_EXCEDIDO` | La sede superaba el aforo máximo al sincronizar | Sí, con observación |
+| `CONFLICTO` | `SESION_ABIERTA` | El socio ya tenía un ingreso abierto (RN-01) | No |
+| `CONFLICTO` | `QR_REUSADO` | El `jti` del QR ya estaba registrado | No |
+| `RECHAZADO` | `TOKEN_INVALIDO` | Firma, algoritmo, `kid` o tipo inválidos | No |
+| `RECHAZADO` | `QR_VENCIDO` | El ingreso ocurrió fuera de la vigencia del QR | No |
+| `RECHAZADO` | `FECHA_INVALIDA` | El ingreso tiene más de 72 horas de antigüedad | No |
+| `RECHAZADO` | `USUARIO_INEXISTENTE` | El usuario del QR no existe | No |
+| (el estado guardado) | `YA_PROCESADO` | El `clientEventId` ya se había procesado; se devuelve lo guardado, sin duplicar | Según el resultado original |
+
+Los fallos por evento viajan dentro de una respuesta 200 y el orden de la respuesta es el del pedido. Un lote con formato inválido recibe 400: el terminal no lo reintenta solo y esos eventos quedan guardados en el dispositivo sin contar como pendientes. El resultado de cada evento queda en `eventos_acceso_offline`, también el de los conflictos y rechazos.
+
+### 6.4 Pruebas
+
+`backend/src/acceso/acceso-offline.spec.ts` (clave, snapshot y firma), `acceso-sincronizacion.spec.ts` (conciliación) y `backend/test/integracion/acceso-sincronizacion.int-spec.ts` (contra PostgreSQL). En el frontend, un archivo `*.test.ts` junto a cada módulo de `offline/`, más `sesionLocal.test.ts` y `clasificarError.test.ts`.
+
+### 6.5 Límites conocidos
+
+Están detallados en ADR-003 y ADR-007. Los principales: sin el service worker de la PWA no se puede recargar la página sin conexión; los mapas de `jti` y de códigos cortos están en memoria del servidor (no sobreviven a un reinicio ni se comparten entre instancias; con más de una instancia habría que pasarlos a la base o a Redis); un socio dado de baja puede ingresar hasta 24 horas; un timeout puede terminar en un conflicto `SESION_ABIERTA`; la lista offline de la pantalla se pierde al recargar y el aforo muestra "No se pudo cargar el aforo" sin conexión. No hay una prueba de punta a punta del flujo completo.
 
 ## 7. Guía de extensión
 
@@ -200,7 +236,7 @@ export interface PricingContext {
 }
 ```
 
-y calcularlo donde se arma el contexto, en `ReservasCanchaService.calcularPrecio()`. Hoy ese método recibe la cancha, el usuario y la hora de inicio; hay que sumarle la fecha del turno para saber el día de la semana (en hora de Argentina, con `diaSemanaDe()` de `common/helpers/hora-argentina.helper.ts`).
+y calcularlo donde se arma el contexto, en `ReservasCanchaService.calcularPrecio()` (`canchas/reserva-cancha.service.ts`). Ese método arma `esSocioActivo` y llama a `pricingCalculator.esHoraPico(horaInicio)` para `esHoraPico` (`reserva-cancha.service.ts:255`); la nueva bandera se calcula en el mismo lugar. Hoy el método recibe la cancha, el usuario y la hora de inicio; hay que sumarle la fecha del turno para saber el día de la semana (en hora de Argentina, con `diaSemanaDe()` de `common/helpers/hora-argentina.helper.ts`).
 
 **2. Crear la estrategia** (`canchas/pricing/valley-hour-pricing.strategy.ts`):
 
@@ -233,7 +269,7 @@ export class ValleyHourPricing implements PricingStrategy {
 **4. Registrar el resultado.** La reserva guarda qué estrategia se aplicó en `estrategia_precio`, un ENUM. Hay que agregar el valor (por ejemplo, `HORARIO_VALLE`) en `entities/enums.ts`, en `frontend/src/shared/types/enums.ts` y en una migración nueva:
 
 ```sql
--- backend/db/sql/012-estrategia-horario-valle.sql
+-- backend/db/sql/013-estrategia-horario-valle.sql
 -- migrar:sin-transaccion
 ALTER TYPE public.tipo_estrategia_precio ADD VALUE IF NOT EXISTS 'HORARIO_VALLE';
 ```
