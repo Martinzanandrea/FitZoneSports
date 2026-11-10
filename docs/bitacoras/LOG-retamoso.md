@@ -1,6 +1,6 @@
 # Bitácora — Retamoso, Máximo — Rol P4
 
-Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 a 5 vienen de `docs/LOG.md` (bitácora grupal original). En cada entrada, los commits se separan en propios y del equipo.
+Bitácora individual según la plantilla del Anexo C. Los sprints, sus fechas y las tarjetas (FT1-nn) son los del tablero Jira del equipo. Las entradas de los sprints 1 a 8 vienen de `docs/LOG.md` (bitácora grupal original). En cada entrada, los commits se separan en propios y del equipo.
 
 Usuario de Git: `maxi` (maxiretamosotrotta@gmail.com).
 
