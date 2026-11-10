@@ -125,7 +125,14 @@ Instalada, se abre a pantalla completa y puede recibir notificaciones.
 
 **Si no podés mostrar el QR** (sin batería o sin datos), el recepcionista puede registrar tu ingreso con tu **DNI**, después de verificar tu documento.
 
-**Si la sede no tiene conexión**, hoy el ingreso no se puede validar en el sistema: la pantalla de recepción avisa *Sin conexión* y la validación se habilita al reconectar. La validación sin conexión está en desarrollo (ver ADR-003).
+**Si la sede no tiene conexión a internet**, el ingreso con QR sigue funcionando. El recepcionista ve el aviso *Modo sin conexión* y la pantalla valida tu QR con los datos que descargó antes de la caída (membresías vigentes de la red y quiénes están dentro). Vos hacés lo mismo que siempre: mostrás el QR de tu teléfono y el recepcionista lo lee con la cámara.
+
+- El resultado aparece con la insignia **Sin conexión**: el ingreso quedó guardado en el equipo de recepción y se envía al sistema cuando vuelve internet. No tenés que hacer nada más.
+- Sin conexión **no funcionan** el ingreso por código de 6 dígitos ni por DNI, y tampoco se pueden registrar egresos hasta que vuelva la red. Por eso conviene mostrar el QR.
+- Si ya habías ingresado a otra sede y no marcaste la salida, al volver la conexión el sistema puede informar un conflicto y el recepcionista tendrá que resolverlo con vos (ver 4.4).
+- Si el equipo de recepción no tiene datos descargados vigentes, el aviso lo indica y el ingreso se registra a mano hasta que vuelva internet.
+
+**Si es tu teléfono el que no tiene conexión**, el portal no puede mostrar ni renovar tu QR (el código se genera con conexión y cambia cada 60 segundos). En ese caso pedile al recepcionista que registre tu ingreso con tu **DNI**, que requiere que la sede tenga internet.
 
 ### 3.5 Reserva de clases grupales y lista de espera
 
@@ -213,6 +220,15 @@ Entrá a **Control de acceso**. Hay cuatro formas de validar:
 
 El sistema rechaza el ingreso, con el motivo, si la membresía no está vigente, si el socio ya figura dentro de otra sede o si la sede llegó al aforo máximo.
 
+**Sin conexión.** Si se cae internet, aparece el aviso *Modo sin conexión* y el botón **Sincronizar ahora**. Mientras haya datos descargados vigentes, solo los modos **Cámara** y **Pegado** siguen funcionando: validan el QR con la copia local y el resultado lleva la insignia **Sin conexión**. Los modos **Código** y **DNI** y el registro de egresos quedan deshabilitados, con una leyenda que lo explica, y el aforo no se puede consultar. El aviso muestra cuántos ingresos esperan ser enviados. Si el aviso indica que no hay datos descargados vigentes, no se puede validar: registrá los ingresos en una planilla y cargalos por **DNI** cuando vuelva la conexión.
+
+Al volver internet, la pantalla envía sola los ingresos pendientes y muestra el **Resultado de la última sincronización**, con los ingresos creados, observados, en conflicto y rechazados. Cada uno que no salió creado se detalla en una línea. Qué hacer con cada resultado está en 4.4.
+
+**Cobro en el mostrador.** En **Cobrar** se registran pagos en efectivo de membresías y de reservas de cancha. Buscá al cliente, elegí el concepto y confirmá el monto que calcula el sistema. Se genera el comprobante como en un pago online. Es lo que corresponde cuando el socio llega con la membresía vencida: se cobra la renovación y se valida de nuevo.
+
+![Cobrar en efectivo](img/12-recepcion-cobrar.png)
+*Figura 11. Cobro en efectivo en el mostrador.*
+
 **Aforo.** El círculo de la derecha muestra cuántas personas hay dentro y el porcentaje sobre el aforo máximo. **Quién está dentro** lista a las personas con su hora de ingreso. Para registrar una salida, tocá **Egreso** en la fila de la persona.
 
 ### 4.2 Gestión de la agenda de clases
@@ -220,18 +236,11 @@ El sistema rechaza el ingreso, con el motivo, si la membresía no está vigente,
 En **Reservas de clases** ves las clases de tu sede día por día, con el cupo ocupado. Con **Anotar socio** podés reservarle una clase a un socio que está en el mostrador (hasta 30 minutos antes del inicio).
 
 ![Reservas de clases](img/13-recepcion-reservas-clases.png)
-*Figura 11. Reservas de clases de la sede, por día.*
+*Figura 12. Reservas de clases de la sede, por día.*
 
 La creación y modificación de clases (horarios, instructor, cupo) la hace el gerente de sede (ver 5.4).
 
-### 4.3 Cobro en el mostrador
-
-En **Cobrar** se registran pagos en efectivo de membresías y de reservas de cancha. Buscá al cliente, elegí el concepto y confirmá el monto que calcula el sistema. Se genera el comprobante como en un pago online.
-
-![Cobrar en efectivo](img/12-recepcion-cobrar.png)
-*Figura 12. Cobro en efectivo en el mostrador.*
-
-### 4.4 Inhabilitación de una cancha por mantenimiento
+### 4.3 Inhabilitación de una cancha por mantenimiento
 
 La puesta en mantenimiento la hace el **gerente de sede** desde **Canchas**:
 
@@ -240,14 +249,17 @@ La puesta en mantenimiento la hace el **gerente de sede** desde **Canchas**:
 
 El recepcionista ve esas canchas y turnos como no disponibles.
 
-### 4.5 Problemas frecuentes del mostrador
+### 4.4 Problemas frecuentes del mostrador
 
 | Problema | Solución |
 |---|---|
 | La cámara no lee el QR | Usá el modo **Código** con los 6 dígitos |
 | *Ya tiene un ingreso abierto* | El socio no marcó la salida en otra visita. Registrá el egreso en **Quién está dentro** (si es de tu sede) o pedile que lo resuelva la otra sede |
-| Al socio se le venció la membresía | Cobrale la renovación en **Cobrar** y validá de nuevo |
-| *Sin conexión* | La validación se habilita al volver internet. Anotá los ingresos y registralos al reconectar |
+| Al socio se le venció la membresía | Cobrale la renovación en **Cobrar** (ver 4.1) y validá de nuevo |
+| *Modo sin conexión* | Seguí validando con **Cámara** o **Pegado**: los ingresos quedan en cola y se envían solos al volver internet (ver 4.1). Si el aviso dice que no hay datos vigentes, anotá los ingresos en una planilla y cargalos por **DNI** al reconectar |
+| Un ingreso sin conexión aparece como **Conflicto**, *El socio ya tenía un ingreso abierto* | El ingreso offline **no se registró**: el sistema ya tenía a esa persona dentro. Revisá **Quién está dentro**, registrá el egreso anterior si corresponde y, si la persona sigue en la sede, cargá su ingreso por **DNI** |
+| Un ingreso sin conexión aparece como **Observado** | Se registró igual, porque la persona ya había entrado, pero la membresía no estaba vigente o la sede superaba el aforo al sincronizar. Avisá a la gerencia de sede |
+| Un ingreso sin conexión aparece como **Rechazado** | El sistema no aceptó el QR (no válido, vencido o con más de 72 horas). Si la persona entró, cargá su ingreso por **DNI** |
 | No veo ninguna sede | Tu usuario no tiene sede asignada: pedile al gerente que te la asigne |
 
 ---
@@ -287,17 +299,19 @@ El **precio por hora de cada cancha** se edita en **Canchas**. El **descuento de
 
 ### 5.3 Lectura de los reportes consolidados
 
-**Reportes** muestra, para toda la red o por sede:
+**Reportes** tiene, arriba, indicadores de la red (o de tu sede, si sos gerente de sede): acciones auditadas hoy, ingresos de hoy, ingresos del mes con la comparación contra el mes anterior y, para el gerente general, la sede con más ingresos. Debajo hay dos pestañas:
 
-- **Financiero:** ingresos por sede y por medio de pago en el período.
-- **Membresías:** socios vigentes, programados y vencidos.
-- **Ocupación de canchas y popularidad de precios:** horas reservadas y qué estrategia de precio se aplicó (estándar, socio, pico).
-- **Accesos:** ingresos y egresos del día por sede y ocupación actual.
+- **Auditoría:** el registro de las acciones sensibles del sistema. Se filtra por entidad (sede, usuario, cancha, clase, pago, membresía, precio de plan o instructor) y por rango de fechas, y cada fila muestra la acción, la entidad, quién la hizo y cuándo.
+- **Por sede** (para el gerente de sede, **Mi sede**): el gerente general elige una sede y ve sus ingresos del mes, los socios con membresía, las canchas y las clases, el estado de las membresías (activas) y un acceso directo a **Métricas de accesos**.
 
 ![Reportes](img/17-gerente-reportes.png)
-*Figura 17. Reportes consolidados.*
+*Figura 17. Reportes: indicadores y pestaña de auditoría.*
 
-El gerente de sede ve los mismos reportes limitados a su sede.
+Otras lecturas que no están en Reportes:
+
+- **Popularidad de los planes** (qué planes eligen los socios activos): en **Precios**, en el cuadro *Membresías por plan* (gerente general), y en el **Panel de sede**, en *Planes más elegidos* (gerente de sede).
+- **Accesos:** **Métricas de accesos** muestra los ingresos y egresos del día y el aforo actual por sede. Se llega desde la pestaña *Por sede* de Reportes. El *Panel general* también muestra la ocupación actual de cada sede.
+- **Ingresos por sede y por método de pago:** en el *Panel general* y en el *Panel de sede*.
 
 ### 5.4 Otras tareas de gestión
 
@@ -327,6 +341,8 @@ El gerente de sede ve los mismos reportes limitados a su sede.
 **Me anoté en lista de espera, ¿tengo que estar atento?** No. Si se libera un lugar, el sistema te pasa a la clase automáticamente y te avisa.
 
 **¿Puedo cancelar una clase a último momento?** Hasta 2 horas antes del inicio. Después, el portal ya no lo permite.
+
+**¿Qué pasa si la sede se queda sin internet?** El recepcionista puede seguir validando tu QR con los datos que su pantalla descargó antes de la caída. Tu ingreso queda guardado y se envía cuando vuelve la conexión. Sin internet en la sede no se puede usar el código de 6 dígitos ni el ingreso por DNI. Si es tu teléfono el que no tiene datos, el QR no se puede mostrar (ver 3.4).
 
 **No me llegó el mail de verificación.** Revisá la carpeta de spam. Desde la pantalla de ingreso se puede pedir el reenvío.
 
