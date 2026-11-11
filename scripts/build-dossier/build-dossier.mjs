@@ -5,8 +5,8 @@
 //
 // Requisitos: Node 20 o superior, Microsoft Edge o Google Chrome (para imprimir a PDF) y
 // `pdftotext` (para calcular los números de página del índice). No instala nada.
-// El hash del commit sale de `git rev-parse HEAD` en el momento de generar el PDF: para la
-// entrega, regenerar el PDF el 18/11 antes de crear el tag v1.0-entrega.
+// Hash de la portada: si existe el tag v1.0-entrega, sale de `git rev-parse v1.0-entrega^{commit}`;
+// si no existe, sale de HEAD y se imprime una advertencia. Con el tag creado, nunca se usa otro hash.
 //
 // Variables opcionales: EDGE_PATH (ruta al navegador), PDFTOTEXT_PATH.
 
@@ -83,10 +83,20 @@ function figuraDiagrama(ctx, archivo, titulo, comentario = '') {
 }
 const P = (t) => `<p>${t}</p>\n`;
 
+// ---------------------------------------------------------------- hash de la portada
+function resolverHash() {
+  const existe = spawnSync('git', ['rev-parse', '--verify', '--quiet', `refs/tags/${TAG}`], { cwd: RAIZ, encoding: 'utf8' });
+  if (existe.status === 0) return { hash: git('rev-parse', `${TAG}^{commit}`), origen: `tag ${TAG}` };
+  console.warn(`ADVERTENCIA: el tag ${TAG} no existe; el hash de la portada sale de HEAD y NO es el de la entrega. Crear el tag y regenerar el PDF.
+`);
+  return { hash: git('rev-parse', 'HEAD'), origen: 'HEAD (el tag todavía no existe)' };
+}
+const HASH = resolverHash();
+
 // ---------------------------------------------------------------- documento
 function construir(paginas) {
   const ctx = new Contexto();
-  const hash = git('rev-parse', 'HEAD');
+  const hash = HASH.hash;
   const repo = git('remote', 'get-url', 'origin').replace(/\.git$/, '');
   const h1 = (t) => ctx.encabezado(1, t);
   const h2 = (t) => ctx.encabezado(2, t);
@@ -224,24 +234,70 @@ function construir(paginas) {
     .readdirSync(path.join(RAIZ, 'backend', 'db', 'sql'))
     .filter((f) => f.endsWith('.sql'))
     .reduce((n, f) => n + (fs.readFileSync(path.join(RAIZ, 'backend', 'db', 'sql', f), 'utf8').match(/CREATE\s+(UNIQUE\s+)?INDEX/gi) || []).length, 0);
+  const ultimoJson = (prefijo) => {
+    const dir = path.join(DOCS, 'rnf', 'medicion');
+    if (!fs.existsSync(dir)) return null;
+    const f = fs.readdirSync(dir).filter((n) => n.startsWith(prefijo) && n.endsWith('.json')).sort().pop();
+    return f ? { archivo: f, datos: JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) } : null;
+  };
+  const lat = ultimoJson('resultados-latencia-');
+  const alta = ultimoJson('resultado-alta-sede-');
+  const fechaAR = (iso) => new Date(iso).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', dateStyle: 'short', timeStyle: 'short' });
+  const num = (n) => String(n).replace('.', ',');
+
   cuerpo += h1('7. Cumplimiento de los requisitos no funcionales y su evidencia');
-  cuerpo += P('Los cuatro requisitos no funcionales (RNF-01 a RNF-04) del enunciado (UNER, 2026a) se tradujeron en decisiones de arquitectura. La tabla resume cada requisito, cómo se cumple y dónde está la evidencia; el apartado siguiente transcribe el único informe que hoy existe en <code>docs/rnf</code>.');
+  cuerpo += P('Los cuatro requisitos no funcionales (RNF-01 a RNF-04) del enunciado (UNER, 2026a) se tradujeron en decisiones de arquitectura. La tabla resume cada requisito, cómo se cumple y dónde está la evidencia. La evidencia propia de cada requisito está en <code>docs/rnf</code>, con un archivo por requisito; los apartados siguientes indican, para cada uno, qué se midió o verificó y qué no.');
   cuerpo += ctx.tablaApa(
     'Cumplimiento de los requisitos no funcionales',
-    ['RNF', 'Requisito (según los ADR)', 'Cómo se cumple', 'Evidencia en el repositorio'],
+    ['RNF', 'Requisito (según los ADR)', 'Cómo se cumple', 'Evidencia'],
     [
-      ['RNF-01', 'El control de acceso funciona aunque se caiga la conexión principal (disponibilidad de 99,5 %). ADR-003.', 'QR firmado con ES256, réplica local de socios en el terminal, cola de ingresos y conciliación al reconectar (ADR-003, ADR-007).', '<code>acceso-offline.spec.ts</code> y <code>acceso-sincronizacion.spec.ts</code>; pruebas de integración de la sincronización; manual técnico, sección 6. La prueba de punta a punta en producción figura como pendiente (FT1-130).'],
-      ['RNF-02', 'No se almacenan datos de tarjeta, solo el token de la pasarela. ADR-010.', 'Pasarela simulada que devuelve un token; ninguna entidad tiene campos de tarjeta.', '<code>pagos/gateway/pasarela-mock.service.ts</code>; <code>pagos/pasarela-cancha.spec.ts</code>.'],
-      ['RNF-03', 'La consulta de disponibilidad de canchas responde en milisegundos. ADR-002.', `Índices del esquema SQL, entre ellos <code>idx_reservas_cancha_disponibilidad</code> para la grilla de canchas.`, `${indices} sentencias <code>CREATE INDEX</code> en <code>backend/db/sql</code>. El repositorio no contiene una medición de tiempos de respuesta.`],
-      ['RNF-04', 'Se puede dar de alta una sede nueva sin detener el sistema. ADR-001.', 'Las sedes son datos: se crean por API (<code>POST /sedes</code>) o desde la consola, sin reiniciar ni desplegar.', 'Manual de instalación y operación, sección 9; datos de prueba con 25 sedes.'],
+      ['RNF-01', 'El control de acceso funciona aunque se caiga la conexión principal (disponibilidad de 99,5 %). ADR-003.', 'QR firmado con ES256, réplica local de socios en el terminal, cola de ingresos y conciliación al reconectar (ADR-003, ADR-007).', 'Pruebas automatizadas de cada pieza (<code>acceso-offline.spec.ts</code>, <code>acceso-sincronizacion.spec.ts</code>, pruebas de integración y del frontend). La prueba manual de punta a punta está definida en <code>docs/rnf/RNF-01-acceso-sin-conexion.md</code> y <strong>no se ejecutó</strong>.'],
+      ['RNF-02', 'No se almacenan datos de tarjeta, solo el token de la pasarela. ADR-010.', 'Pasarela simulada que devuelve un token; ninguna tabla ni código tiene campos de tarjeta.', '<code>docs/rnf/RNF-02-sin-datos-de-tarjeta.md</code>: consulta al esquema y búsqueda en el código sin coincidencias; <code>pasarela-cancha.spec.ts</code>.'],
+      ['RNF-03', 'La consulta de disponibilidad de canchas responde en milisegundos. ADR-002.', 'Índices del esquema SQL, entre ellos <code>idx_reservas_cancha_disponibilidad</code>.', lat ? `Latencia medida (p50 y p95, ${lat.datos.repeticiones} repeticiones por endpoint): apartado 7.2 y <code>docs/rnf/RNF-03-latencia.md</code>. ${indices} sentencias <code>CREATE INDEX</code> en <code>backend/db/sql</code>.` : `${indices} sentencias <code>CREATE INDEX</code> en <code>backend/db/sql</code>. Sin medición de latencia.`],
+      ['RNF-04', 'Se puede dar de alta una sede nueva sin detener el sistema. ADR-001.', 'Las sedes son datos: se crean por API (<code>POST /sedes</code>) o desde la consola, sin reiniciar ni desplegar.', alta ? '<code>docs/rnf/RNF-04-alta-de-sede.md</code>: seed de 25 sedes y alta de una sede con el sistema en marcha (apartado 7.3).' : '<code>docs/rnf/RNF-04-alta-de-sede.md</code>: seed de 25 sedes y procedimiento de alta.'],
     ],
-    { clase: 'densa', nowrap: [0], nota: 'Elaboración propia a partir de los ADR, el manual técnico y el código del repositorio.' },
+    { clase: 'densa', nowrap: [0], nota: 'Elaboración propia a partir de los ADR, el manual técnico, el código y los archivos de <code>docs/rnf</code>.' },
   );
-  cuerpo += h2('7.1 Evidencia disponible en docs/rnf');
-  cuerpo += P('La carpeta <code>docs/rnf</code> contiene un único informe: el escaneo de secretos sobre el historial completo del repositorio, que respalda la condición de admisibilidad de no versionar credenciales. Se transcribe a continuación.');
+  cuerpo += h2('7.1 Archivos de evidencia en docs/rnf');
+  cuerpo += ctx.tablaApa(
+    'Archivos de evidencia en docs/rnf',
+    ['Archivo', 'Requisito', 'Contenido', 'Estado'],
+    [
+      ['<code>RNF-01-acceso-sin-conexion.md</code>', 'RNF-01', 'Pruebas automatizadas existentes y prueba manual reproducible con casillas de resultado y capturas.', 'Prueba manual <strong>sin ejecutar</strong>'],
+      ['<code>RNF-02-sin-datos-de-tarjeta.md</code>', 'RNF-02', 'Diseño, consulta al esquema y búsqueda en el código.', 'Verificado'],
+      ['<code>RNF-03-latencia.md</code> y <code>medicion/</code>', 'RNF-03', 'Script de medición, resultados con fecha, versión de Node, hardware y datos del seed.', lat ? 'Medido' : 'Sin medir'],
+      ['<code>RNF-04-alta-de-sede.md</code> y <code>medicion/</code>', 'RNF-04', 'Seed de 25 sedes y alta de sede con el sistema en marcha.', alta ? 'Verificado' : 'Sin verificar'],
+      ['<code>escaneo-secretos.md</code>', 'Transversal', 'Escaneo del historial completo en busca de credenciales.', 'Verificado'],
+    ],
+    { clase: 'densa', nota: 'Fuente: carpeta <code>docs/rnf</code> del repositorio.' },
+  );
+  cuerpo += h2('7.2 Latencia de los endpoints principales (RNF-03)');
+  if (lat) {
+    const d = lat.datos;
+    const f = d.filas_del_seed_antes;
+    cuerpo += P(`El requisito pide que la consulta de disponibilidad responda «en milisegundos» sin fijar un umbral, de modo que los valores se informan sin declararlos conformes o no. Se midió con el script <code>docs/rnf/medicion/medir-latencia.mjs</code> contra el backend local y una base de prueba creada desde cero con las migraciones y el seed del repositorio. Inicio de la medición: ${fechaAR(d.fecha_inicio)} (hora de Argentina). Node ${d.node}; ${esc(d.hardware.cpu)} (${d.hardware.nucleos_logicos} núcleos lógicos), ${num(d.hardware.memoria_gb)} GB de memoria, ${esc(d.hardware.sistema)}. Base de datos: ${esc(d.base_de_datos.split(',')[0])}. Datos del seed: ${f.sedes} sedes, ${f.usuarios} usuarios, ${f.membresias} membresías, ${f.canchas} canchas, ${f.clases} clases y ${f.clase_ocurrencia} ocurrencias de clase.`);
+    cuerpo += ctx.tablaApa(
+      'Latencia por endpoint (milisegundos)',
+      ['Endpoint', 'Muestras 2xx', 'Errores', 'p50', 'p95', 'Mín.', 'Máx.'],
+      Object.entries(d.endpoints).map(([n, r]) => [esc(n), r.muestras_ok, r.errores, num(r.p50_ms), num(r.p95_ms), num(r.min_ms), num(r.max_ms)]),
+      { clase: 'densa', nota: `Fuente: <code>docs/rnf/medicion/${lat.archivo}</code>. ${d.repeticiones} repeticiones por endpoint más ${d.calentamiento_no_contado} de calentamiento que no se cuentan. Tiempo de pared medido en el cliente, por loopback, con cliente, API y base en el mismo equipo; percentiles por rango más cercano; solo respuestas 2xx.` },
+    );
+    cuerpo += P('Límites de la medición. Cliente, API y base comparten el equipo, de modo que no representa una red ni la infraestructura de producción; la base fue PostgreSQL 18, mientras que el proyecto declara PostgreSQL 17 (ADR-009); el seed es pequeño; el inicio de sesión se midió a una repetición cada 12,5 s por el límite de 5 intentos por minuto de la API, y el resto con una pausa mínima de 450 ms entre pedidos. No se midió una consulta específica de grilla de disponibilidad, sino los endpoints principales pedidos.');
+  } else {
+    cuerpo += P('No hay una medición de latencia registrada en <code>docs/rnf/medicion</code>; por eso este Dossier no informa cifras de tiempo de respuesta.');
+  }
+  cuerpo += h2('7.3 Alta de sede con el sistema en marcha (RNF-04)');
+  if (alta) {
+    const a = alta.datos;
+    cuerpo += P(`El seed carga 25 sedes con su gerente, su recepcionista, cuatro socios y un cliente externo (<code>backend/db/seed/datos-prueba.sql</code>). Con el script <code>docs/rnf/medicion/verificar-alta-sede.mjs</code> se dio de alta una sede nueva por la API (<code>POST /sedes</code>, código de respuesta ${a.alta_sede.status}) y su franja horaria (<code>POST /sedes/:id/franjas</code>, código ${a.alta_franja.status}) mientras una sonda consultaba <code>GET /canchas/publico</code> cada 100 ms: ${a.sonda_disponibilidad.consultas} consultas y ${a.sonda_disponibilidad.fallos} fallos. La cantidad de sedes pasó de ${a.sedes_antes} a ${a.sedes_despues}, la sede aparece en el listado (${a.la_sede_aparece_en_el_listado ? 'sí' : 'no'}) y la sesión iniciada antes del alta siguió válida (${a.sesion_previa_sigue_valida ? 'sí' : 'no'}). Verificación del ${fechaAR(a.fecha)}, Node ${a.node}. Archivo: <code>docs/rnf/medicion/${alta.archivo}</code>.`);
+  } else {
+    cuerpo += P('El seed carga 25 sedes (<code>backend/db/seed/datos-prueba.sql</code>) y el manual de instalación y operación describe el alta de una sede nueva; no hay una verificación ejecutada registrada en <code>docs/rnf/medicion</code>.');
+  }
+  cuerpo += h2('7.4 Acceso sin conexión (RNF-01)');
+  cuerpo += P('El archivo <code>docs/rnf/RNF-01-acceso-sin-conexion.md</code> define la prueba manual de punta a punta (apagar la red con el terminal abierto, validar un QR, reconectar y sincronizar) y deja casillas para registrar el resultado y las capturas. Esa prueba <strong>no se ejecutó</strong> al cerrar este Dossier y sus casillas están sin marcar; tampoco se mide la disponibilidad de 99,5 %, que exigiría monitoreo continuo de producción. La evidencia vigente de RNF-01 son las pruebas automatizadas de cada pieza (QR ES256, snapshot, cola, conciliación).');
+  cuerpo += h2('7.5 Escaneo de secretos en el historial');
+  cuerpo += P('El informe <code>docs/rnf/escaneo-secretos.md</code> respalda la condición de admisibilidad de no versionar credenciales. Se transcribe a continuación.');
   cuerpo += markdown(leer('docs/rnf/escaneo-secretos.md'), ctx, { desplazar: 2, contexto: 'Escaneo de secretos' });
-  cuerpo += h2('7.2 Evidencia pendiente');
-  cuerpo += P('El tablero de Jira mantiene la tarjeta FT1-117, «Evidencia de requisitos no funcionales en docs/rnf», en estado «Por hacer». Por ese motivo <code>docs/rnf</code> no incluye todavía mediciones de disponibilidad (RNF-01) ni de tiempo de respuesta (RNF-03), y la evidencia de la tabla anterior se apoya en las decisiones de arquitectura, el código y las pruebas.');
 
   // 8. Planificación
   cuerpo += h1('8. Planificación: plan, cronograma, trazabilidad, seguimiento y riesgos');
@@ -456,4 +512,4 @@ if (verif.paginas.some((p, i) => p !== paginas[i])) {
 }
 fs.copyFileSync(tmpPdf, SALIDA);
 fs.rmSync(tmpPdf, { force: true });
-console.log(`PDF generado: ${path.relative(RAIZ, SALIDA)} (${verif.total} páginas, commit ${hash.slice(0, 12)})`);
+console.log(`PDF generado: ${path.relative(RAIZ, SALIDA)} (${verif.total} páginas, hash ${hash.slice(0, 12)} tomado de ${HASH.origen})`);
