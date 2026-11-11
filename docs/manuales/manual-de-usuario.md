@@ -121,6 +121,10 @@ Instalada, se abre a pantalla completa y puede recibir notificaciones.
 | *Este QR ya fue usado* | El mismo QR se intentó usar dos veces | Mostrá el QR actualizado |
 | *Necesitás una membresía activa* | La membresía venció o está suspendida | Renová desde *Mi membresía* o en el mostrador |
 | *Ya tiene un ingreso abierto en otra sede* | Figura dentro de otra sede | Pedí que registren tu egreso en la sede anterior |
+| *El socio ya figura dentro de una sede.* | Con la sede sin conexión, el terminal ya registró un ingreso tuyo que todavía no se envió al servidor | No hace falta repetir el ingreso: el primero queda pendiente y se envía al volver la conexión |
+
+![Rechazo sin conexión por socio que ya figura dentro](img/23-recepcionista-ingreso-de-una-misma-persona-ya-dentro-rechazo-sin-conexion.png)
+*Figura 6. Terminal de recepción sin conexión: segundo intento de ingreso de un socio que ya figura dentro, rechazado con la insignia Sin conexión (captura en un teléfono, 11/11/2026).*
 | *La sede alcanzó su aforo máximo* | La sede está llena | Esperá a que salga alguien |
 
 **Si no podés mostrar el QR** (sin batería o sin datos), el recepcionista puede registrar tu ingreso con tu **DNI**, después de verificar tu documento.
@@ -141,7 +145,7 @@ Instalada, se abre a pantalla completa y puede recibir notificaciones.
 3. Tocá **Reservar**.
 
 ![Reservar clases](img/05-socio-reservar-clases.png)
-*Figura 6. Reservar clases: filtros por sede, actividad y día, con lugares disponibles.*
+*Figura 7. Reservar clases: filtros por sede, actividad y día, con lugares disponibles.*
 
 Reglas:
 
@@ -159,7 +163,7 @@ Tus reservas aparecen en **Mis reservas**, debajo de la lista de clases, y en el
 4. Revisá el precio y pagá con Mercado Pago o MODO.
 
 ![Reservar canchas](img/06-socio-reservar-canchas.png)
-*Figura 7. Reservar canchas: filtros de sede y deporte, selector de fecha y lista de canchas con su precio por hora.*
+*Figura 8. Reservar canchas: filtros de sede y deporte, selector de fecha y lista de canchas con su precio por hora.*
 
 **Cómo se calcula el precio.** Cada cancha tiene un precio por hora. Sobre ese precio:
 
@@ -193,7 +197,7 @@ Cada pago aprobado genera un **comprobante en PDF** con el concepto (membresía 
 2. Tocá **Comprobante** en el pago que quieras y descargá el PDF.
 
 ![Mis pagos](img/08-socio-pagos.png)
-*Figura 8. Mis pagos: historial de pagos con su comprobante.*
+*Figura 9. Mis pagos: historial de pagos con su comprobante.*
 
 ---
 
@@ -202,7 +206,7 @@ Cada pago aprobado genera un **comprobante en PDF** con el concepto (membresía 
 El recepcionista ingresa por `/admin/login` y ve solo su sede.
 
 ![Panel de recepción](img/10-recepcion-panel.png)
-*Figura 9. Panel de recepción: accesos rápidos, aforo y actividad del día.*
+*Figura 10. Panel de recepción: accesos rápidos, aforo y actividad del día.*
 
 ### 4.1 Validación de ingreso y lectura del aforo
 
@@ -216,7 +220,7 @@ Entrá a **Control de acceso**. Hay cuatro formas de validar:
 | **DNI** | El socio no puede mostrar el QR. **Verificá su documento** antes de validar; el sistema muestra nombre, foto y estado de la membresía para confirmar |
 
 ![Control de acceso](img/11-recepcion-control-acceso.png)
-*Figura 10. Control de acceso: modos de validación, aforo actual y lista de quién está dentro.*
+*Figura 11. Control de acceso: modos de validación, aforo actual y lista de quién está dentro.*
 
 El sistema rechaza el ingreso, con el motivo, si la membresía no está vigente, si el socio ya figura dentro de otra sede o si la sede llegó al aforo máximo.
 
@@ -224,10 +228,24 @@ El sistema rechaza el ingreso, con el motivo, si la membresía no está vigente,
 
 Al volver internet, la pantalla envía sola los ingresos pendientes y muestra el **Resultado de la última sincronización**, con los ingresos creados, observados, en conflicto y rechazados. Cada uno que no salió creado se detalla en una línea. Qué hacer con cada resultado está en 4.4.
 
+Secuencia completa en un teléfono, con la sede sin conexión y luego con la conexión restablecida (capturas tomadas en producción el 11/11/2026):
+
+![Terminal sin conexión](img/19-recepcionista-sin-conexion.png)
+*Figura 12. Control de acceso sin conexión: aviso de conexión perdida, Modo sin conexión con datos descargados vigentes y sin ingresos pendientes. El modo Código advierte que requiere conexión.*
+
+![Ingreso aceptado sin conexión](img/20-recepcionista-scaneoQr-sin-conexion.png)
+*Figura 13. Ingreso permitido sin conexión con la insignia Sin conexión; el socio aparece en Quién está dentro como pendiente de sincronizar.*
+
+![Ingreso pendiente al volver la conexión](img/21-recepcionista-pendiente-de-sincronizacionQR.png)
+*Figura 14. Al volver la conexión, el aviso muestra 1 ingreso pendiente de sincronizar y el botón en estado Sincronizando.*
+
+![Resultado de la última sincronización](img/22-recepcionista-sincronizacion-ingresoQr.png)
+*Figura 15. Resultado de la última sincronización: Creados: 1. Observados: 0. Conflictos: 0. Rechazados: 0.*
+
 **Cobro en el mostrador.** En **Cobrar** se registran pagos en efectivo de membresías y de reservas de cancha. Buscá al cliente, elegí el concepto y confirmá el monto que calcula el sistema. Se genera el comprobante como en un pago online. Es lo que corresponde cuando el socio llega con la membresía vencida: se cobra la renovación y se valida de nuevo.
 
 ![Cobrar en efectivo](img/12-recepcion-cobrar.png)
-*Figura 11. Cobro en efectivo en el mostrador.*
+*Figura 16. Cobro en efectivo en el mostrador.*
 
 **Aforo.** El círculo de la derecha muestra cuántas personas hay dentro y el porcentaje sobre el aforo máximo. **Quién está dentro** lista a las personas con su hora de ingreso. Para registrar una salida, tocá **Egreso** en la fila de la persona.
 
@@ -236,7 +254,7 @@ Al volver internet, la pantalla envía sola los ingresos pendientes y muestra el
 En **Reservas de clases** ves las clases de tu sede día por día, con el cupo ocupado. Con **Anotar socio** podés reservarle una clase a un socio que está en el mostrador (hasta 30 minutos antes del inicio).
 
 ![Reservas de clases](img/13-recepcion-reservas-clases.png)
-*Figura 12. Reservas de clases de la sede (captura tomada mientras se cargaban los datos).*
+*Figura 17. Reservas de clases de la sede (captura tomada mientras se cargaban los datos).*
 
 La creación y modificación de clases (horarios, instructor, cupo) la hace el gerente de sede (ver 5.4).
 
@@ -269,7 +287,7 @@ El recepcionista ve esas canchas y turnos como no disponibles.
 El gerente general ingresa por `/admin/login` y ve toda la cadena. El gerente de sede ve las mismas pantallas, limitadas a su sede y sin edición de precios.
 
 ![Panel general](img/14-gerente-panel.png)
-*Figura 13. Panel general de la red (captura tomada mientras se cargaban algunos indicadores).*
+*Figura 18. Panel general de la red (captura tomada mientras se cargaban algunos indicadores).*
 
 ### 5.1 Alta y configuración de una sede
 
@@ -283,17 +301,17 @@ El gerente general ingresa por `/admin/login` y ve toda la cadena. El gerente de
 La sede queda operativa en el momento: **no hace falta reiniciar el sistema**.
 
 ![Sedes](img/15-gerente-sedes.png)
-*Figura 14. Listado de sedes de la cadena.*
+*Figura 19. Listado de sedes de la cadena.*
 
 ![Canchas](img/18-gerente-canchas.png)
-*Figura 15. Canchas por sede, con precio por hora y estado.*
+*Figura 20. Canchas por sede, con precio por hora y estado.*
 
 ### 5.2 Definición de precios, descuentos y horario pico
 
 En **Precios** el gerente general edita el precio de cada plan de membresía (mensual, trimestral, anual). El cambio rige para los pagos siguientes.
 
 ![Precios](img/16-gerente-precios.png)
-*Figura 16. Precios de los planes de membresía.*
+*Figura 21. Precios de los planes de membresía.*
 
 El **precio por hora de cada cancha** se edita en **Canchas**. El **descuento de socio (15 %)** y el **recargo de hora pico (15 %, de 19 a 21 h)** son reglas del sistema y se aplican solos.
 
@@ -305,7 +323,7 @@ El **precio por hora de cada cancha** se edita en **Canchas**. El **descuento de
 - **Por sede** (para el gerente de sede, **Mi sede**): el gerente general elige una sede y ve sus ingresos del mes, los socios con membresía, las canchas y las clases, el estado de las membresías (activas) y un acceso directo a **Métricas de accesos**.
 
 ![Reportes](img/17-gerente-reportes.png)
-*Figura 17. Reportes: indicadores y pestaña de auditoría.*
+*Figura 22. Reportes: indicadores y pestaña de auditoría.*
 
 Otras lecturas que no están en Reportes:
 

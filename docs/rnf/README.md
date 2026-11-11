@@ -4,7 +4,7 @@ Un archivo por requisito. Cada uno separa lo **medido o verificado** de lo **pen
 
 | Requisito | Archivo | Estado de la evidencia |
 |---|---|---|
-| RNF-01 · Acceso sin conexión | [RNF-01-acceso-sin-conexion.md](RNF-01-acceso-sin-conexion.md) | Pruebas automatizadas existentes; **prueba manual de punta a punta sin ejecutar** (casillas vacías) |
+| RNF-01 · Acceso sin conexión | [RNF-01-acceso-sin-conexion.md](RNF-01-acceso-sin-conexion.md) | Pruebas automatizadas existentes; prueba manual ejecutada en producción el 11/11/2026 (camino feliz); **casos negativos y verificación en base sin ejecutar** |
 | RNF-02 · Sin datos de tarjeta | [RNF-02-sin-datos-de-tarjeta.md](RNF-02-sin-datos-de-tarjeta.md) | Verificado en el esquema y en el código |
 | RNF-03 · Latencia | [RNF-03-latencia.md](RNF-03-latencia.md) | Script de medición listo; **sin cifras registradas** (la corrida completa no terminó) |
 | RNF-04 · Alta de sede sin detener el sistema | [RNF-04-alta-de-sede.md](RNF-04-alta-de-sede.md) | Diseño y seed de 25 sedes; **verificación en ejecución sin correr** |

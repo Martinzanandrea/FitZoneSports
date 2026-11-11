@@ -24,6 +24,7 @@ import {
   debeMostrarResumen,
   debePasarAOffline,
   estadoBanner,
+  estadoModoCamara,
   rutaValidacionQr,
   textoRequiereConexion,
   textoResumenSync,
@@ -257,6 +258,9 @@ export function ControlAcceso() {
 
   // Remontar el lector (nuevo key) lo reinicia para otro escaneo.
   const [escanKey, setEscanKey] = useState(0);
+  // true cuando el escaneo con cámara ya devolvió un resultado: se quita el lector y su leyenda.
+  const [escaneoTerminado, setEscaneoTerminado] = useState(false);
+  const camara = estadoModoCamara(escaneoTerminado);
 
   async function handleValidarCodigo(valor: string) {
     if (!sedeId) {
@@ -458,7 +462,10 @@ export function ControlAcceso() {
                   role="tab"
                   aria-selected={tab === t.id}
                   className={tab === t.id ? 'active' : ''}
-                  onClick={() => setTab(t.id)}
+                  onClick={() => {
+                    setTab(t.id);
+                    setEscaneoTerminado(false);
+                  }}
                 >
                   {t.label}
                 </button>
@@ -473,13 +480,19 @@ export function ControlAcceso() {
 
             {tab === 'camara' && (
               <div className="stack-gap">
-                <LectorQr key={escanKey} onDetectado={(token) => void handleValidar(token)} />
-                {resultado && (
+                {camara.mostrarLector && (
+                  <LectorQr
+                    key={escanKey}
+                    onDetectado={(token) => void handleValidar(token).finally(() => setEscaneoTerminado(true))}
+                  />
+                )}
+                {camara.mostrarEscanearOtro && (
                   <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => {
                       setResultado(null);
+                      setEscaneoTerminado(false);
                       setEscanKey((k) => k + 1);
                     }}
                   >

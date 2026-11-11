@@ -7,6 +7,7 @@ import {
   debeMostrarResumen,
   debePasarAOffline,
   estadoBanner,
+  estadoModoCamara,
   rutaValidacionQr,
   textoPendientes,
   textoRequiereConexion,
@@ -177,5 +178,14 @@ describe('debeMostrarResumen', () => {
     const r = resumen({ creados: 1 });
     expect(debeMostrarResumen(r, false, r.fecha)).toBe(false);
     expect(debeMostrarResumen(r, false, 'otra-fecha')).toBe(true);
+  });
+});
+
+describe('estadoModoCamara', () => {
+  it('mientras no terminó el escaneo muestra el lector y no el botón', () => {
+    expect(estadoModoCamara(false)).toEqual({ mostrarLector: true, mostrarEscanearOtro: false });
+  });
+  it('al terminar quita el lector (visor negro y leyenda) y deja solo el botón de escanear otro', () => {
+    expect(estadoModoCamara(true)).toEqual({ mostrarLector: false, mostrarEscanearOtro: true });
   });
 });

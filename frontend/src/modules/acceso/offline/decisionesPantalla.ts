@@ -141,3 +141,9 @@ export function debeMostrarResumen(r: ResumenSincronizacion | null, sinConexion:
   if (!r || sinConexion || r.fecha === ocultoFecha) return false;
   return r.creados + r.observados + r.conflictos + r.rechazados + r.fallidos.length > 0 || !!r.interrumpida;
 }
+
+// Modo Cámara: el lector (visor negro y leyenda "QR detectado, validando…") solo se muestra mientras
+// no terminó un escaneo. Una vez que hay resultado se lo quita y queda el botón para escanear otro.
+export function estadoModoCamara(escaneoTerminado: boolean): { mostrarLector: boolean; mostrarEscanearOtro: boolean } {
+  return { mostrarLector: !escaneoTerminado, mostrarEscanearOtro: escaneoTerminado };
+}
