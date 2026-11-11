@@ -352,6 +352,7 @@ export class AccesoService {
         relations: { usuario: true },
         select: {
           id: true,
+          estado: true,
           fechaInicio: true,
           fechaFin: true,
           usuario: { id: true, nombre: true, apellido: true },
