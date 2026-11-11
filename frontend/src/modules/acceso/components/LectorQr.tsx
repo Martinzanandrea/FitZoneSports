@@ -1,11 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Button } from '../../../shared/components/atoms';
 
 const ELEMENT_ID = 'lector-qr-visor';
 
 type Estado = 'pidiendo' | 'escaneando' | 'detectado' | 'error';
+
+// Html5Qrcode.stop() lanza SÍNCRONAMENTE ("Cannot stop, scanner is not running or paused.") si el
+// lector no está escaneando ni en pausa, y un .catch() sobre la promesa no lo atrapa. Por eso se
+// consulta el estado antes y todo va en try/catch: frenar dos veces (alDetectar y luego el cleanup)
+// no debe romper el render.
+async function detenerLector(instancia: Html5Qrcode | null): Promise<void> {
+  if (!instancia) return;
+  try {
+    const estado = instancia.getState();
+    if (estado === Html5QrcodeScannerState.SCANNING || estado === Html5QrcodeScannerState.PAUSED) {
+      await instancia.stop();
+    }
+  } catch {
+    /* ya estaba detenido o la cámara dejó de responder: no hay nada más que frenar */
+  }
+  try {
+    instancia.clear();
+  } catch {
+    /* sin visor que limpiar */
+  }
+}
 
 // Envuelve Html5Qrcode: pide permiso al montarse, prefiere la cámara
 // trasera en mobile y avisa una sola vez por QR detectado. Al
@@ -45,7 +66,7 @@ export function LectorQr({ onDetectado }: { onDetectado: (token: string) => void
           setEstado('detectado');
           // Se frena acá: el padre valida y, si hace falta otro intento,
           // desmonta y vuelve a montar este componente.
-          void instancia?.stop().catch(() => undefined);
+          void detenerLector(instancia);
           onDetectadoRef.current(texto);
         };
         try {
@@ -55,7 +76,7 @@ export function LectorQr({ onDetectado }: { onDetectado: (token: string) => void
           await instancia.start(camaras[0].id, config, alDetectar, undefined);
         }
         if (cancelado) {
-          await instancia.stop().catch(() => undefined);
+          await detenerLector(instancia);
           return;
         }
         setEstado('escaneando');
@@ -75,9 +96,7 @@ export function LectorQr({ onDetectado }: { onDetectado: (token: string) => void
 
     return () => {
       cancelado = true;
-      if (instancia) {
-        void instancia.stop().then(() => instancia?.clear()).catch(() => undefined);
-      }
+      void detenerLector(instancia);
     };
     // El reintento manual se dispara con `intento`; el callback llega por ref.
   }, [intento]);
