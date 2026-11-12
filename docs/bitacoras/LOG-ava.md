@@ -4,7 +4,43 @@ Usuario de Git: `Teo` (teoava3@gmail.com).
 
 ## Sprint 1 — Arquitectura — Unidad I — 2026-08-13 al 2026-08-27
 
+### 2026-08-26 al 2026-08-29 · horas por confirmar
+
+La entrada empieza el 2026-08-26, dentro del Sprint 1, y termina el 2026-08-29, después de su cierre (2026-08-27). La actividad corresponde a la Unidad IV (tarjeta FT1-76, Sprint 4).
+
+**Tarjeta(s) Jira:** FT1-76 (Panel de administración: sedes, usuarios y reportes)
+
+**Actividad**
+
+Armé las secciones de sedes y de usuarios del panel de administración del gerente.
+
+- *Sedes* (`SedesPage.tsx`, `sedes.api.ts`): listado de sedes y un formulario para crear una sede nueva o editar una existente. Cada sede se puede activar o desactivar desde la lista.
+- *Personal* (`CrearStaff.tsx`, `usuarios.api.ts`): modifiqué la pantalla de alta de personal. En el servidor agregué `POST /usuarios/staff` para crear personal y `PATCH /usuarios/:id/rol` para asignar un rol, con su DTO `assign-role.dto.ts` y el método `assignRole` en el servicio de usuarios.
+- *Rutas y acceso:* agregué la ruta `/admin/sedes` en `AppRoutes.tsx` y ajusté los tipos de los roles en `Login.tsx`.
+- *Reportes* (`2e4c417`): agregué el acceso a Reportes en el menú del gerente, en `AdminLayout.tsx`.
+
+Para comprobarlo entré con la cuenta del gerente y probé estas pantallas.
+
+**Decisión**
+
+Protegí las operaciones de personal y de roles para que solo las pueda usar el gerente. En el servidor lo hice con `JwtAuthGuard`, `RolesGuard` y `@Roles(GERENTE)`; en el cliente, con `ProtectedRoute` en la ruta `/admin/sedes`. No dejé el control solo en la pantalla: ocultar un botón no impide llamar al endpoint, y por eso la regla tiene que estar en el servidor. La protección del cliente evita que otros roles vean la pantalla, pero la que realmente protege es la del servidor.
+
+**Problema o bloqueo**
+
+Sin bloqueos.
+
+**Commits**
+
+- `64817da` Seccion de sedes y usuarios en el panel de administracion
+- `2e4c417` Reportes en AdminLayout
+
+---
+
+## Sprint 2 — Frameworks — Unidad II — 2026-09-03 al 2026-09-17
+
 ### 2026-09-04 · horas por confirmar
+
+Esta fecha cae en el Sprint 2. La actividad corresponde a la Unidad I (tarjeta FT1-10, Sprint 1).
 
 **Tarjeta(s) Jira:** FT1-10 (Niveles C4 y ADR fundacionales)
 
@@ -37,8 +73,6 @@ Sin commits propios: Martín integró mi trabajo.
 - `7a06627` docs: rediseño de clases recurrentes + auditoría y consolidación de ADRs (martin, 2026-09-09)
 
 ---
-
-## Sprint 2 — Frameworks — Unidad II — 2026-09-03 al 2026-09-17
 
 ### 2026-09-04 · horas por confirmar
 
@@ -164,65 +198,9 @@ Sin bloqueos.
 
 ## Sprint 3 — Patrones — Unidad III — 2026-09-15 al 2026-09-24
 
-_Sin actividad propia en este sprint._
+_Sin sesión propia acreditada en este sprint. Mi entrada del 2026-09-23 (`df91a7a`) cae también en la ventana del Sprint 3, pero corresponde a la Unidad IV y la ubico en el Sprint 4._
 
 ## Sprint 4 — Componentes — Unidad IV — 2026-09-15 al 2026-10-08
-
-### 2026-08-26 al 2026-08-29 · horas por confirmar
-
-**Tarjeta(s) Jira:** FT1-76 (Panel de administración: sedes, usuarios y reportes)
-
-**Actividad**
-
-Armé las secciones de sedes y de usuarios del panel de administración del gerente.
-
-- *Sedes* (`SedesPage.tsx`, `sedes.api.ts`): listado de sedes y un formulario para crear una sede nueva o editar una existente. Cada sede se puede activar o desactivar desde la lista.
-- *Personal* (`CrearStaff.tsx`, `usuarios.api.ts`): modifiqué la pantalla de alta de personal. En el servidor agregué `POST /usuarios/staff` para crear personal y `PATCH /usuarios/:id/rol` para asignar un rol, con su DTO `assign-role.dto.ts` y el método `assignRole` en el servicio de usuarios.
-- *Rutas y acceso:* agregué la ruta `/admin/sedes` en `AppRoutes.tsx` y ajusté los tipos de los roles en `Login.tsx`.
-- *Reportes* (`2e4c417`): agregué el acceso a Reportes en el menú del gerente, en `AdminLayout.tsx`.
-
-Para comprobarlo entré con la cuenta del gerente y probé estas pantallas.
-
-**Decisión**
-
-Protegí las operaciones de personal y de roles para que solo las pueda usar el gerente. En el servidor lo hice con `JwtAuthGuard`, `RolesGuard` y `@Roles(GERENTE)`; en el cliente, con `ProtectedRoute` en la ruta `/admin/sedes`. No dejé el control solo en la pantalla: ocultar un botón no impide llamar al endpoint, y por eso la regla tiene que estar en el servidor. La protección del cliente evita que otros roles vean la pantalla, pero la que realmente protege es la del servidor.
-
-**Problema o bloqueo**
-
-Sin bloqueos.
-
-**Commits**
-
-- `64817da` Seccion de sedes y usuarios en el panel de administracion
-- `2e4c417` Reportes en AdminLayout
-
----
-
-### 2026-08-28 · horas por confirmar
-
-**Tarjeta(s) Jira:** FT1-77 (Gestión de reservas de clases y canchas para el gerente)
-
-**Actividad**
-
-Armé las pantallas del gerente para gestionar reservas, clases y canchas (`7b33ea7`, 20 archivos, 768 líneas agregadas).
-
-- *Cliente:* `ReservasPage.tsx`, `ClasesPage.tsx`, `CanchasPage.tsx`, `PersonalPage.tsx` y `GerenteDashboard.tsx`, con sus capas de servicio (`admin.api.ts`, `canchas.api.ts`, `clases.api.ts`, `instructores.api.ts`), además de las rutas en `AppRoutes.tsx` y el menú en `AdminLayout.tsx`.
-- *Servidor:* un módulo `admin` nuevo (`admin.controller.ts`, `admin.service.ts` y `admin.module.ts`) que devuelve los datos ya consolidados para el panel.
-- *Documentación:* escribí el ADR 0012, "Endpoints agregados para el panel gerencial" (numeración de ese momento).
-
-**Decisión**
-
-Plasmé en el ADR 0012 que el panel del gerente use endpoints agregados, como `GET /admin/dashboard/resumen` y `GET /admin/reservas`, que devuelven en una sola respuesta lo que cada pantalla necesita. La alternativa era que el frontend consultara cada módulo por separado, lo que aumentaba la cantidad de pedidos HTTP y repartía la lógica de consolidación entre varios componentes. Con la decisión tomada, los cálculos quedan en el backend y el frontend solo muestra y filtra. El costo que acepté está en el propio ADR: los endpoints dependen de varias entidades y cualquier cambio en la respuesta obliga a coordinar backend y frontend. Los endpoints quedan protegidos con `JwtAuthGuard`, `RolesGuard` y el rol `GERENTE`.
-
-**Problema o bloqueo**
-
-Sin bloqueos.
-
-**Commits**
-
-- `7b33ea7` Reservas y Gestión de Clases/Canchas para Gerente
-
----
 
 ### 2026-09-23 · horas por confirmar
 
@@ -331,17 +309,17 @@ Sin commits propios.
 
 ---
 
-## Sprint 5 — Testing y CI/CD — Unidad V — 2026-10-29 al 2026-11-12
+## Sprint 5 — Testing y CI/CD — Unidad V — 2026-10-09 al 2026-10-22
 
-### 2026-10-29 · horas por confirmar
+### 2026-10-14 · horas por confirmar
 
-**Tarjeta(s) Jira:** FT1-58 (Pruebas unitarias del acceso por QR y RN01) y FT1-65 (Informe de auditoría del testing y cobertura)
+Esta actividad es de documentación (bitácora grupal) sobre las unidades I, II y IV y se realizó durante el Sprint 5.
+
+**Tarjeta(s) Jira:** Ninguna.
 
 **Actividad**
 
-*FT1-58.* Ejecuté las pruebas unitarias del acceso por QR y de RN-01 siguiendo las indicaciones que me dio Martín, y después le comuniqué los resultados. Las pruebas las escribió Martín; yo no escribí código en esta tarjeta.
-
-*FT1-65.* El informe de auditoría del testing y de la cobertura (`docs/testing/informe-auditoria-testing.md`, con fecha 29/10) fue un trabajo de los tres integrantes. Yo le pasé observaciones a Martín. Martín fue quien lo subió al repositorio, y por eso todo figura en un commit suyo.
+Completé mis entradas de las unidades I, II y IV en la bitácora grupal `docs/LOG.md` (`f12acdb`).
 
 **Decisión**
 
@@ -353,11 +331,7 @@ Sin bloqueos.
 
 **Commits**
 
-Sin commits propios.
-
-**Evidencia del equipo**
-
-- `ac9c961` test(acceso): pruebas unitarias del servicio de acceso por QR y RN01 (martin, 2026-10-29): incluye las pruebas de FT1-58 y el informe `docs/testing/informe-auditoria-testing.md` de FT1-65.
+- `f12acdb` docs: completar bitácora de Teo Ava (unidades I, II y IV)
 
 ---
 
@@ -388,11 +362,63 @@ Sin commits propios.
 
 ---
 
-## Sprint 6 — Móvil — Unidad VI — 2026-10-22 al 2026-11-05
+## Sprint 6 — Móvil — Unidad VI — 2026-10-23 al 2026-11-05
 
-_Sin actividad en este sprint: el equipo no lo realizó._
+_Sin sesión propia acreditada en la Unidad VI (móvil). La PWA y las notificaciones push las implementó Martín el 2026-10-18 (`8963659`, `fadb12b`, `34a9ca9`, `65ecc2d`)._ <!-- CONFIRMAR (Teo): este texto reemplaza "Sin actividad en este sprint: el equipo no lo realizó", que contradice los commits de Martín del 18/10. -->
 
-## Sprint 7 — Integración — Unidad Cierre — 2026-11-05 al 2026-11-19
+### 2026-10-29 · horas por confirmar
+
+Esta actividad corresponde a la Unidad V (Testing y CI/CD; tarjetas del Sprint 5) y se realizó durante el Sprint 6.
+
+**Tarjeta(s) Jira:** FT1-58 (Pruebas unitarias del acceso por QR y RN01) y FT1-65 (Informe de auditoría del testing y cobertura)
+
+**Actividad**
+
+*FT1-58.* Ejecuté las pruebas unitarias del acceso por QR y de RN-01 siguiendo las indicaciones que me dio Martín, y después le comuniqué los resultados. Las pruebas las escribió Martín; yo no escribí código en esta tarjeta.
+
+*FT1-65.* El informe de auditoría del testing y de la cobertura (`docs/testing/informe-auditoria-testing.md`, con fecha 29/10) fue un trabajo de los tres integrantes. Yo le pasé observaciones a Martín. Martín fue quien lo subió al repositorio, y por eso todo figura en un commit suyo.
+
+**Decisión**
+
+Sin decisión propia.
+
+**Problema o bloqueo**
+
+Sin bloqueos.
+
+**Commits**
+
+Sin commits propios.
+
+**Evidencia del equipo**
+
+- `ac9c961` test(acceso): pruebas unitarias del servicio de acceso por QR y RN01 (martin, 2026-10-29): incluye las pruebas de FT1-58 y el informe `docs/testing/informe-auditoria-testing.md` de FT1-65.
+
+---
+
+## Sprint 7 — Integración — Unidad Cierre — 2026-11-06 al 2026-11-19
+
+### 2026-11-09 · horas por confirmar
+
+**Tarjeta(s) Jira:** Ninguna.
+
+**Actividad**
+
+Agregué al repositorio el SQL de la estructura completa de la base de datos, sin los datos, esquema `public`, con fecha 9/11/2026 (`9f1e2e2`): un volcado de 1226 líneas en `fitzone-estructura-20261109.sql`, en la raíz del repositorio.
+
+**Decisión**
+
+Sin decisión propia.
+
+**Problema o bloqueo**
+
+Sin bloqueos.
+
+**Commits**
+
+- `9f1e2e2` docs(db): agregar SQL de la estructura de la base (esquema public, 9/11/2026)
+
+---
 
 ### 2026-11-12 · horas por confirmar
 
@@ -451,17 +477,25 @@ Asignadas a mi nombre y "Por hacer" en Jira, sin realizar:
 
 ---
 
-### 2026-11-09 · horas por confirmar
+## Entre sprints
 
-**Tarjeta(s) Jira:** Ninguna.
+### 2026-08-28 · horas por confirmar
+
+Esta fecha cae entre el Sprint 1 (termina el 2026-08-27) y el Sprint 2 (empieza el 2026-09-03). La actividad corresponde a la Unidad IV (tarjeta FT1-77, Sprint 4).
+
+**Tarjeta(s) Jira:** FT1-77 (Gestión de reservas de clases y canchas para el gerente)
 
 **Actividad**
 
-Agregué al repositorio el SQL de la estructura completa de la base de datos, sin los datos, esquema `public`, con fecha 9/11/2026 (`9f1e2e2`): un volcado de 1226 líneas en `fitzone-estructura-20261109.sql`, en la raíz del repositorio.
+Armé las pantallas del gerente para gestionar reservas, clases y canchas (`7b33ea7`, 20 archivos, 768 líneas agregadas).
+
+- *Cliente:* `ReservasPage.tsx`, `ClasesPage.tsx`, `CanchasPage.tsx`, `PersonalPage.tsx` y `GerenteDashboard.tsx`, con sus capas de servicio (`admin.api.ts`, `canchas.api.ts`, `clases.api.ts`, `instructores.api.ts`), además de las rutas en `AppRoutes.tsx` y el menú en `AdminLayout.tsx`.
+- *Servidor:* un módulo `admin` nuevo (`admin.controller.ts`, `admin.service.ts` y `admin.module.ts`) que devuelve los datos ya consolidados para el panel.
+- *Documentación:* escribí el ADR 0012, "Endpoints agregados para el panel gerencial" (numeración de ese momento).
 
 **Decisión**
 
-Sin decisión propia.
+Plasmé en el ADR 0012 que el panel del gerente use endpoints agregados, como `GET /admin/dashboard/resumen` y `GET /admin/reservas`, que devuelven en una sola respuesta lo que cada pantalla necesita. La alternativa era que el frontend consultara cada módulo por separado, lo que aumentaba la cantidad de pedidos HTTP y repartía la lógica de consolidación entre varios componentes. Con la decisión tomada, los cálculos quedan en el backend y el frontend solo muestra y filtra. El costo que acepté está en el propio ADR: los endpoints dependen de varias entidades y cualquier cambio en la respuesta obliga a coordinar backend y frontend. Los endpoints quedan protegidos con `JwtAuthGuard`, `RolesGuard` y el rol `GERENTE`.
 
 **Problema o bloqueo**
 
@@ -469,36 +503,10 @@ Sin bloqueos.
 
 **Commits**
 
-- `9f1e2e2` docs(db): agregar SQL de la estructura de la base (esquema public, 9/11/2026)
+- `7b33ea7` Reservas y Gestión de Clases/Canchas para Gerente
 
 ---
 
-## Trabajo previo o entre sprints
-
-### 2026-10-14 · horas por confirmar
-
-**Tarjeta(s) Jira:** Ninguna.
-
-**Actividad**
-
-Completé mis entradas de las unidades I, II y IV en la bitácora grupal `docs/LOG.md` (`f12acdb`).
-
-**Decisión**
-
-Sin decisión propia.
-
-**Problema o bloqueo**
-
-Sin bloqueos.
-
-**Commits**
-
-- `f12acdb` docs: completar bitácora de Teo Ava (unidades I, II y IV)
-
----
-
-## Sprint 8 — Demo Day — Unidad Cierre — 2026-11-19 al 2026-12-03
+## Sprint 8 — Demo Day — Unidad Cierre — 2026-11-23 al 2026-11-29
 
 _Sprint todavía no iniciado._
-
----

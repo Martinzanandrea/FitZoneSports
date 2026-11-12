@@ -1,12 +1,12 @@
 # Bitácora — Retamoso, Máximo — Rol P4
 
-Bitácora individual según la plantilla del Anexo C. Organizo las sesiones por el sprint al que corresponde la tarea. La fecha de cada entrada es la de la actividad registrada. Cuando el commit o el cierre de Jira ocurrió después, lo indico como evidencia posterior.
+Bitácora individual según la plantilla del Anexo C. Organizo las sesiones por el sprint cuya ventana contiene la fecha de cada una (ventanas de `docs/planificacion`). Cuando la actividad es de otra unidad que la del sprint, lo aclaro al inicio de la entrada. La fecha de cada entrada es la de la actividad registrada. Cuando el commit o el cierre de Jira ocurrió después, lo indico como evidencia posterior.
 
 Usuario de Git: `maxi` (maxiretamosotrotta@gmail.com).
 
 Distingo mis implementaciones de las tareas en las que participé definiendo reglas, revisando o probando código integrado por otro integrante. Los commits del equipo permiten localizar ese resultado, pero no acreditan por sí solos la fecha ni las horas de mi participación. Conservo las horas de las sesiones ya registradas; no las calculo a partir de la cantidad de commits. Las ampliaciones de este documento explican esas sesiones y no representan sesiones adicionales.
 
-## Sprint 1 — Unidad I — 2026-08-13 al 2026-08-27
+## Sprint 1 — Arquitectura — Unidad I — 2026-08-13 al 2026-08-27
 
 ### 2026-08-24 · 3 h
 
@@ -38,39 +38,7 @@ Trabajo de diseño: el debate y el contenido del [ADR-001](../adr/ADR-001-estilo
 
 ---
 
-## Sprint 2 — Unidad II — 2026-09-03 al 2026-09-17
-
-### 2026-09-02 · 1 h
-
-**Tarjeta(s) Jira:** FT1-15 (1 pt); FT1-16 es del sprint 1
-
-**Actividad**
-
-Redacción de [ADR-012](../adr/ADR-012-repositorio-compartido-github.md) (en esa fecha, ADR-0001) GitHub como repositorio compartido (FT1-15) y de [ADR-001](../adr/ADR-001-estilo-arquitectonico.md) (en esa fecha, ADR-0002) Monolito Modular (FT1-16): ramas por integrante y versionado acoplado como costo aceptado.
-
-Participé en la redacción del criterio de repositorio compartido: un cambio que modifica un endpoint y su consumo en el cliente se puede revisar dentro del mismo historial. Separar los repositorios habría requerido coordinar dos integraciones para ese recorrido. Dejamos las ramas como mecanismo de trabajo individual y los commits como referencia para identificar aportes y volver sobre una decisión. Martín integró los documentos; mi participación en la redacción no equivale a la autoría de sus commits.
-
-**Decisión**
-
-Acordamos mantener el cliente y el servidor en un repositorio para coordinar cambios de la API y la interfaz. El costo aceptado fue el versionado acoplado. Para registrar las decisiones usamos el formato de Nygard.
-
-**Problema o bloqueo**
-
-Después de varias iteraciones quedaron saltos en la numeración de los ADR. Para ordenar las referencias usamos el historial de Git.
-
-Las referencias actuales usan la numeración de entrega. El documento de GitHub figura ahora como ADR-012 y lleva fecha 04/09, distinta de esta sesión registrada el 02/09; el de arquitectura es ADR-001. Mantengo esa diferencia visible: la fecha del documento integrado no reemplaza automáticamente la fecha de mi actividad. Esta sesión también precede al inicio del sprint 2 indicado en el encabezado.
-
-**Commits**
-
-La evidencia vinculada a esta sesión figura en los commits del equipo que se detallan abajo.
-
-**Evidencia del equipo**
-
-- `612d9ce` Documentacion y correcciones (martin)
-- `068e8b6` Documentacion y correccion de adrs (martin)
-- `e22cde0` Adrs (martin)
-
----
+## Sprint 2 — Frameworks — Unidad II — 2026-09-03 al 2026-09-17
 
 ### 2026-09-10 · 4 h
 
@@ -166,7 +134,7 @@ La evidencia vinculada a esta sesión figura en los commits del equipo que se de
 
 ---
 
-## Sprint 3 — Unidad III — 2026-09-15 al 2026-09-24
+## Sprint 3 — Patrones — Unidad III — 2026-09-15 al 2026-09-24
 
 ### 2026-09-18 · 3 h
 
@@ -182,7 +150,7 @@ Documentar para cada patrón el porqué y la alternativa descartada, en lugar de
 
 **Problema o bloqueo**
 
-Al repasar los patrones para justificarlos noté que la primera versión de Strategy no era polimórfica de verdad, porque el calculador conocía las clases concretas. Se lo planteé a Martín, que hizo el refactor a la forma canónica: arreglo de estrategias inyectado por el token PRICING_STRATEGIES y Repository con interfaz e implementación en memoria para las pruebas.
+Al repasar los patrones para justificarlos noté que la primera versión de Strategy no era polimórfica de verdad, porque el calculador conocía las clases concretas. Martín ya había hecho el refactor a la forma canónica antes de esta sesión (código en `2c6c8d7`, 2026-09-15; descripción en `23cf2ff`, 2026-09-16): arreglo de estrategias inyectado por el token PRICING_STRATEGIES y Repository con interfaz e implementación en memoria para las pruebas. <!-- CONFIRMAR (Máximo): el texto anterior decía que se lo planteó a Martín y que él hizo el refactor después de esta sesión, pero el refactor figura en `2c6c8d7` (15/09) y `23cf2ff` (16/09). Confirmar si la sesión fue en realidad del 15/09 o 16/09,  o si esta redacción es la correcta. -->
 
 **Commits**
 
@@ -193,10 +161,11 @@ La evidencia vinculada a esta sesión figura en los commits del equipo que se de
 - `cdca2b6` Creacion de logica de negocio detras del modulo "Canchas" (martin)
 - `5552f69` Modulo clase,instructores,membresia creados (martin)
 - `2c6c8d7` feat: implementar funcionalidad para cambiar contraseña y mejorar gestión de reservas. Corregir errores en los patrones (oberserver,repository,listener) (martin)
+- `23cf2ff` fix: consistencia de layout en panel Gerente, bugs de sede-scope y métricas de accesos (martin): incluye el refactor de Strategy y Repository (2026-09-16)
 
 ---
 
-## Sprint 4 — Unidad IV — 2026-09-15 al 2026-10-08
+## Sprint 4 — Componentes — Unidad IV — 2026-09-15 al 2026-10-08
 
 ### 2026-10-05 · 2 h
 
@@ -248,7 +217,11 @@ Después de mover los archivos, el build marcó dos errores en rutas relativas y
 
 ---
 
+## Sprint 5 — Testing y CI/CD — Unidad V — 2026-10-09 al 2026-10-22
+
 ### 2026-10-11 · 2 h
+
+Esta fecha cae en el Sprint 5. La actividad corresponde a la Unidad IV (rol Gerente de Sede; la tarjeta FT1-50 está en el Sprint 4).
 
 **Tarjeta(s) Jira:** FT1-50 (5 pts), subtarea FT1-53
 
@@ -277,11 +250,7 @@ La tarjeta está en el sprint 4 aunque la verificación se cerró el 11/10, desp
 
 ---
 
-## Sprint 5 — Unidad V — 2026-10-29 al 2026-11-12
-
 ### 2026-10-13 · 4 h
-
-La sesión fue anterior al inicio formal del sprint. El reporte quedó asociado a la Unidad V y a sus tarjetas de QA.
 
 **Tarjeta(s) Jira:** FT1-30 (6 pts), FT1-61, FT1-62 y FT1-56
 
@@ -305,7 +274,17 @@ En la prueba de doble clic con plan vigente no apareció otro cobro. Dejé pendi
 
 ---
 
+## Sprint 6 — Móvil — Unidad VI — 2026-10-23 al 2026-11-05
+
+_Sin sesión de trabajo propia acreditada para este sprint._
+
+En Jira figuro como informador de [FT1-88](https://fitzone-sports.atlassian.net/browse/FT1-88) (PWA), [FT1-89](https://fitzone-sports.atlassian.net/browse/FT1-89) (notificaciones push) y [FT1-90](https://fitzone-sports.atlassian.net/browse/FT1-90) (estados sin conexión). Las tres tarjetas se cargaron el 09/11 y están asignadas a Martín. Sus commits `8963659`, `fadb12b`, `34a9ca9` y `65ecc2d` son del 18/10. Dejo estas referencias como contexto del equipo. El registro de las tarjetas ocurrió después del sprint.
+
+## Sprint 7 — Integración — Unidad Cierre — 2026-11-06 al 2026-11-19
+
 ### 2026-11-09 · 2 h
+
+Esta actividad corresponde a la Unidad V (Testing y CI/CD; tarjetas del Sprint 5) y se realizó durante el Sprint 7.
 
 **Tarjeta(s) Jira:** FT1-59 y FT1-64
 
@@ -331,14 +310,6 @@ En canchas agregué un caso de diez solicitudes para el mismo turno. La prueba e
 - `c2d8e0e` test: integración contra Postgres real para RN-01 y RN-02, y umbral de cobertura
 
 ---
-
-## Sprint 6 — Unidad VI — 2026-10-22 al 2026-11-05
-
-_Sin sesión de trabajo propia acreditada para este sprint._
-
-En Jira figuro como informador de [FT1-88](https://fitzone-sports.atlassian.net/browse/FT1-88) (PWA), [FT1-89](https://fitzone-sports.atlassian.net/browse/FT1-89) (notificaciones push) y [FT1-90](https://fitzone-sports.atlassian.net/browse/FT1-90) (estados sin conexión). Las tres tarjetas se cargaron el 09/11 y están asignadas a Martín. Sus commits `8963659`, `fadb12b`, `34a9ca9` y `65ecc2d` son del 18/10. Dejo estas referencias como contexto del equipo. El registro de las tarjetas ocurrió después del sprint.
-
-## Sprint 7 — Unidad Cierre — 2026-11-05 al 2026-11-19
 
 ### 2026-11-09 · 4 h
 
@@ -411,8 +382,42 @@ Queda por confirmar si las 4 h ya registradas el 09/11 incluyen esta revisión d
 
 ---
 
-## Sprint 8 — Unidad Cierre — 2026-11-19 al 2026-12-03
+## Entre sprints
 
-_Sprint todavía no iniciado._
+### 2026-09-02 · 1 h
+
+Esta fecha cae entre el Sprint 1 (termina el 2026-08-27) y el Sprint 2 (empieza el 2026-09-03). La tarjeta FT1-15 pertenece al Sprint 2 (Unidad II).
+
+**Tarjeta(s) Jira:** FT1-15 (1 pt); FT1-16 es del sprint 1
+
+**Actividad**
+
+Redacción de [ADR-012](../adr/ADR-012-repositorio-compartido-github.md) (en esa fecha, ADR-0001) GitHub como repositorio compartido (FT1-15) y de [ADR-001](../adr/ADR-001-estilo-arquitectonico.md) (en esa fecha, ADR-0002) Monolito Modular (FT1-16): ramas por integrante y versionado acoplado como costo aceptado.
+
+Participé en la redacción del criterio de repositorio compartido: un cambio que modifica un endpoint y su consumo en el cliente se puede revisar dentro del mismo historial. Separar los repositorios habría requerido coordinar dos integraciones para ese recorrido. Dejamos las ramas como mecanismo de trabajo individual y los commits como referencia para identificar aportes y volver sobre una decisión. Martín integró los documentos; mi participación en la redacción no equivale a la autoría de sus commits.
+
+**Decisión**
+
+Acordamos mantener el cliente y el servidor en un repositorio para coordinar cambios de la API y la interfaz. El costo aceptado fue el versionado acoplado. Para registrar las decisiones usamos el formato de Nygard.
+
+**Problema o bloqueo**
+
+Después de varias iteraciones quedaron saltos en la numeración de los ADR. Para ordenar las referencias usamos el historial de Git.
+
+Las referencias actuales usan la numeración de entrega. El documento de GitHub figura ahora como ADR-012 y lleva fecha 04/09, distinta de esta sesión registrada el 02/09; el de arquitectura es ADR-001. Mantengo esa diferencia visible: la fecha del documento integrado no reemplaza automáticamente la fecha de mi actividad.
+
+**Commits**
+
+La evidencia vinculada a esta sesión figura en los commits del equipo que se detallan abajo.
+
+**Evidencia del equipo**
+
+- `612d9ce` Documentacion y correcciones (martin)
+- `068e8b6` Documentacion y correccion de adrs (martin)
+- `e22cde0` Adrs (martin)
 
 ---
+
+## Sprint 8 — Demo Day — Unidad Cierre — 2026-11-23 al 2026-11-29
+
+_Sprint todavía no iniciado._
