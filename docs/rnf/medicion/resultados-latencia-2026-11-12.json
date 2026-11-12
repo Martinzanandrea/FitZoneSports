@@ -1,0 +1,133 @@
+{
+  "fecha_inicio": "2026-11-12T18:30:16.516Z",
+  "fecha_fin": "2026-11-12T18:48:09.176Z",
+  "zona_horaria": "America/Buenos_Aires",
+  "repeticiones": 50,
+  "repeticiones_lectura": 200,
+  "calentamiento_no_contado": 5,
+  "metodo": "Tiempo de pared medido en el cliente (performance.now) desde el envío hasta leer el cuerpo completo, por loopback; percentiles por rango más cercano; solo respuestas 2xx.",
+  "node": "v24.19.0",
+  "hardware": {
+    "sistema": "Windows_NT 10.0.26300 (x64)",
+    "cpu": "AMD Ryzen 5 5600H with Radeon Graphics",
+    "nucleos_logicos": 12,
+    "memoria_gb": 13.9
+  },
+  "api": "http://localhost:3100",
+  "base_de_datos": "PostgreSQL 18.0 on x86_64-windows, compiled by msvc-19.44.35217, 64-bit",
+  "filas_del_seed_antes": {
+    "auditoria": 0,
+    "bloqueos_cancha": 0,
+    "canchas": 71,
+    "clase_horario_semanal": 200,
+    "clase_ocurrencia": 800,
+    "clases": 100,
+    "comprobantes": 0,
+    "control_acceso": 0,
+    "envios_notificacion": 0,
+    "eventos_acceso_offline": 0,
+    "franjas_horarias": 25,
+    "instructores": 12,
+    "membresias": 100,
+    "notificaciones": 0,
+    "pagos": 0,
+    "precios_plan": 3,
+    "push_suscripciones": 0,
+    "reservas_cancha": 0,
+    "reservas_clase": 0,
+    "schema_migraciones": 10,
+    "sedes": 25,
+    "tipos_cancha": 2,
+    "usuarios": 176
+  },
+  "filas_despues": {
+    "auditoria": 55,
+    "bloqueos_cancha": 0,
+    "canchas": 71,
+    "clase_horario_semanal": 200,
+    "clase_ocurrencia": 800,
+    "clases": 100,
+    "comprobantes": 0,
+    "control_acceso": 55,
+    "envios_notificacion": 0,
+    "eventos_acceso_offline": 0,
+    "franjas_horarias": 25,
+    "instructores": 12,
+    "membresias": 100,
+    "notificaciones": 0,
+    "pagos": 0,
+    "precios_plan": 3,
+    "push_suscripciones": 0,
+    "reservas_cancha": 55,
+    "reservas_clase": 0,
+    "schema_migraciones": 10,
+    "sedes": 25,
+    "tipos_cancha": 2,
+    "usuarios": 176
+  },
+  "endpoints": {
+    "GET /clases (listado de clases)": {
+      "muestras_ok": 50,
+      "errores": 0,
+      "p50_ms": 22.48,
+      "p95_ms": 24.35,
+      "min_ms": 7.09,
+      "max_ms": 25.01,
+      "media_ms": 21.54
+    },
+    "POST /reservas-cancha (reserva de cancha)": {
+      "muestras_ok": 50,
+      "errores": 0,
+      "p50_ms": 35.04,
+      "p95_ms": 42.65,
+      "min_ms": 21.74,
+      "max_ms": 46.8,
+      "media_ms": 34.03
+    },
+    "GET /reservas-cancha/cancha/:id/ocupacion (disponibilidad, fecha con reservas)": {
+      "muestras_ok": 200,
+      "errores": 0,
+      "p50_ms": 21.2,
+      "p95_ms": 22.62,
+      "min_ms": 5.39,
+      "max_ms": 24.16,
+      "media_ms": 20.68
+    },
+    "GET /reservas-cancha/cancha/:id/ocupacion (disponibilidad, fecha sin reservas)": {
+      "muestras_ok": 200,
+      "errores": 0,
+      "p50_ms": 20.52,
+      "p95_ms": 22.48,
+      "min_ms": 4.26,
+      "max_ms": 26.73,
+      "media_ms": 19.94
+    },
+    "GET /acceso/snapshot/:sedeId (snapshot de acceso)": {
+      "muestras_ok": 50,
+      "errores": 0,
+      "p50_ms": 22.33,
+      "p95_ms": 23.93,
+      "min_ms": 6.75,
+      "max_ms": 24.92,
+      "media_ms": 22.2
+    },
+    "POST /acceso/validar (validación de QR)": {
+      "muestras_ok": 50,
+      "errores": 0,
+      "p50_ms": 37.29,
+      "p95_ms": 39.93,
+      "min_ms": 10.17,
+      "max_ms": 40.24,
+      "media_ms": 33.89
+    },
+    "POST /auth/login (inicio de sesión)": {
+      "muestras_ok": 50,
+      "errores": 0,
+      "p50_ms": 62.37,
+      "p95_ms": 65.34,
+      "min_ms": 58.91,
+      "max_ms": 68.17,
+      "media_ms": 62.31
+    }
+  }
+}

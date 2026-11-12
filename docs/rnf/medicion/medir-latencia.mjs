@@ -2,7 +2,8 @@
 // Medición de latencia de los endpoints principales de la API (evidencia de RNF-03).
 //
 // Mide, contra un backend local con una base de datos DE PRUEBA, el p50 y el p95 de:
-//   login · listado de clases · reserva de cancha · snapshot de acceso · validación de QR
+//   login · listado de clases · reserva de cancha · consulta de disponibilidad (ocupación de una cancha,
+//   con y sin reservas) · snapshot de acceso · validación de QR
 // con 200 repeticiones cada uno (más unas pocas de calentamiento que no se cuentan).
 //
 // Sin dependencias nuevas: usa `fetch` de Node 20+ y, solo para describir los datos del seed,
@@ -16,7 +17,9 @@
 //   DB_HOST=127.0.0.1 DB_PORT=55432 DB_USERNAME=postgres DB_PASSWORD=... DB_NAME=fitzone_rnf DB_SSL=false \
 //     node docs/rnf/medicion/medir-latencia.mjs --api http://localhost:3100 --base-de-prueba
 //
-// Opciones: --repeticiones 200 · --calentamiento 5 · --salida docs/rnf/medicion
+// Opciones: --repeticiones 200 · --repeticiones-lectura <n> · --calentamiento 5 · --salida docs/rnf/medicion
+//   --repeticiones-lectura fija las repeticiones de la consulta de disponibilidad (solo lectura, sin el
+//   límite del login); si se omite, usa el mismo valor que --repeticiones.
 //
 // Límites de la API que el script respeta (no los modifica):
 //   - POST /auth/login: 5 intentos por minuto por IP  -> una repetición cada ~12,5 s (≈ 42 min).
@@ -41,6 +44,7 @@ const opt = (n, def) => {
 };
 const API = opt('api', 'http://localhost:3100').replace(/\/$/, '');
 const REPS = Number(opt('repeticiones', 200));
+const REPS_LECTURA = Number(opt('repeticiones-lectura', REPS));
 const CALENT = Number(opt('calentamiento', 5));
 const SALIDA = path.resolve(RAIZ, opt('salida', 'docs/rnf/medicion'));
 const PASSWORD = 'FitZone2026!'; // contraseña de los usuarios de prueba (README, sección 4)
@@ -116,12 +120,12 @@ function resumen(ms, errores, detalle) {
 }
 
 // Corre `paso()` CALENT veces (sin contar) y REPS veces (contando). `paso(i)` devuelve {status, ms}.
-async function medir(nombre, paso, pausa = PAUSA_MS) {
+async function medir(nombre, paso, pausa = PAUSA_MS, reps = REPS) {
   process.stdout.write(`${nombre}: `);
   const ok = [];
   const estados = {};
   let errores = 0;
-  for (let i = -CALENT; i < REPS; i++) {
+  for (let i = -CALENT; i < reps; i++) {
     await pausar(pausa);
     const r = await paso(i);
     if (i < 0) continue;
@@ -162,7 +166,7 @@ async function datosDelSeed() {
 
 // ------------------------------------------------------------------ ejecución
 const inicio = new Date();
-console.log(`Medición de latencia · ${inicio.toISOString()} · API ${API} · ${REPS} repeticiones (+${CALENT} de calentamiento)`);
+console.log(`Medición de latencia · ${inicio.toISOString()} · API ${API} · ${REPS} repeticiones, ${REPS_LECTURA} en la consulta de disponibilidad (+${CALENT} de calentamiento)`);
 const antes = await datosDelSeed();
 console.log('Filas por tabla antes de medir:', JSON.stringify(antes.filas));
 
@@ -199,6 +203,21 @@ resultados['POST /reservas-cancha (reserva de cancha)'] = await medir('reserva d
     cuerpo: { canchaId: cancha.id, usuarioId: socio.usuario.id, ...turno(i) },
   }));
 
+// Consulta de disponibilidad (objeto del RNF-03): GET /reservas-cancha/cancha/:canchaId/ocupacion?fecha=
+// Solo lectura. Se mide sobre la cancha de la medición en dos fechas:
+//   - con reservas: mañana, día en que la medición anterior dejó 15 reservas en esa cancha;
+//   - sin reservas: dentro de 30 días, sin ninguna reserva.
+const fechaConReservas = turno(0).fecha;
+const fechaSinReservas = new Date(Date.UTC(hoyAR.getUTCFullYear(), hoyAR.getUTCMonth(), hoyAR.getUTCDate() + 30)).toISOString().slice(0, 10);
+resultados['GET /reservas-cancha/cancha/:id/ocupacion (disponibilidad, fecha con reservas)'] = await medir(
+  'disponibilidad con reservas', () =>
+    http('GET', `/reservas-cancha/cancha/${cancha.id}/ocupacion?fecha=${fechaConReservas}`, { cookie: socio.cookie }),
+  PAUSA_MS, REPS_LECTURA);
+resultados['GET /reservas-cancha/cancha/:id/ocupacion (disponibilidad, fecha sin reservas)'] = await medir(
+  'disponibilidad sin reservas', () =>
+    http('GET', `/reservas-cancha/cancha/${cancha.id}/ocupacion?fecha=${fechaSinReservas}`, { cookie: socio.cookie }),
+  PAUSA_MS, REPS_LECTURA);
+
 resultados['GET /acceso/snapshot/:sedeId (snapshot de acceso)'] = await medir('snapshot de acceso', () =>
   http('GET', `/acceso/snapshot/${sedeId}`, { cookie: recep.cookie }));
 
@@ -233,6 +252,7 @@ const salida = {
   fecha_fin: fin.toISOString(),
   zona_horaria: Intl.DateTimeFormat().resolvedOptions().timeZone,
   repeticiones: REPS,
+  repeticiones_lectura: REPS_LECTURA,
   calentamiento_no_contado: CALENT,
   metodo: 'Tiempo de pared medido en el cliente (performance.now) desde el envío hasta leer el cuerpo completo, por loopback; percentiles por rango más cercano; solo respuestas 2xx.',
   node: process.version,

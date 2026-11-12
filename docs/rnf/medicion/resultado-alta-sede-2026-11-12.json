@@ -1,0 +1,22 @@
+{
+  "fecha": "2026-11-12T17:43:46.300Z",
+  "node": "v24.19.0",
+  "sistema": "Windows_NT 10.0.26300",
+  "api": "http://localhost:3100",
+  "sedes_antes": 25,
+  "alta_sede": {
+    "status": 201,
+    "id": "e4e1e102-1c37-417b-90cd-2305739b5e81"
+  },
+  "alta_franja": {
+    "status": 201
+  },
+  "sedes_despues": 26,
+  "la_sede_aparece_en_el_listado": true,
+  "sesion_previa_sigue_valida": true,
+  "sonda_disponibilidad": {
+    "consultas": 17,
+    "fallos": 0
+  },
+  "conclusion_automatica": "Alta de sede con el sistema en marcha: sin reinicio, sin fallos de la sonda y con la sesión previa vigente."
+}
