@@ -8,11 +8,11 @@ Proyecto académico de la cátedra de Programación V, Licenciatura en Sistemas 
 
 ## 2. Integrantes
 
-| Integrante | Rol | Usuario de Git |
-|---|---|---|
-| Zanandrea, Martín | Backend, líder técnico | `martin` / `Martin Zanandrea` (martinzanandrea09@gmail.com) |
-| Ava, Teo | Frontend | `Teo` (teoava3@gmail.com) |
-| Retamoso, Máximo | Calidad, DevOps y documentación | `maxi` (maxiretamosotrotta@gmail.com) |
+| Integrante        | Rol                             | Usuario de Git                                              |
+| ----------------- | ------------------------------- | ----------------------------------------------------------- |
+| Zanandrea, Martín | Backend, líder técnico          | `martin` / `Martin Zanandrea` (martinzanandrea09@gmail.com) |
+| Ava, Teo          | Frontend                        | `Teo` (teoava3@gmail.com)                                   |
+| Retamoso, Máximo  | Calidad, DevOps y documentación | `maxi` (maxiretamosotrotta@gmail.com)                       |
 
 El equipo está formado por estos tres integrantes. Las responsabilidades de cada uno por tarjeta están en [`docs/planificacion/PLANIFICACION.md`](docs/planificacion/PLANIFICACION.md) y su trabajo en commits está en las [bitácoras](docs/bitacoras/).
 
@@ -36,39 +36,39 @@ Instalación sin Docker, producción y variables de entorno: [manual de instalac
 
 Todos usan la contraseña **`FitZone2026!`**. Son datos ficticios que carga el seed; no existen en producción.
 
-| Rol | Email | Dónde ingresar |
-|---|---|---|
-| Gerente general | `gerente@fitzone.test` | http://localhost:8080/admin/login |
-| Gerente de sede (sede 1, Paraná Centro) | `gerente.sede1@fitzone.test` | http://localhost:8080/admin/login |
-| Recepcionista (sede 1, Paraná Centro) | `recepcion1@fitzone.test` | http://localhost:8080/admin/login |
-| Socio al día | `socio1.1@fitzone.test` | http://localhost:8080/login |
-| Socio con la cuota vencida (paga tarifa de externo, RN-03) | `socio1.3@fitzone.test` | http://localhost:8080/login |
-| Cliente externo | `externo1@fitzone.test` | http://localhost:8080/login |
+| Rol                                                        | Email                        | Dónde ingresar                    |
+| ---------------------------------------------------------- | ---------------------------- | --------------------------------- |
+| Gerente general                                            | `gerente@fitzone.test`       | http://localhost:8080/admin/login |
+| Gerente de sede (sede 1, Paraná Centro)                    | `gerente.sede1@fitzone.test` | http://localhost:8080/admin/login |
+| Recepcionista (sede 1, Paraná Centro)                      | `recepcion1@fitzone.test`    | http://localhost:8080/admin/login |
+| Socio al día                                               | `socio1.1@fitzone.test`      | http://localhost:8080/login       |
+| Socio con la cuota vencida (paga tarifa de externo, RN-03) | `socio1.3@fitzone.test`      | http://localhost:8080/login       |
+| Cliente externo                                            | `externo1@fitzone.test`      | http://localhost:8080/login       |
 
 Cada una de las 25 sedes tiene su gerente, su recepcionista, cuatro socios y un externo: cambiando el número (`recepcion7@…`, `socio7.2@…`) se usa otra sede.
 
 ## 5. Documentación
 
-| Documento | Ubicación |
-|---|---|
-| Registros de decisión arquitectónica (ADR-001 a ADR-023) | [`docs/adr/`](docs/adr/README.md) |
-| Diagramas C4, DER físico, despliegue y pipeline (fuente y exportación) | [`docs/diagramas/`](docs/diagramas/README.md) |
-| Manual de usuario | [`docs/manuales/manual-de-usuario.md`](docs/manuales/manual-de-usuario.md) |
-| Manual de instalación y operación | [`docs/manuales/manual-de-instalacion-y-operacion.md`](docs/manuales/manual-de-instalacion-y-operacion.md) |
-| Manual técnico | [`docs/manuales/manual-tecnico.md`](docs/manuales/manual-tecnico.md) |
-| Bitácoras individuales | [`docs/bitacoras/`](docs/bitacoras/) |
-| Planificación del proyecto | [`docs/planificacion/`](docs/planificacion/) |
-| Evidencia de requisitos no funcionales | [`docs/rnf/`](docs/rnf/) |
-| Contrato de la API (OpenAPI) | [`backend/swagger.json`](backend/swagger.json) |
+| Documento                                                              | Ubicación                                                                                                  |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Registros de decisión arquitectónica (ADR-001 a ADR-023)               | [`docs/adr/`](docs/adr/README.md)                                                                          |
+| Diagramas C4, DER físico, despliegue y pipeline (fuente y exportación) | [`docs/diagramas/`](docs/diagramas/README.md)                                                              |
+| Manual de usuario                                                      | [`docs/manuales/manual-de-usuario.md`](docs/manuales/manual-de-usuario.md)                                 |
+| Manual de instalación y operación                                      | [`docs/manuales/manual-de-instalacion-y-operacion.md`](docs/manuales/manual-de-instalacion-y-operacion.md) |
+| Manual técnico                                                         | [`docs/manuales/manual-tecnico.md`](docs/manuales/manual-tecnico.md)                                       |
+| Bitácoras individuales                                                 | [`docs/bitacoras/`](docs/bitacoras/)                                                                       |
+| Planificación del proyecto                                             | [`docs/planificacion/`](docs/planificacion/)                                                               |
+| Evidencia de requisitos no funcionales                                 | [`docs/rnf/`](docs/rnf/)                                                                                   |
+| Contrato de la API (OpenAPI)                                           | [`backend/swagger.json`](backend/swagger.json)                                                             |
 
 ## 6. Estado de las pruebas
 
-| Suite | Comando | Resultado |
-|---|---|---|
-| Unitarias del backend | `npm test` (en `backend/`) | 848 pruebas en 42 suites, todas en verde |
+| Suite                                                                                | Comando                                    | Resultado                                                                                                                       |
+| ------------------------------------------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Unitarias del backend                                                                | `npm test` (en `backend/`)                 | 848 pruebas en 42 suites, todas en verde                                                                                        |
 | Integración contra PostgreSQL (RN-01, RN-02, cupo de clases, sincronización offline) | `npm run test:integracion` (en `backend/`) | 18 pruebas en 5 suites. Requieren una base PostgreSQL y no se corrieron en esta revisión; las corre el job `integracion` del CI |
-| Unitarias del frontend | `npm test` (en `frontend/`) | 153 pruebas en 7 archivos, todas en verde |
-| Sistema (`docker compose up --build`) | job `docker` del CI | Levanta y responde en el CI; no se corrió localmente en esta revisión |
+| Unitarias del frontend                                                               | `npm test` (en `frontend/`)                | 153 pruebas en 7 archivos, todas en verde                                                                                       |
+| Sistema (`docker compose up --build`)                                                | job `docker` del CI                        | Levanta y responde en el CI; no se corrió localmente en esta revisión                                                           |
 
 **Cobertura** de las pruebas unitarias del backend: **73,65 % de sentencias**, 64,30 % de ramas, 58,99 % de funciones y 73,88 % de líneas. El frontend no tiene umbral ni informe de cobertura. El umbral mínimo (70 / 60 / 55 / 70 %) está declarado en [ADR-008](docs/adr/ADR-008-estrategia-de-pruebas.md) y el CI falla si no se alcanza. Informe detallado: `npm run test:cov` y abrir `backend/coverage/lcov-report/index.html`.
 
@@ -102,14 +102,46 @@ La correspondencia entre la estructura del frontend y la del punto 4 de los line
 
 ## Declaración de uso de asistentes de IA y de bibliotecas de terceros
 
-**Asistentes de IA.** El equipo usó asistentes de inteligencia artificial como apoyo durante el desarrollo, las pruebas y la redacción de documentación. Se usó Claude Code (Anthropic) en este repositorio. Los integrantes revisaron el código y los documentos que entregan y pueden explicarlos y modificarlos en la defensa. [Pendiente: cada integrante debe confirmar si usó otros asistentes y para qué tareas.]
+**Asistentes de IA.** El equipo usó asistentes de inteligencia artificial como apoyo durante el desarrollo, las pruebas y la redacción de documentación. Se usó Claude Code (Anthropic) en este repositorio. Cada integrante declara lo que usó:
+
+| Integrante       | Asistentes usados                          | Tareas                                                                                                            | Confirmación                                 |
+| ---------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Martín Zanandrea | Claude (Anthropic)                         | Apoyo en arquitectura, redacción de documentación, redacción de prompts para agentes de código y revisión de bugs | Todo el código y los documentos se revisaron |
+| Teo Ava          | <!-- CONFIRMAR: completa el integrante --> | <!-- CONFIRMAR: completa el integrante -->                                                                        | <!-- CONFIRMAR: completa el integrante -->   |
+| Máximo Retamoso  | <!-- CONFIRMAR: completa el integrante --> | <!-- CONFIRMAR: completa el integrante -->                                                                        | <!-- CONFIRMAR: completa el integrante -->   |
+
+Todo el código y la documentación entregados fueron revisados por los integrantes.
 
 **Bibliotecas de terceros.** Todas se instalan con `npm ci` desde los `package-lock.json`; las versiones exactas están ahí.
 
 - **Backend:** NestJS 11 (`@nestjs/common`, `core`, `config`, `jwt`, `passport`, `swagger`, `throttler`, `typeorm`, `schedule`, `event-emitter`, `platform-express`), TypeORM, `pg`, Passport, `bcrypt`, `class-validator`, `class-transformer`, `helmet`, `cookie-parser`, `multer`, `nodemailer`, `web-push`, `pdfkit`, `@supabase/supabase-js` y RxJS. Pruebas y calidad: Jest, ts-jest, supertest, ESLint y Prettier.
 - **Frontend:** React 19, React Router, Vite, Tailwind CSS 4, `axios`, `html5-qrcode`, `qrcode.react`, `lucide-react`, `vite-plugin-pwa` y `@vercel/analytics`. Pruebas y calidad: Vitest, jsdom, `fake-indexeddb` y ESLint.
 - **Servicios externos:** Supabase (PostgreSQL y Storage), Render, Vercel y Brevo (correo). La pasarela de pagos es simulada.
-- **Material de terceros:** [Pendiente: el equipo debe indicar la procedencia y la licencia de las imágenes de `frontend/public/images/landing/`; no se pudo verificar en el repositorio.]
+- **Material de terceros (imágenes de la landing):** las fotos de `frontend/public/images/landing/` son fotografías de stock de Unsplash, descargadas y guardadas como assets locales del frontend, sin enlazarlas desde Unsplash. La Unsplash License permite el uso sin atribución obligatoria. El único respaldo de esa procedencia dentro del repositorio es el mensaje del commit `9f46ceb`, que dice «9 fotos de stock (licencia Unsplash) descargadas como assets locales del frontend, sin hotlinking». Cada foto existe como original y como versión optimizada en `opt/`, que es la que carga la mayoría de las páginas públicas.
+
+| Archivo                                           | Uso en la aplicación                                                                                                                              | Procedencia | Licencia         | URL de origen |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------------- | ------------- |
+| `futbol5-cancha.jpg` (y `opt/futbol5-cancha.jpg`) | Cancha de fútbol: `Inicio.tsx` y `CanchasPublicas.tsx` (versión `opt/`)                                                                           | Unsplash    | Unsplash License |               |
+| `gimnasio-alt.jpg` (y `opt/gimnasio-alt.jpg`)     | Foto de gimnasio: `Login.tsx` (ingreso del personal), `ConfiguracionTiposCancha.tsx` (imagen por defecto) y `ClasesPublicas.tsx` (versión `opt/`) | Unsplash    | Unsplash License |               |
+| `gimnasio-hero.jpg` (y `opt/gimnasio-hero.jpg`)   | Portada: `Inicio.tsx` y `CanchasPublicas.tsx` (versión `opt/`) y `Login.tsx` (ingreso de socios)                                                  | Unsplash    | Unsplash License |               |
+| `paddle-cancha.jpg` (y `opt/paddle-cancha.jpg`)   | Cancha de pádel: `CanchasPublicas.tsx` (versión `opt/`)                                                                                           | Unsplash    | Unsplash License |               |
+| `spinning-clase.jpg` (y `opt/spinning-clase.jpg`) | Clase de spinning: `ClasesPublicas.tsx` (versión `opt/`)                                                                                          | Unsplash    | Unsplash License |               |
+| `yoga-alt.jpg` (y `opt/yoga-alt.jpg`)             | Clase de pilates en `ClasesPublicas.tsx` (versión `opt/`) y fondo de `RegistroPage.tsx` y `VerificarEmail.tsx`                                    | Unsplash    | Unsplash License |               |
+| `yoga-clase.jpg` (y `opt/yoga-clase.jpg`)         | Clase de yoga: `Inicio.tsx` y `ClasesPublicas.tsx` (versión `opt/`)                                                                               | Unsplash    | Unsplash License |               |
+
+<!-- CONFIRMAR: Martín verifica la URL de origen y el autor de cada foto en unsplash.com y las completa en la tabla -->
+<!-- CONFIRMAR: el mensaje del commit 9f46ceb habla de 9 fotos, pero la carpeta tiene 7 y ese commit agregó 7; Martín confirma si hay 2 fotos que no se usaron o se descartaron -->
+
+- **Bibliotecas principales y licencias** (según el `package.json` de cada paquete instalado en `node_modules`):
+
+| Biblioteca                                            | Versión instalada                    | Licencia   | Dónde se usa                                          |
+| ----------------------------------------------------- | ------------------------------------ | ---------- | ----------------------------------------------------- |
+| NestJS (`@nestjs/core`, `@nestjs/common`)             | 11.2.1                               | MIT        | Backend                                               |
+| TypeORM                                               | 1.1.0                                | MIT        | Backend                                               |
+| `@nestjs/jwt` y `passport-jwt` (sobre `jsonwebtoken`) | 11.0.2, 4.0.1 (`jsonwebtoken` 9.0.3) | MIT        | Backend: sesión con JWT. El repositorio no usa `jose` |
+| React                                                 | 19.2.8                               | MIT        | Frontend                                              |
+| Vite                                                  | 8.2.1                                | MIT        | Frontend                                              |
+| html5-qrcode                                          | 2.3.8                                | Apache-2.0 | Frontend: lector de QR con cámara                     |
 
 ## Licencia
 
