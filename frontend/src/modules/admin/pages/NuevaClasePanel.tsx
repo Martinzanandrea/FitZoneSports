@@ -11,6 +11,7 @@ import { SectionHeader } from '../../../shared/components/molecules';;
 import { LoadingState } from '../../../shared/components/molecules';;
 import { Select } from '../../../shared/components/atoms';;
 
+// eslint-disable-next-line react-refresh/only-export-components -- export auxiliar (constante/hook) junto al componente: solo afecta el refresco en caliente en desarrollo; moverlo obligaría a cambiar los importadores
 export const DIAS = [
   { value: 1, label: 'Lun' },
   { value: 2, label: 'Mar' },
@@ -21,6 +22,7 @@ export const DIAS = [
   { value: 0, label: 'Dom' },
 ];
 
+// eslint-disable-next-line react-refresh/only-export-components -- export auxiliar (constante/hook) junto al componente: solo afecta el refresco en caliente en desarrollo; moverlo obligaría a cambiar los importadores
 export function nombreDia(diaSemana: number) {
   return DIAS.find((d) => d.value === diaSemana)?.label ?? `Día ${diaSemana}`;
 }

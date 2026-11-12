@@ -115,11 +115,13 @@ export function ReservarCanchas() {
   });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ajusta la selección por defecto cuando llegan los datos asincrónicos
     if (tipos.length > 0 && (tipoSel === '' || !tipos.some((t) => t.id === tipoSel))) setTipoSel(tipos[0].id);
   }, [tipos, tipoSel]);
 
   useEffect(() => {
     if (canchaId && !canchasFiltradas.some((c) => c.id === canchaId) && canchasFiltradas.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- ajusta la selección por defecto cuando llegan los datos asincrónicos
       setCanchaId(canchasFiltradas[0].id);
     }
   }, [canchasFiltradas, canchaId]);

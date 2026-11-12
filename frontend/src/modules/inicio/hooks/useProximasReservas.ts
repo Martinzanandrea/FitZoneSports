@@ -37,6 +37,7 @@ export function useProximasReservas(usuarioId: string | undefined, limite = 3, c
 
   useEffect(() => {
     if (!usuarioId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia el estado dependiente cuando falta el dato de entrada; el efecto es quien lo sincroniza
       setCargando(false);
       return;
     }

@@ -211,6 +211,7 @@ export function GestionReservasClases() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de datos: el efecto dispara el pedido y marca el estado de carga; no hay valor derivable en el render
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sedeId]);
@@ -219,6 +220,7 @@ export function GestionReservasClases() {
   useEffect(() => {
     const q = busquedaUsuario.trim();
     if (!panelAbierto || paso !== 2 || q.length < MIN_BUSQUEDA) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia el estado dependiente cuando falta el dato de entrada; el efecto es quien lo sincroniza
       setResultados([]);
       setErrorBusqueda('');
       return;

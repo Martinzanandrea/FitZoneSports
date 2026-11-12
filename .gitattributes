@@ -1,2 +1,18 @@
+# Política única de saltos de línea: LF en el repositorio y en el árbol de trabajo.
+* text=auto eol=lf
+
 # Los scripts que corren dentro de los contenedores Linux necesitan LF.
 *.sh text eol=lf
+
+# Archivos binarios: no se tocan.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

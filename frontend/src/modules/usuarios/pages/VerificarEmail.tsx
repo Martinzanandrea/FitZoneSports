@@ -16,6 +16,7 @@ export function VerificarEmail() {
 
   useEffect(() => {
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia el estado dependiente cuando falta el dato de entrada; el efecto es quien lo sincroniza
       setEstado('error');
       setMensajeError('Falta el token de verificación en el link.');
       return;

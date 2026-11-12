@@ -120,6 +120,7 @@ export function GestionReservasCanchas() {
 
   useEffect(() => {
     if (!sedeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia el estado dependiente cuando falta el dato de entrada; el efecto es quien lo sincroniza
       setLoading(false);
       return;
     }
@@ -161,6 +162,7 @@ export function GestionReservasCanchas() {
   // Stats del día (todas las canchas activas de la sede)
   useEffect(() => {
     if (!sedeId || canchasDeSede.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia el estado dependiente cuando falta el dato de entrada; el efecto es quien lo sincroniza
       setReservasHoy([]);
       return;
     }
@@ -173,6 +175,7 @@ export function GestionReservasCanchas() {
   useEffect(() => {
     const q = busqueda.trim();
     if (slotSel === null || paso !== 1 || q.length < MIN_BUSQUEDA) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia el estado dependiente cuando falta el dato de entrada; el efecto es quien lo sincroniza
       setResultados([]);
       setErrorBusqueda('');
       return;

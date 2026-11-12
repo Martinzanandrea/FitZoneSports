@@ -44,6 +44,7 @@ export function DentroSede() {
   useEffect(() => {
     if (!user) return;
     if (user.sedeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- ajusta la selección por defecto cuando llegan los datos asincrónicos
       setSedeId(user.sedeId);
     } else if (esGerente) {
       sedesApi.getAll(1, 100).then((res) => setSedes(res.data)).catch(() => setSedes([]));
@@ -52,6 +53,7 @@ export function DentroSede() {
 
   useEffect(() => {
     if (!sedeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia el estado dependiente cuando falta el dato de entrada; el efecto es quien lo sincroniza
       setLoading(false);
       return;
     }

@@ -142,6 +142,7 @@ export function CobrarEfectivo() {
   // Estado de membresía del cliente elegido (solo lectura).
   useEffect(() => {
     if (!cliente) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia el estado dependiente cuando falta el dato de entrada; el efecto es quien lo sincroniza
       setMembresia(null);
       return;
     }
@@ -161,6 +162,7 @@ export function CobrarEfectivo() {
   useEffect(() => {
     if (!cliente || tipo !== 'cancha' || modoCancha !== 'existente') return;
     let viva = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de datos: el efecto dispara el pedido y marca el estado de carga; no hay valor derivable en el render
     setCargandoReservas(true);
     pagosApi
       .getReservasCanchaEfectivo(cliente.id)

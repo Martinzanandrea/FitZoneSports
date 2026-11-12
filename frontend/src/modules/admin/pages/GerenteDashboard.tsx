@@ -82,6 +82,7 @@ export function GerenteDashboard() {
   }, [cargarActividad]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de datos: el efecto dispara el pedido y marca el estado de carga; no hay valor derivable en el render
     cargar();
   }, [cargar]);
 
