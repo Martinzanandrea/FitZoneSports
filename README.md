@@ -98,6 +98,8 @@ docs/       adr, diagramas, manuales, bitácoras, planificación, rnf
 docker-compose.yml
 ```
 
+La correspondencia entre la estructura del frontend y la del punto 4 de los lineamientos está en [docs/entregables/estructura-frontend.md](docs/entregables/estructura-frontend.md).
+
 ## Declaración de uso de asistentes de IA y de bibliotecas de terceros
 
 **Asistentes de IA.** El equipo usó asistentes de inteligencia artificial como apoyo durante el desarrollo, las pruebas y la redacción de documentación. Se usó Claude Code (Anthropic) en este repositorio. Los integrantes revisaron el código y los documentos que entregan y pueden explicarlos y modificarlos en la defensa. [Pendiente: cada integrante debe confirmar si usó otros asistentes y para qué tareas.]

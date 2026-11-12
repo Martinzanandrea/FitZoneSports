@@ -6,7 +6,10 @@
    (botones, etiquetas, avatar, selects, tooltips). Un archivo por componente.
 2. **Moléculas** (`molecules/`): combinaciones con un propósito
    (tarjetas, estados de carga/error/vacío, paginación, encabezados).
-3. **Organismos** (`organisms/`): bloques completos (layouts y shell público).
+3. **Organismos** (`organisms/`): bloques completos: los layouts y el shell público
+   (`AdminLayout`, `PublicLayout`, `Landing`), los avisos globales de estado de la
+   aplicación (actualización, errores y sin conexión), el banner de cookies, los botones
+   de instalación y de volver a la aplicación, y el `ErrorBoundary`.
 4. Cada nivel tiene `index.ts` (barrel): se importa desde la carpeta,
    nunca con rutas profundas a archivos sueltos.
 5. Lo que no es componente no vive acá: `formatMoney` está en
@@ -21,4 +24,4 @@
 |---|---|
 | atoms | Avatar, Badge, Button, Chip, Donut, IconButton, ProgressBar, SectionTitle, Select, Tooltip |
 | molecules | BackButton, Card, EmptyState, ErrorState, LoadingState, MetricCard, MiniChart, PageHeader, Pagination, Ranking, SectionHeader, StatCard |
-| organisms | AdminLayout, BannerCookies, Landing, PublicLayout |
+| organisms | AdminLayout, AvisoActualizacion, AvisoErroresGlobales, BannerCookies, BannerSinConexion, BotonInstalar, BotonVolverApp, ErrorBoundary, Landing, PublicLayout |
