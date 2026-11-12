@@ -107,7 +107,7 @@ La correspondencia entre la estructura del frontend y la del punto 4 de los line
 | Integrante       | Asistentes usados                          | Tareas                                                                                                            | Confirmación                                 |
 | ---------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | Martín Zanandrea | Claude (Anthropic)                         | Apoyo en arquitectura, redacción de documentación, redacción de prompts para agentes de código y revisión de bugs | Todo el código y los documentos se revisaron |
-| Teo Ava          | <!-- CONFIRMAR: completa el integrante --> | <!-- CONFIRMAR: completa el integrante -->                                                                        | <!-- CONFIRMAR: completa el integrante -->   |
+| Teo Ava          | Claude Code (Anthropic) y OpenCode         | Revisión de código, implementación de funciones y redacción de documentos | Parte del código y de los documentos se revisó con detalle y parte con una revisión más general |
 | Máximo Retamoso  | <!-- CONFIRMAR: completa el integrante --> | <!-- CONFIRMAR: completa el integrante -->                                                                        | <!-- CONFIRMAR: completa el integrante -->   |
 
 Todo el código y la documentación entregados fueron revisados por los integrantes.
