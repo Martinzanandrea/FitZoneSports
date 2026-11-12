@@ -4,43 +4,7 @@ Usuario de Git: `Teo` (teoava3@gmail.com).
 
 ## Sprint 1 — Arquitectura — Unidad I — 2026-08-13 al 2026-08-27
 
-### 2026-08-26 al 2026-08-29 · horas por confirmar
-
-La entrada empieza el 2026-08-26, dentro del Sprint 1, y termina el 2026-08-29, después de su cierre (2026-08-27). La actividad corresponde a la Unidad IV (tarjeta FT1-76, Sprint 4).
-
-**Tarjeta(s) Jira:** FT1-76 (Panel de administración: sedes, usuarios y reportes)
-
-**Actividad**
-
-Armé las secciones de sedes y de usuarios del panel de administración del gerente.
-
-- *Sedes* (`SedesPage.tsx`, `sedes.api.ts`): listado de sedes y un formulario para crear una sede nueva o editar una existente. Cada sede se puede activar o desactivar desde la lista.
-- *Personal* (`CrearStaff.tsx`, `usuarios.api.ts`): modifiqué la pantalla de alta de personal. En el servidor agregué `POST /usuarios/staff` para crear personal y `PATCH /usuarios/:id/rol` para asignar un rol, con su DTO `assign-role.dto.ts` y el método `assignRole` en el servicio de usuarios.
-- *Rutas y acceso:* agregué la ruta `/admin/sedes` en `AppRoutes.tsx` y ajusté los tipos de los roles en `Login.tsx`.
-- *Reportes* (`2e4c417`): agregué el acceso a Reportes en el menú del gerente, en `AdminLayout.tsx`.
-
-Para comprobarlo entré con la cuenta del gerente y probé estas pantallas.
-
-**Decisión**
-
-Protegí las operaciones de personal y de roles para que solo las pueda usar el gerente. En el servidor lo hice con `JwtAuthGuard`, `RolesGuard` y `@Roles(GERENTE)`; en el cliente, con `ProtectedRoute` en la ruta `/admin/sedes`. No dejé el control solo en la pantalla: ocultar un botón no impide llamar al endpoint, y por eso la regla tiene que estar en el servidor. La protección del cliente evita que otros roles vean la pantalla, pero la que realmente protege es la del servidor.
-
-**Problema o bloqueo**
-
-Sin bloqueos.
-
-**Commits**
-
-- `64817da` Seccion de sedes y usuarios en el panel de administracion
-- `2e4c417` Reportes en AdminLayout
-
----
-
-## Sprint 2 — Frameworks — Unidad II — 2026-09-03 al 2026-09-17
-
-### 2026-09-04 · horas por confirmar
-
-Esta fecha cae en el Sprint 2. La actividad corresponde a la Unidad I (tarjeta FT1-10, Sprint 1).
+### 2026-09-04 · 3 hs
 
 **Tarjeta(s) Jira:** FT1-10 (Niveles C4 y ADR fundacionales)
 
@@ -74,7 +38,9 @@ Sin commits propios: Martín integró mi trabajo.
 
 ---
 
-### 2026-09-04 · horas por confirmar
+## Sprint 2 — Frameworks — Unidad II — 2026-09-03 al 2026-09-17
+
+### 2026-09-04 · 1 hs
 
 **Tarjeta(s) Jira:** FT1-21 (ADR - Cálculo de montos server-side)
 
@@ -99,39 +65,7 @@ Sin bloqueos.
 
 ---
 
-### 2026-09-06 al 2026-09-08 · horas por confirmar
-
-**Tarjeta(s) Jira:** FT1-19 (ADR - Autenticación JWT y autorización por rol/dueño/sede) y FT1-21 (ADR - Cálculo de montos server-side)
-
-**Actividad**
-
-Revisé los dos ADR. No los implementé ni los subí yo: Martín los integró al repositorio.
-
-- *ADR sobre autenticación (FT1-19).* Establece que el JWT viaja en una cookie httpOnly, que hay dos puertas de login (`/login` para clientes y `/admin/login` para personal) y que el recepcionista queda limitado a su sede mediante `assertSedeScope`.
-- *ADR sobre montos (FT1-21).* Establece que el monto de un pago se calcula siempre en el servidor, a partir de una tabla de precios que solo edita el gerente, e ignora cualquier importe que mande el cliente.
-
-**Decisión**
-
-Sostuve la decisión del ADR de montos: que el servidor sea la única fuente del importe. Si el monto lo declarara el cliente, cualquiera podría modificar la petición y pagar menos. La alternativa descartada es confiar en el monto que envía el frontend. Es la misma regla que aplico en el commit `25718bf`, donde el precio de la reserva de cancha lo calcula el servidor.
-
-**Problema o bloqueo**
-
-Después de la revisión, el ADR de autenticación necesitó correcciones de redacción. La versión corregida la subió Martín el 08/09.
-
-**Commits**
-
-Sin commits propios.
-
-**Evidencia del equipo**
-
-- `068e8b6` Documentacion y correccion de adrs (martin, 2026-09-06): agrega los ADR 0005 (autenticación y autorización) y 0007 (integridad de montos server-side).
-- `d10d478` Adr5 corregido (martin, 2026-09-08): versión corregida del ADR de autenticación.
-
----
-
-### 2026-09-06 al 2026-09-07 (madrugada) · horas por confirmar
-
-Sesión continua que cruzó la medianoche, entre las 23:53 del 06/09 y la 01:12 del 07/09.
+### 2026-09-06 al 2026-09-07 · 5 hs
 
 **Tarjeta(s) Jira:** FT1-70 (Primera versión del cobro en efectivo en mostrador), FT1-38 (M3 Clases Grupales) y FT1-71 (Corrección del límite de intentos de login)
 
@@ -166,7 +100,37 @@ Sesión continua que cruzó la medianoche, entre las 23:53 del 06/09 y la 01:12 
 
 ---
 
-### 2026-09-07 · horas por confirmar
+### 2026-09-06 al 2026-09-08 · 2 hs
+
+**Tarjeta(s) Jira:** FT1-19 (ADR - Autenticación JWT y autorización por rol/dueño/sede) y FT1-21 (ADR - Cálculo de montos server-side)
+
+**Actividad**
+
+Revisé los dos ADR. No los implementé ni los subí yo: Martín los integró al repositorio.
+
+- *ADR sobre autenticación (FT1-19).* Establece que el JWT viaja en una cookie httpOnly, que hay dos puertas de login (`/login` para clientes y `/admin/login` para personal) y que el recepcionista queda limitado a su sede mediante `assertSedeScope`.
+- *ADR sobre montos (FT1-21).* Establece que el monto de un pago se calcula siempre en el servidor, a partir de una tabla de precios que solo edita el gerente, e ignora cualquier importe que mande el cliente.
+
+**Decisión**
+
+Sostuve la decisión del ADR de montos: que el servidor sea la única fuente del importe. Si el monto lo declarara el cliente, cualquiera podría modificar la petición y pagar menos. La alternativa descartada es confiar en el monto que envía el frontend. Es la misma regla que aplico en el commit `25718bf`, donde el precio de la reserva de cancha lo calcula el servidor.
+
+**Problema o bloqueo**
+
+Después de la revisión, el ADR de autenticación necesitó correcciones de redacción. La versión corregida la subió Martín el 08/09.
+
+**Commits**
+
+Sin commits propios.
+
+**Evidencia del equipo**
+
+- `068e8b6` Documentacion y correccion de adrs (martin, 2026-09-06): agrega los ADR 0005 (autenticación y autorización) y 0007 (integridad de montos server-side).
+- `d10d478` Adr5 corregido (martin, 2026-09-08): versión corregida del ADR de autenticación.
+
+---
+
+### 2026-09-07 · 1 hs
 
 **Tarjeta(s) Jira:** FT1-14 (Documentación de la API con Swagger)
 
@@ -202,29 +166,7 @@ _Sin sesión propia acreditada en este sprint. Mi entrada del 2026-09-23 (`df91a
 
 ## Sprint 4 — Componentes — Unidad IV — 2026-09-15 al 2026-10-08
 
-### 2026-09-23 · horas por confirmar
-
-**Tarjeta(s) Jira:** FT1-77 (Gestión de reservas de clases y canchas para el gerente)
-
-**Actividad**
-
-Arreglé la pantalla de gestión de reservas de clases (`df91a7a`, en `GestionReservasClases.tsx` y `CalendarioSede.tsx`). Agregué un selector de sede para el gerente: la sede elegida queda en la URL (`?sedeId=`), y el botón del calendario de la sede abre esta pantalla ya con esa sede. Las clases que se pueden anotar ahora se muestran agrupadas por día, con el nombre del día de la semana. También pedí las ocurrencias de las clases con paginación de hasta 100 por página.
-
-**Decisión**
-
-Agrupé las clases anotables por día para que la lista se lea más rápido: la pantalla muestra primero el día y debajo las clases de ese día.
-
-**Problema o bloqueo**
-
-La pantalla de reservas de clases tomaba la sede del usuario (`user.sedeId`). El gerente no tiene una sede asignada, así que la lista le aparecía vacía y no podía gestionar reservas. Lo resolví con el selector de sede: si el usuario es gerente, elige la sede en el desplegable, y si es recepcionista se mantiene su sede.
-
-**Commits**
-
-- `df91a7a` Arreglo en Gestionar Reservas de Clases
-
----
-
-### Fecha por confirmar · horas por confirmar
+### 2026-08-24 · 2 hs
 
 **Tarjeta(s) Jira:** FT1-28 (Estado global y comunicación entre componentes)
 
@@ -251,7 +193,85 @@ Sin commits propios.
 
 ---
 
-### Fecha por confirmar · horas por confirmar
+### 2026-08-26 al 2026-08-29 · 4 hs
+
+**Tarjeta(s) Jira:** FT1-76 (Panel de administración: sedes, usuarios y reportes)
+
+**Actividad**
+
+Armé las secciones de sedes y de usuarios del panel de administración del gerente.
+
+- *Sedes* (`SedesPage.tsx`, `sedes.api.ts`): listado de sedes y un formulario para crear una sede nueva o editar una existente. Cada sede se puede activar o desactivar desde la lista.
+- *Personal* (`CrearStaff.tsx`, `usuarios.api.ts`): modifiqué la pantalla de alta de personal. En el servidor agregué `POST /usuarios/staff` para crear personal y `PATCH /usuarios/:id/rol` para asignar un rol, con su DTO `assign-role.dto.ts` y el método `assignRole` en el servicio de usuarios.
+- *Rutas y acceso:* agregué la ruta `/admin/sedes` en `AppRoutes.tsx` y ajusté los tipos de los roles en `Login.tsx`.
+- *Reportes* (`2e4c417`): agregué el acceso a Reportes en el menú del gerente, en `AdminLayout.tsx`.
+
+Para comprobarlo entré con la cuenta del gerente y probé estas pantallas.
+
+**Decisión**
+
+Protegí las operaciones de personal y de roles para que solo las pueda usar el gerente. En el servidor lo hice con `JwtAuthGuard`, `RolesGuard` y `@Roles(GERENTE)`; en el cliente, con `ProtectedRoute` en la ruta `/admin/sedes`. No dejé el control solo en la pantalla: ocultar un botón no impide llamar al endpoint, y por eso la regla tiene que estar en el servidor. La protección del cliente evita que otros roles vean la pantalla, pero la que realmente protege es la del servidor.
+
+**Problema o bloqueo**
+
+Sin bloqueos.
+
+**Commits**
+
+- `64817da` Seccion de sedes y usuarios en el panel de administracion
+- `2e4c417` Reportes en AdminLayout
+
+---
+
+### 2026-08-28 · 5 hs
+
+**Tarjeta(s) Jira:** FT1-77 (Gestión de reservas de clases y canchas para el gerente)
+
+**Actividad**
+
+Armé las pantallas del gerente para gestionar reservas, clases y canchas (`7b33ea7`, 20 archivos, 768 líneas agregadas).
+
+- *Cliente:* `ReservasPage.tsx`, `ClasesPage.tsx`, `CanchasPage.tsx`, `PersonalPage.tsx` y `GerenteDashboard.tsx`, con sus capas de servicio (`admin.api.ts`, `canchas.api.ts`, `clases.api.ts`, `instructores.api.ts`), además de las rutas en `AppRoutes.tsx` y el menú en `AdminLayout.tsx`.
+- *Servidor:* un módulo `admin` nuevo (`admin.controller.ts`, `admin.service.ts` y `admin.module.ts`) que devuelve los datos ya consolidados para el panel.
+- *Documentación:* escribí el ADR 0012, "Endpoints agregados para el panel gerencial" (numeración de ese momento).
+
+**Decisión**
+
+Plasmé en el ADR 0012 que el panel del gerente use endpoints agregados, como `GET /admin/dashboard/resumen` y `GET /admin/reservas`, que devuelven en una sola respuesta lo que cada pantalla necesita. La alternativa era que el frontend consultara cada módulo por separado, lo que aumentaba la cantidad de pedidos HTTP y repartía la lógica de consolidación entre varios componentes. Con la decisión tomada, los cálculos quedan en el backend y el frontend solo muestra y filtra. El costo que acepté está en el propio ADR: los endpoints dependen de varias entidades y cualquier cambio en la respuesta obliga a coordinar backend y frontend. Los endpoints quedan protegidos con `JwtAuthGuard`, `RolesGuard` y el rol `GERENTE`.
+
+**Problema o bloqueo**
+
+Sin bloqueos.
+
+**Commits**
+
+- `7b33ea7` Reservas y Gestión de Clases/Canchas para Gerente
+
+---
+
+### 2026-09-23 · 2 hs
+
+**Tarjeta(s) Jira:** FT1-77 (Gestión de reservas de clases y canchas para el gerente)
+
+**Actividad**
+
+Arreglé la pantalla de gestión de reservas de clases (`df91a7a`, en `GestionReservasClases.tsx` y `CalendarioSede.tsx`). Agregué un selector de sede para el gerente: la sede elegida queda en la URL (`?sedeId=`), y el botón del calendario de la sede abre esta pantalla ya con esa sede. Las clases que se pueden anotar ahora se muestran agrupadas por día, con el nombre del día de la semana. También pedí las ocurrencias de las clases con paginación de hasta 100 por página.
+
+**Decisión**
+
+Agrupé las clases anotables por día para que la lista se lea más rápido: la pantalla muestra primero el día y debajo las clases de ese día.
+
+**Problema o bloqueo**
+
+La pantalla de reservas de clases tomaba la sede del usuario (`user.sedeId`). El gerente no tiene una sede asignada, así que la lista le aparecía vacía y no podía gestionar reservas. Lo resolví con el selector de sede: si el usuario es gerente, elige la sede en el desplegable, y si es recepcionista se mantiene su sede.
+
+**Commits**
+
+- `df91a7a` Arreglo en Gestionar Reservas de Clases
+
+---
+
+### 2026-09-23 · 1 hs
 
 **Tarjeta(s) Jira:** FT1-47 (Pantallas del socio/cliente)
 
@@ -269,7 +289,7 @@ Sin hallazgos.
 
 **Commits**
 
-Sin commits propios. El commit `25718bf` figura en FT1-21.
+Sin commits propios. 
 
 **Evidencia del equipo**
 
@@ -278,7 +298,7 @@ Sin commits propios. El commit `25718bf` figura en FT1-21.
 
 ---
 
-### Fecha por confirmar · horas por confirmar
+### 2026-10-07 · 1 hs
 
 **Tarjeta(s) Jira:** FT1-52 (Subtarea: Modificar BD), de FT1-50 (rol Gerente de Sede)
 
@@ -311,31 +331,7 @@ Sin commits propios.
 
 ## Sprint 5 — Testing y CI/CD — Unidad V — 2026-10-09 al 2026-10-22
 
-### 2026-10-14 · horas por confirmar
-
-Esta actividad es de documentación (bitácora grupal) sobre las unidades I, II y IV y se realizó durante el Sprint 5.
-
-**Tarjeta(s) Jira:** Ninguna.
-
-**Actividad**
-
-Completé mis entradas de las unidades I, II y IV en la bitácora grupal `docs/LOG.md` (`f12acdb`).
-
-**Decisión**
-
-Sin decisión propia.
-
-**Problema o bloqueo**
-
-Sin bloqueos.
-
-**Commits**
-
-- `f12acdb` docs: completar bitácora de Teo Ava (unidades I, II y IV)
-
----
-
-### Fecha por confirmar · horas por confirmar
+### 2026-10-18 · 3 hs
 
 **Tarjeta(s) Jira:** FT1-54 (Pruebas de uso)
 
@@ -362,13 +358,7 @@ Sin commits propios.
 
 ---
 
-## Sprint 6 — Móvil — Unidad VI — 2026-10-23 al 2026-11-05
-
-_Sin sesión propia acreditada en la Unidad VI (móvil). La PWA y las notificaciones push las implementó Martín el 2026-10-18 (`8963659`, `fadb12b`, `34a9ca9`, `65ecc2d`)._ <!-- CONFIRMAR (Teo): este texto reemplaza "Sin actividad en este sprint: el equipo no lo realizó", que contradice los commits de Martín del 18/10. -->
-
-### 2026-10-29 · horas por confirmar
-
-Esta actividad corresponde a la Unidad V (Testing y CI/CD; tarjetas del Sprint 5) y se realizó durante el Sprint 6.
+### 2026-10-20 · 2 hs
 
 **Tarjeta(s) Jira:** FT1-58 (Pruebas unitarias del acceso por QR y RN01) y FT1-65 (Informe de auditoría del testing y cobertura)
 
@@ -396,9 +386,13 @@ Sin commits propios.
 
 ---
 
+## Sprint 6 — Móvil — Unidad VI — 2026-10-23 al 2026-11-05
+
+_Sin sesión propia acreditada en la Unidad VI (móvil). La PWA y las notificaciones push las implementó Martín el 2026-10-18 (`8963659`, `fadb12b`, `34a9ca9`, `65ecc2d`).
+
 ## Sprint 7 — Integración — Unidad Cierre — 2026-11-06 al 2026-11-19
 
-### 2026-11-09 · horas por confirmar
+### 2026-11-09 · 1 hs
 
 **Tarjeta(s) Jira:** Ninguna.
 
@@ -420,29 +414,7 @@ Sin bloqueos.
 
 ---
 
-### 2026-11-12 · horas por confirmar
-
-**Tarjeta(s) Jira:** FT1-114 (Bitácora individual de Teo Ava)
-
-**Actividad**
-
-Redacté mi bitácora individual, organizada por tarjeta de Jira y por sesión de trabajo, con la evidencia de cada una.
-
-**Decisión**
-
-Organizarla por tarjeta y por sesión, y no por commit, para incluir las tareas en las que participé sin commits propios, citando el commit de quien las integró.
-
-**Problema o bloqueo**
-
-Sin bloqueos.
-
-**Commits**
-
-- Esta bitácora.
-
----
-
-### 2026-11-12 · horas por confirmar
+### 2026-11-12 · 1 hs
 
 **Tarjeta(s) Jira:** FT1-124 (Actualizar dependencias vulnerables del frontend, npm audit)
 
@@ -468,34 +440,17 @@ Sin bloqueos.
 
 ---
 
-### Tarjetas sin realizar
+### 2026-11-12 · 2 hs
 
-Asignadas a mi nombre y "Por hacer" en Jira, sin realizar:
-
-- **FT1-131**, Estructura del frontend frente al punto 4: verificar y documentar.
-- **FT1-132**, Lint: errores del frontend y saltos de línea del backend.
-
----
-
-## Entre sprints
-
-### 2026-08-28 · horas por confirmar
-
-Esta fecha cae entre el Sprint 1 (termina el 2026-08-27) y el Sprint 2 (empieza el 2026-09-03). La actividad corresponde a la Unidad IV (tarjeta FT1-77, Sprint 4).
-
-**Tarjeta(s) Jira:** FT1-77 (Gestión de reservas de clases y canchas para el gerente)
+**Tarjeta(s) Jira:** FT1-131 (Estructura del frontend frente al punto 4: verificar y documentar)
 
 **Actividad**
 
-Armé las pantallas del gerente para gestionar reservas, clases y canchas (`7b33ea7`, 20 archivos, 768 líneas agregadas).
-
-- *Cliente:* `ReservasPage.tsx`, `ClasesPage.tsx`, `CanchasPage.tsx`, `PersonalPage.tsx` y `GerenteDashboard.tsx`, con sus capas de servicio (`admin.api.ts`, `canchas.api.ts`, `clases.api.ts`, `instructores.api.ts`), además de las rutas en `AppRoutes.tsx` y el menú en `AdminLayout.tsx`.
-- *Servidor:* un módulo `admin` nuevo (`admin.controller.ts`, `admin.service.ts` y `admin.module.ts`) que devuelve los datos ya consolidados para el panel.
-- *Documentación:* escribí el ADR 0012, "Endpoints agregados para el panel gerencial" (numeración de ese momento).
+Armé un borrador de la comparación entre la estructura del frontend y la que proponen los lineamientos de entrega (punto 4) y se lo pasé a Martín. Él lo completó y lo subió al repositorio como `docs/entregables/estructura-frontend.md`, por eso todo figura en un commit suyo.
 
 **Decisión**
 
-Plasmé en el ADR 0012 que el panel del gerente use endpoints agregados, como `GET /admin/dashboard/resumen` y `GET /admin/reservas`, que devuelven en una sola respuesta lo que cada pantalla necesita. La alternativa era que el frontend consultara cada módulo por separado, lo que aumentaba la cantidad de pedidos HTTP y repartía la lógica de consolidación entre varios componentes. Con la decisión tomada, los cálculos quedan en el backend y el frontend solo muestra y filtra. El costo que acepté está en el propio ADR: los endpoints dependen de varias entidades y cualquier cambio en la respuesta obliga a coordinar backend y frontend. Los endpoints quedan protegidos con `JwtAuthGuard`, `RolesGuard` y el rol `GERENTE`.
+Sin decisión propia.
 
 **Problema o bloqueo**
 
@@ -503,10 +458,8 @@ Sin bloqueos.
 
 **Commits**
 
-- `7b33ea7` Reservas y Gestión de Clases/Canchas para Gerente
+Sin commits propios.
 
----
+**Evidencia del equipo**
 
-## Sprint 8 — Demo Day — Unidad Cierre — 2026-11-23 al 2026-11-29
-
-_Sprint todavía no iniciado._
+- `31da61d` docs(frontend): documentar la correspondencia con la estructura del punto 4, corregir el README de shared/components y enlazarlo desde el README raíz [FT1-131] (martin, 2026-11-12).
