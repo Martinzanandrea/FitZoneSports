@@ -32,11 +32,12 @@ vinculado por registro a los commits del repositorio. Los hashes y fechas provie
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-08-24
-**Actividad:** Debate grupal sobre Monolito Modular vs Microservicios (FT1-9): sostuve transacciones ACID fuertes para RN-02 (anti-sobreventa de canchas) como criterio decisivo, con equipo de 4 y time-to-market como criterios secundarios.
-**Decisión:** Monolito Modular con NestJS, documentado en ADR-0002 (FT1-16).
-**Problema encontrado:** posiciones iniciales divididas en el equipo; se cerró con matriz de criterios (ACID, equipo, deploy) acordada entre los tres.
-**Commit(s):** `e22cde0`
+**Fecha:** 2026-08-24 · 3 h
+**Tarjeta(s) Jira:** FT1-9 (2 pts) y FT1-16 (3 pts)
+**Actividad:** Debate grupal sobre Monolito Modular vs Microservicios (FT1-9). Sostuve las transacciones ACID para RN-02 como criterio decisivo: si dos personas intentan reservar el mismo turno, no alcanza con que ambas consultas de disponibilidad respondan bien; la comprobación y la escritura tienen que quedar coordinadas. Relacioné esa necesidad con el tamaño reducido del equipo y el tiempo disponible para integrar y desplegar el sistema.
+**Decisión:** Monolito Modular con NestJS, documentado en ADR-001 (en esa fecha, ADR-0002) (FT1-16). La alternativa de separar servicios permitía desplegar y escalar cada dominio por separado, pero agregaba coordinación entre reservas y pagos. El costo aceptado fue desplegar y escalar la API como una unidad y sostener los límites entre módulos mediante el diseño del código.
+**Problema encontrado:** Al principio hubo posiciones distintas en el equipo. Acordamos una matriz que comparó integridad transaccional, tamaño del equipo y complejidad de despliegue.
+**Commit(s):** `e22cde0` (martin)
 
 ## UNIDAD II — FRAMEWORKS
 
@@ -74,35 +75,39 @@ vinculado por registro a los commits del repositorio. Los hashes y fechas provie
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-09-02
-**Actividad:** Redacción de ADR-0001 GitHub como repositorio compartido (FT1-15) y de ADR-0002 Monolito Modular (FT1-16): ramas por integrante y versionado acoplado como costo aceptado.
-**Decisión:** monorepo único cliente+servidor con formato Nygard de 5 campos.
-**Problema encontrado:** numeración de ADRs con gaps tras varias iteraciones; se resolvió con renumeración basada en git log.
-**Commit(s):** `612d9ce`, `068e8b6`, `e22cde0`
+**Fecha:** 2026-09-02 · 1 h
+**Tarjeta(s) Jira:** FT1-15 (1 pt); FT1-16 es del sprint 1
+**Actividad:** Redacción de ADR-012 (en esa fecha, ADR-0001) GitHub como repositorio compartido (FT1-15) y de ADR-001 (en esa fecha, ADR-0002) Monolito Modular (FT1-16): ramas por integrante y versionado acoplado como costo aceptado. Un cambio que modifica un endpoint y su consumo en el cliente se puede revisar dentro del mismo historial; separar los repositorios habría requerido coordinar dos integraciones para ese recorrido.
+**Decisión:** Mantener el cliente y el servidor en un repositorio para coordinar cambios de la API y la interfaz. El costo aceptado fue el versionado acoplado. Para registrar las decisiones usamos el formato de Nygard.
+**Problema encontrado:** Después de varias iteraciones quedaron saltos en la numeración de los ADR y para ordenar las referencias usamos el historial de Git. Las referencias actuales usan la numeración de entrega y la fecha del documento integrado no reemplaza la fecha de mi actividad.
+**Commit(s):** `612d9ce`, `068e8b6`, `e22cde0` (martin)
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-09-10
-**Actividad:** Definición de las reglas del módulo de Gimnasio y Acceso (RF-04, RF-05, RN-01) junto con Martín: QR dinámico que vence a los 60 segundos, código corto de 6 dígitos de un solo uso como alternativa, control de aforo por sede y sesión única por usuario. Martín implementó el módulo; yo lo probé con cuentas de prueba (generación del QR, validación por código y aforo) y le reporté los ajustes necesarios.
+**Fecha:** 2026-09-10 · 4 h
+**Tarjeta(s) Jira:** FT1-37 (4 pts)
+**Actividad:** Definición de las reglas del módulo de Gimnasio y Acceso (RF-04, RF-05, RN-01) junto con Martín: QR dinámico que vence a los 60 segundos, código corto de 6 dígitos de un solo uso como alternativa, control de aforo por sede y sesión única por usuario. Martín implementó el módulo; yo lo probé con cuentas de prueba (generación del QR, validación por código y aforo) y le reporté los ajustes necesarios. Separé tres responsabilidades: emitir una credencial temporal para el socio, decidir si corresponde autorizar el ingreso y reflejar la ocupación de la sede.
 **Decisión:** JWT firmado de corta vida con revalidación en el servidor, en vez de un QR estático que se puede fotografiar y compartir.
-**Problema encontrado:** La ventana de 60 s entre que se genera el QR y se valida obligó a chequear la membresía dos veces, porque puede vencer en el medio. El aforo se resolvió contando las sesiones abiertas, con un índice parcial.
+**Problema encontrado:** Entre emitir el QR y escanearlo podían pasar hasta 60 segundos; si la membresía vencía en ese lapso, la firma todavía podía ser válida. Por eso acordamos volver a consultar la membresía al registrar el ingreso. El aforo se cuenta con las sesiones abiertas de la sede y el índice único parcial impide que el mismo usuario tenga dos sesiones abiertas.
 **Commit(s):** del equipo `7862d54`, `23cf2ff`, `f4bbfdc`
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-09-12
-**Actividad:** Definición con Martín del funcionamiento de los pagos (RF-13, RF-14) y de los módulos de soporte (sedes, franjas, precios e instructores): pasarela simulada que devuelve un token, membresía creada solo con el pago aprobado, paso de externo a socio y comprobante PDF por pago. Martín los implementó; yo los probé con cuentas de prueba (pago de membresía, pago de cancha, comprobante, alta de sedes y precios).
-**Decisión:** Los montos se calculan siempre en el servidor, y las clases vienen incluidas en la membresía (RN-03).
-**Problema encontrado:** El doble clic al pagar podía cobrar dos veces. Martín lo resolvió con un bloqueo de la fila y verificando si ya había un pago (el segundo intento recibe 409); en las pruebas verifiqué que no se duplica el cobro.
+**Fecha:** 2026-09-12 · 5 h
+**Tarjeta(s) Jira:** FT1-40 (6 pts) y FT1-42 (5 pts)
+**Actividad:** Definición con Martín del funcionamiento de los pagos (RF-13, RF-14) y de los módulos de soporte (sedes, franjas, precios e instructores): pasarela simulada que devuelve un token, membresía creada solo con el pago aprobado, paso de externo a socio y comprobante PDF por pago. Martín los implementó; yo los probé con cuentas de prueba (pago de membresía, pago de cancha, comprobante, alta de sedes y precios). Revisé el pago como un recorrido entre módulos: el importe sale de las reglas del servidor, la pasarela informa aprobación o rechazo y el comprobante permite consultar el resultado.
+**Decisión:** Sostuve que los montos se calculen en el servidor: una modificación del cuerpo enviado por el navegador no debe alterar el precio de la reserva. Las clases quedan incluidas en la membresía y su reserva requiere vigencia (RN-03). Ver ADR-010, ADR-015 y ADR-016.
+**Problema encontrado:** El doble clic al pagar podía cobrar dos veces. Martín lo resolvió con un bloqueo de la fila y verificando si ya había un pago (el segundo intento recibe 409); en las pruebas verifiqué que no se duplica el cobro. Ese resultado no acredita cualquier combinación: el reporte del 13/10 distingue la compra con cuenta nueva del doble clic con membresía vigente y deja pendiente el doble clic sin membresía.
 **Commit(s):** del equipo `7862d54`, `13b0d95`, `f07fa62`, `26dfa17`
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-09-14
-**Actividad:** Redacción de ADR-0008 sistema de auditoría en dos capas (FT1-22): interceptor con @Auditable para contexto de app + trigger en Postgres sobre pagos para cubrir cambios directos, con redacción automática de secretos.
-**Decisión:** dos capas complementarias (interceptor + trigger).
-**Problema encontrado:** el detalle JSON guardaba tokens; se agregó redacción automática de secretos + migración.
-**Commit(s):** `1802fc4`, `068e8b6`
+**Fecha:** 2026-09-14 · 3 h
+**Tarjeta(s) Jira:** FT1-22 (5 pts)
+**Actividad:** Redacción de ADR-017 (en esa fecha, ADR-0008) sistema de auditoría en dos capas (FT1-22): interceptor con @Auditable para el contexto de la aplicación y trigger en Postgres sobre pagos para cubrir los cambios directos, con redacción automática de secretos.
+**Decisión:** Propuse usar el interceptor para registrar el contexto de la aplicación y el trigger de PostgreSQL para auditar los cambios directos sobre pagos. Cada alternativa aislada dejaba un hueco: el interceptor conoce al usuario autenticado, pero no ve un cambio directo en la base; el trigger registra el cambio sobre la tabla, pero no tiene el mismo contexto de usuario de la aplicación. La combinación cubre ambos recorridos a costa de mantener dos mecanismos y consultar dos fuentes al investigar un pago.
+**Problema encontrado:** El detalle JSON podía guardar tokens. La corrección del equipo incorporó redacción de secretos y una migración. Distingo la decisión que documenté de la corrección implementada: la migración de redacción `008-redactar-secretos-auditoria.sql` llegó en `26dfa17`, el 09/10; no presento esa limpieza posterior como código terminado en esta sesión del 14/09.
+**Commit(s):** `1802fc4`, `068e8b6` (martin)
 
 ## UNIDAD III — PATRONES
 
@@ -128,11 +133,12 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-09-18
-**Actividad:** Definí con Martín cómo armar el documento de justificación de los tres patrones GoF: Strategy en el precio dinámico (RF-11), Observer en la lista de espera (RF-08) y Repository con bloqueo pesimista contra la sobreventa (RN-02). Para cada uno, qué problema resuelve, por qué se eligió frente a las alternativas y qué costo tiene. La redacción la hizo casi toda Martín.
+**Fecha:** 2026-09-18 · 3 h
+**Tarjeta(s) Jira:** FT1-26 (4 pts)
+**Actividad:** Definí con Martín cómo armar el documento de justificación de los tres patrones del sistema: Strategy en el precio dinámico (RF-11), Observer en la lista de espera (RF-08) y Repository con bloqueo pesimista contra la sobreventa (RN-02). Para cada uno, qué problema resuelve, por qué se eligió frente a las alternativas y qué costo tiene. La redacción la hizo casi toda Martín.
 **Decisión:** Documentar para cada patrón el porqué y la alternativa descartada, en lugar de solo describir la implementación.
-**Problema encontrado:** Al repasar los patrones para justificarlos noté que la primera versión de Strategy no era polimórfica de verdad, porque el calculador conocía las clases concretas. Se lo planteé a Martín, que hizo el refactor a la forma canónica: arreglo de estrategias inyectado por el token PRICING_STRATEGIES y Repository con interfaz e implementación en memoria para las pruebas.
-**Commit(s):** del equipo `cdca2b6`, `5552f69`, `2c6c8d7`
+**Problema encontrado:** Al repasar los patrones para justificarlos noté que la primera versión de Strategy no era polimórfica de verdad, porque el calculador conocía las clases concretas. Cuando revisamos esto, el refactor ya estaba hecho en `2c6c8d7` (15/09): las estrategias se inyectan por el token PRICING_STRATEGIES y el Repository quedó con interfaz e implementación en memoria para las pruebas. Así que la justificación la escribimos sobre esa versión y no sobre la primera.
+**Commit(s):** del equipo `cdca2b6`, `5552f69`, `2c6c8d7`, `23cf2ff`
 
 ## UNIDAD IV — COMPONENTES
 
@@ -162,27 +168,32 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-10-05
-**Actividad:** Definí con Martín el contenido y el diseño de la landing pública multipágina (inicio, clases, canchas, sedes, nosotros, con navegación compartida), que programó él. Al probar la navegación encontré que al cambiar de ruta la página no volvía arriba, y lo arreglé con un componente global ScrollToTop.
+**Fecha:** 2026-10-05 · 2 h
+**Tarjeta(s) Jira:** FT1-48
+**Actividad:** Definí con Martín el contenido y el diseño de la landing pública multipágina (inicio, clases, canchas, sedes, nosotros, con navegación compartida), que programó él. Al probar la navegación encontré que al cambiar de ruta la página no volvía arriba, y lo arreglé con un componente global `ScrollToTop`. El arreglo se integró el 11/10.
 **Decisión:** Un layout público único (PublicLayout) en vez de repetir la navegación en cada página, y un arreglo global del scroll en vez de parchear página por página.
-**Problema encontrado:** React Router conserva el scroll entre rutas y el frontend no tenía ningún manejo de scroll. Lo diagnostiqué comparando el scroll más un clic contra una recarga de la página.
-**Commit(s):** `b3ec7c3`; del equipo `9f46ceb`
+**Problema encontrado:** Al bajar en una página pública y entrar a otra desde el menú, la nueva página aparecía a mitad del contenido. Comparé esa navegación con una recarga de la misma página y ubiqué el problema en el cambio de ruta. Monté `ScrollToTop` dentro de `BrowserRouter` para restablecer la posición cuando cambia la ruta, con una sola implementación para la navegación.
+**Commit(s):** `b3ec7c3`; del equipo `9f46ceb` (martin)
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-10-06
-**Actividad:** Reorganización con Atomic Design (FT1-32): átomos (10 piezas, un archivo por componente), moléculas (12), organismos (layouts) con barrels index.ts + README del sistema; formatMoney a shared/utils; eliminado código muerto (ui.tsx partido, Donut duplicado, Reveal/Layout sin uso). Rama refactor/atomic-design, build limpio.
-**Decisión:** un archivo por componente + barrels por nivel en vez de cajón único; mover sin cambiar comportamiento.
-**Problema encontrado:** el build marcó dos errores tras el move (rutas relativas e import de barrel); se corrigieron y el build quedó limpio.
-**Commit(s):** `772b856`
+**Fecha:** 2026-10-06 · 4 h
+**Tarjeta(s) Jira:** FT1-32 (4 pts)
+**Actividad:** Desarmé `ui.tsx` y reorganicé los componentes compartidos con Atomic Design (FT1-32). Dejé diez piezas básicas en `atoms`, doce combinaciones en `molecules` y los layouts en `organisms`. Moví `formatMoney` a `shared/utils` porque formatea datos que pueden usar distintas vistas. Revisé los importadores antes de retirar las piezas duplicadas o sin uso y documenté dónde ubicar componentes nuevos.
+**Decisión:** Separé los componentes en archivos y mantuve un índice de exportaciones por nivel. El objetivo era ordenar los imports y conservar el comportamiento de la interfaz. Ver ADR-006.
+**Problema encontrado:** Después de mover los archivos, el build marcó dos errores en rutas relativas y en un import desde un archivo índice. Corregí los imports y el build volvió a pasar.
+**Commit(s):** `772b856` (commit del 11/10)
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-10-11
+**Fecha:** 2026-10-11 · 2 h
+**Tarjeta(s) Jira:** FT1-50 (5 pts), subtarea FT1-53
 **Actividad:** Discutí con Martín las pantallas del nuevo rol Gerente de Sede, que programó él. Las verifiqué con una cuenta de prueba: login, panel propio y las 10 pantallas del rol (personal, canchas, clases, reservas, reportes, pagos, membresías, instructores y acceso), cargando los datos de su sede.
 **Decisión:** Cerrar la tarea como Listo después de una verificación funcional por rol, y no solo revisando el código.
 **Problema encontrado:** En la verificación encontré algunas cosas para corregir y se las pasé a Martín. También revisé el alcance por sede: el gerente de sede solo ve datos de su sede en personal, reservas y reportes.
-**Commit(s):** del equipo `13b0d95`, `f07fa62`
+**Commit(s):** del equipo `13b0d95`, `f07fa62` (martin)
+
+Esta fecha cae en el Sprint 5, pero la actividad corresponde a la Unidad IV y la tarjeta FT1-50 está en el Sprint 4. La verificación se cerró el 11/10, después de la fecha de fin de ese sprint.
 
 ## UNIDAD V
 
@@ -196,16 +207,18 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-10-13
-**Actividad:** Pruebas manuales en producción (FT1-30/54/55: 20 ejecutadas, 2 parciales) con cuentas de prueba por rol, y reporte en docs/PRUEBAS.md con tablas por grupo, plantilla y hallazgos (FT1-56). Incluye registro con mail real verificado, compra en cuenta fresca, doble clic en cuenta propia sin duplicado y baja de clase TEST con aviso. Limpieza verificada en base: sin sesiones ni reservas abiertas.
-**Decisión:** probar contra producción (como pide el plan) con cuentas de prueba, cancelando/cerrando todo lo creado en el acto; no ejecutar mail masivo por riesgo a socios reales.
-**Problema encontrado:** sin clase casi llena no hay última plaza real (se probó carrera en paralelo sin duplicados); throttle de login confirmado al 6.º intento.
+**Fecha:** 2026-10-13 · 4 h
+**Tarjeta(s) Jira:** FT1-30 (6 pts), FT1-61, FT1-62 y FT1-56
+**Actividad:** Ejecuté pruebas manuales en producción con cuentas de prueba por rol y registré los resultados y los casos parciales en `docs/PRUEBAS.md` (FT1-56). Con una cuenta nueva comprobé que el pago respondía 201, cambiaba el rol de Externo a Socio y generaba un solo cobro. El doble clic lo probé por separado con una cuenta que ya tenía un plan vigente. Al cerrar la sesión de pruebas verifiqué que no quedaran sesiones de acceso ni reservas abiertas de la prueba.
+**Decisión:** Probar contra producción (como pide el plan) con cuentas de prueba, cancelando y cerrando todo lo creado en el acto; no ejecutar mail masivo por riesgo a socios reales.
+**Problema encontrado:** No encontré una clase con una sola plaza disponible para reproducir ese caso en producción. La prueba en paralelo se ejecutó sin duplicados, pero el caso de la última plaza quedó parcial. Confirmé que el límite de intentos de ingreso se activa en el sexto intento de login. En la prueba de doble clic con plan vigente no apareció otro cobro; dejé pendiente comprobar el doble clic en una cuenta sin membresía porque la compra individual en una cuenta nueva y el doble clic con un plan vigente verificaban condiciones distintas.
 **Commit(s):** `5371015`
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-11-09
-**Actividad:** Pruebas de integración contra PostgreSQL real para RN-01 y RN-02 (FT1-59): diez reservas simultáneas de la misma cancha confirman exactamente una, dos ingresos simultáneos del mismo socio en sedes distintas registran uno solo y el cupo de una clase no se excede bajo concurrencia; umbral de cobertura en package.json y jobs de integración y Docker en el CI. Endurecimiento del QR (FT1-64): token de un solo uso con jti y la violación del índice de RN-01 (23505) devuelta como 409 en lugar de 500 en los tres tipos de ingreso.
+**Fecha:** 2026-11-09 · 2 h
+**Tarjeta(s) Jira:** FT1-59 y FT1-64
+**Actividad:** Pruebas de integración contra PostgreSQL real para RN-01 y RN-02 (FT1-59): diez reservas simultáneas de la misma cancha confirman exactamente una, dos ingresos simultáneos del mismo socio en sedes distintas registran uno solo, y el cupo de una clase no se excede bajo concurrencia; umbral de cobertura en `package.json` y jobs de integración y Docker en el CI. Endurecimiento del QR (FT1-64): token de un solo uso con `jti` y la violación del índice de RN-01 (23505) devuelta como 409 en lugar de 500 en los tres tipos de ingreso.
 **Decisión:** Probar la concurrencia contra PostgreSQL real y no solo con repositorios en memoria, porque los dobles no reproducen el SELECT … FOR UPDATE ni los índices únicos parciales. Para el QR de un solo uso, guardar los jti usados en memoria hasta que vencen (viven 60 segundos) en vez de una tabla, y traducir el error 23505 en la función común de registro del ingreso, así cubre QR, código y DNI.
 **Problema encontrado:** Ese mismo día Martín subió el ingreso por DNI y chocaba con mi versión: me quedé con la suya y volví a aplicar solo el endurecimiento sobre su código. Ahí apareció que su versión traducía el 23505 únicamente para el DNI, y con QR y con código seguía saliendo 500. Además, el script de las pruebas de integración borra la base, así que le agregué un resguardo: exige INTEGRACION_DB=true y se niega a correr contra Supabase.
 **Commit(s):** `009914b`, `c2d8e0e`
@@ -222,7 +235,9 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Máximo Retamoso
 
-_Sin actividad propia registrada para esta unidad._
+_Sin sesión de trabajo propia acreditada para este sprint._
+
+En Jira figuro como informador de FT1-88 (PWA), FT1-89 (notificaciones push) y FT1-90 (estados sin conexión). Las tres tarjetas se cargaron el 09/11 y están asignadas a Martín. Sus commits `8963659`, `fadb12b`, `34a9ca9` y `65ecc2d` son del 18/10. Dejo estas referencias como contexto del equipo; el registro de las tarjetas ocurrió después del sprint.
 
 ## CIERRE
 
@@ -236,13 +251,23 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Máximo Retamoso
 
-**Fecha:** 2026-11-09
-**Actividad:** Cierre de los requisitos de admisibilidad de la entrega (sprint 7, Integración): migraciones reproducibles desde una base vacía con su reversión y script de migración; datos de prueba con 25 sedes; almacenamiento de archivos intercambiable y docker compose up --build; escaneo de secretos del historial completo; los diez ADR obligatorios en la plantilla del Anexo B; diagramas C4, DER, despliegue y pipeline; corrección de la carga de clases (429 con 25 sedes) y de los plazos de cancelación mostrados; integración con la reestructura backend/frontend; los tres manuales; README.
-**Decisión:** Escribir un script de migraciones propio sobre los SQL que ya existían, en lugar de las migraciones de TypeORM, porque el esquema usa restricciones que el ORM no genera (índices únicos parciales, exclusión GiST, triggers). Hacer intercambiable el almacenamiento de archivos para que Docker funcione sin Supabase.
-**Problema encontrado:** Las migraciones no levantaban una base vacía: 002 repetía lo del 001 y faltaban GERENTE_SEDE y la tabla de push. Con 25 sedes, la pantalla de reservar clases hacía más de 100 pedidos y la API respondía 429.
+**Fecha:** 2026-11-09 · 4 h
+**Tarjeta(s) Jira:** FT1-95 a FT1-104 (y FT1-86, escaneo de secretos, que está en el sprint 5)
+**Actividad:** Cierre de los requisitos de admisibilidad de la entrega: migraciones reproducibles desde una base vacía con su reversión y script de migración; datos de prueba con 25 sedes; almacenamiento de archivos intercambiable y `docker compose up --build`; contrato OpenAPI exportado; escaneo de secretos del historial completo; los diez ADR obligatorios en la plantilla del Anexo B; diagramas C4, DER, despliegue y pipeline; corrección de la carga de clases (429 con 25 sedes) y de los plazos de cancelación mostrados; integración con la reestructura backend/frontend; los tres manuales; README.
+**Decisión:** Reutilicé los SQL existentes y escribí un script para aplicarlos y revertirlos en orden, en lugar de las migraciones de TypeORM, porque el esquema usa restricciones que el ORM no genera (índices únicos parciales, exclusión GiST, triggers). Elegí un almacenamiento de archivos intercambiable para que Docker pudiera funcionar sin Supabase. Ver ADR-002 y ADR-009.
+**Problema encontrado:** El arranque desde una base vacía fallaba porque la migración 002 repetía parte del esquema de la 001, faltaba contemplar `GERENTE_SEDE` y no estaba la tabla de suscripciones push. Ajusté las migraciones 001, 002 y 005 e incorporé la 011, con las reversiones correspondientes. Con el seed de 25 sedes, la pantalla de reservas de clases hacía más de 100 pedidos y recibía respuestas 429. Agrupé la consulta de ocurrencias en un solo pedido y agregué una prueba de integración para ese endpoint.
 **Commit(s):** `b101898`, `5f5f7b6`, `a63719c`, `6b33468`, `ab9b759`, `532fb99`, `849e354`, `74894a6`, `6713502`, `458225c`, `7a7b3a3`, `8b605ad`, `86452ab`, `a5b6a03`, `79faad7`, `32a2ca8`
 
 **Revisión de bitácora (FT1-115, 09/11/2026).** Se revisó la bitácora individual y se verificaron los hashes citados contra el historial de `main`. Las revisiones anteriores quedaron en `72f4f57` y `7766707`.
+
+### Máximo Retamoso
+
+**Fecha:** 2026-11-09 · 3 h
+**Tarjeta(s) Jira:** FT1-116
+**Actividad:** Reorganicé los C4 y el DER y agregué los siete diagramas UML. En la secuencia del QR offline documenté la preparación con red, la validación local y la sincronización posterior. La implementación del acceso offline es del PR #6 de Martín. Las fuentes Mermaid y las exportaciones están en `docs/diagramas/README.md`.
+**Decisión:** Dividí el DER en una vista general y vistas por dominio. En Acceso separé el recorrido con conexión de la validación local.
+**Problema encontrado:** Las relaciones se cruzaban en las vistas originales y el C4 de Acceso todavía mostraba el QR offline como propuesto. La reorganización redujo los cruces y la secuencia quedó alineada con el flujo implementado.
+**Commit(s):** `17628fc`
 
 ## TRABAJO ADICIONAL RELEVANTE
 

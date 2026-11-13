@@ -150,7 +150,7 @@ Documentar para cada patrón el porqué y la alternativa descartada, en lugar de
 
 **Problema o bloqueo**
 
-Al repasar los patrones para justificarlos noté que la primera versión de Strategy no era polimórfica de verdad, porque el calculador conocía las clases concretas. Martín ya había hecho el refactor a la forma canónica antes de esta sesión (código en `2c6c8d7`, 2026-09-15; descripción en `23cf2ff`, 2026-09-16): arreglo de estrategias inyectado por el token PRICING_STRATEGIES y Repository con interfaz e implementación en memoria para las pruebas. <!-- CONFIRMAR (Máximo): el texto anterior decía que se lo planteó a Martín y que él hizo el refactor después de esta sesión, pero el refactor figura en `2c6c8d7` (15/09) y `23cf2ff` (16/09). Confirmar si la sesión fue en realidad del 15/09 o 16/09,  o si esta redacción es la correcta. -->
+Al repasar los patrones para justificarlos noté que la primera versión de Strategy no era polimórfica de verdad, porque el calculador conocía las clases concretas. Cuando revisamos esto, el refactor ya estaba hecho en `2c6c8d7` (15/09): las estrategias se inyectan por el token PRICING_STRATEGIES y el Repository quedó con interfaz e implementación en memoria para las pruebas. Así que la justificación la escribimos sobre esa versión y no sobre la primera.
 
 **Commits**
 
@@ -161,7 +161,7 @@ La evidencia vinculada a esta sesión figura en los commits del equipo que se de
 - `cdca2b6` Creacion de logica de negocio detras del modulo "Canchas" (martin)
 - `5552f69` Modulo clase,instructores,membresia creados (martin)
 - `2c6c8d7` feat: implementar funcionalidad para cambiar contraseña y mejorar gestión de reservas. Corregir errores en los patrones (oberserver,repository,listener) (martin)
-- `23cf2ff` fix: consistencia de layout en panel Gerente, bugs de sede-scope y métricas de accesos (martin): incluye el refactor de Strategy y Repository (2026-09-16)
+- `23cf2ff` fix: consistencia de layout en panel Gerente, bugs de sede-scope y métricas de accesos (martin)
 
 ---
 
@@ -360,7 +360,11 @@ En las migraciones, el script registra cada versión en `schema_migraciones` y e
 
 ---
 
-### 2026-11-09 · FT1-116 (horas por confirmar)
+### 2026-11-09 · 3 h
+
+Sesión aparte de las dos anteriores del mismo día.
+
+**Tarjeta(s) Jira:** FT1-116
 
 **Actividad**
 
@@ -377,8 +381,6 @@ Las relaciones se cruzaban en las vistas originales y el C4 de Acceso todavía m
 **Commits**
 
 - `17628fc` docs(diagramas): ordenar las vistas de FitZone
-
-Queda por confirmar si las 4 h ya registradas el 09/11 incluyen esta revisión de diagramas o si correspondió a otra sesión.
 
 ---
 
