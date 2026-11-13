@@ -172,7 +172,7 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | FT1-114 | Bitácora individual de Teo Ava                                                            | Teo Ava          | Sprint 7   | Listo     |
 | FT1-115 | Bitácora individual de Máximo Retamoso: completar y verificar hashes                      | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-116 | Diagramas faltantes: clases, secuencia, estados y actividad                               | Máximo Retamoso  | Sprint 7   | Listo     |
-| FT1-117 | Evidencia de requisitos no funcionales en docs/rnf                                        | Máximo Retamoso  | Sprint 7   | Por hacer |
+| FT1-117 | Evidencia de requisitos no funcionales en docs/rnf                                        | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-118 | Verificar docker compose up desde cero y agregar smoke test en el CI                      | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-120 | Cierre de entrega: checklist del Anexo G, tag v1.0-entrega y subida a Moodle              | Martín Zanandrea | Sprint 7   | Por hacer |
 | FT1-121 | Restaurar Supabase, verificar el backend en Render y monitor de actividad                 | Martín Zanandrea | Sprint 7   | Listo     |
@@ -181,7 +181,7 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | FT1-124 | Actualizar dependencias vulnerables del frontend (npm audit)                              | Teo Ava          | Sprint 7   | Listo     |
 | FT1-125 | CI: ejecutar las pruebas del frontend (Vitest)                                            | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-126 | Protección de main con checks obligatorios y colaboradora de solo lectura para la cátedra | Martín Zanandrea | Sprint 7   | Por hacer |
-| FT1-127 | README: roles, declaración de IA y bibliotecas, credenciales del seed                     | Máximo Retamoso  | Sprint 7   | Por hacer |
+| FT1-127 | README: roles, declaración de IA y bibliotecas, credenciales del seed                     | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-128 | Actualizar documentación obsoleta (manual de instalación, informe histórico)              | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-129 | Segunda ronda de auditoría contra el Anexo G                                              | Máximo Retamoso  | Sprint 7   | Por hacer |
 | FT1-130 | Prueba de punta a punta del modo offline en producción y su evidencia                     | Martín Zanandrea | Sprint 7   | En curso  |
@@ -282,7 +282,7 @@ El tablero no registra estimaciones ni horas trabajadas, por lo que no puede cal
 | Sprint 4 | 21        | 21          | No registrado | Sin desvío                | Cerrado                                                                     |
 | Sprint 5 | 19        | 18          | No registrado | 1 tarjeta sin completar   | Activo; pendiente la prueba de seguridad (FT1-55)                           |
 | Sprint 6 | 3         | 3           | No registrado | Sin desvío                | Alcance móvil sin conexión (PWA)                                            |
-| Sprint 7 | 41        | 35          | No registrado | 6 tarjetas sin completar  | Concentra la integración y el cierre; incluye las tarjetas creadas el 09/11 |
+| Sprint 7 | 41        | 37          | No registrado | 4 tarjetas sin completar  | Concentra la integración y el cierre; incluye las tarjetas creadas el 09/11 |
 
 Velocidad: los sprints 2 y 4 concentran la mayor cantidad de tarjetas completadas; el sprint 7 acumula el trabajo de integración y documentación de cierre.
 
@@ -303,9 +303,9 @@ Registro elaborado el 09/11/2026 a partir de lo ocurrido; no se llevó actualiza
 
 ## 10. Análisis de desvíos
 
-1. ¿Dónde se estimó mal y por qué? No se registraron estimaciones, de modo que el desvío no puede medirse en horas; ese es el primer desvío. Los datos del tablero muestran qué no se había visto: la carga documental (ADR, diagramas, manuales, bitácoras y planificación) quedó para el sprint de cierre, en lugar de producirse sprint a sprint, y el sprint 7 acumula 41 tarjetas frente a 3 del sprint 6.
+1. ¿Dónde se estimó mal y por qué? No se registraron estimaciones, de modo que el desvío no puede medirse en horas; ese es el primer desvío. Los datos del tablero muestran qué no se había visto: la carga documental (ADR, diagramas, manuales, bitácoras y planificación) quedó para el sprint de cierre, en lugar de producirse sprint a sprint; el sprint 7 acumula 42 tarjetas frente a 3 del sprint 6.
 
-2. ¿Qué riesgo se materializó y cómo se absorbió? Se materializó la planificación no sostenida, sin absorber: el tablero se completó al cierre y su estado se declara en este documento. Se absorbieron el fallo del CI por la versión de Node (se subió a Node 22), la pérdida de conexión del backend con la base (se verificó el proyecto y se abrió un monitor) y las fallas del acceso por QR (se endureció y se reescribió la validación con firma ES256 para el modo sin conexión).
+2. ¿Qué riesgo se materializó y cómo se absorbió? Se materializaron la concentración de carga y la planificación no sostenida, esta última sin absorber: el tablero se completó al cierre y su estado se declara en este documento. Se absorbieron el fallo del CI por la versión de Node (se subió a Node 22), la pérdida de conexión del backend con la base (se verificó el proyecto y se abrió un monitor) y las fallas del acceso por QR (se endureció y se reescribió la validación con firma ES256 para el modo sin conexión).
 
 3. ¿Qué se replanificaría si el proyecto empezara de nuevo el lunes? Se mantendría el tablero vivo desde el sprint 1, con estimación en puntos y horas registradas por tarjeta y fecha de cierre. Se escribirían los ADR, los diagramas y las bitácoras al cierre de cada sprint y no al final. Se repartiría la carga con un tope visible por integrante y revisión en cada sprint. Se priorizaría el acceso sin conexión (RNF-01) y su prueba de punta a punta antes del sprint de integración, y se instalaría desde el principio un monitor y un respaldo de la infraestructura.
 
