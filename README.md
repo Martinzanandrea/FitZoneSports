@@ -12,7 +12,7 @@ Proyecto académico de la cátedra de Programación V, Licenciatura en Sistemas 
 | ----------------- | ------------------------------- | ----------------------------------------------------------- |
 | Zanandrea, Martín | Backend, líder técnico          | `martin` / `Martin Zanandrea` (martinzanandrea09@gmail.com) |
 | Ava, Teo          | Frontend                        | `Teo` (teoava3@gmail.com)                                   |
-| Retamoso, Máximo  | Calidad, DevOps y documentación | `maxi` (maxiretamosotrotta@gmail.com)                       |
+| Retamoso, Máximo  | Calidad, DevOps y documentación | `maxi` / `maxiretamoso` (maxiretamosotrotta@gmail.com)      |
 
 El equipo está formado por estos tres integrantes. Las responsabilidades de cada uno por tarjeta están en [`docs/planificacion/PLANIFICACION.md`](docs/planificacion/PLANIFICACION.md) y su trabajo en commits está en las [bitácoras](docs/bitacoras/).
 

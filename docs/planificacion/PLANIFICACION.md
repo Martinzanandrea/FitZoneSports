@@ -126,7 +126,7 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | Clave  | Historia o subtarea                                                        | Responsable      | Sprint     | Estado    |
 | ------ | -------------------------------------------------------------------------- | ---------------- | ---------- | --------- |
 | FT1-30 | Testing y TDD (pruebas unitarias e integración)                            | Máximo Retamoso  | Sprint 5   | Listo     |
-| FT1-57 | Subtarea: Pruebas unitarias del acceso por QR y RN01 (duplicada de FT1-58) | Teo Ava          | Sin sprint | Listo     |
+| FT1-57 | Subtarea: Pruebas unitarias del acceso por QR y RN01 (duplicada de FT1-58) | Teo Ava          | Sprint 5   | Listo     |
 | FT1-31 | Pipeline CI/CD                                                             | Martín Zanandrea | Sprint 5   | Listo     |
 | FT1-54 | Pruebas de uso                                                             | Teo Ava          | Sprint 5   | Listo     |
 | FT1-55 | Pruebas de seguridad                                                       | Martín Zanandrea | Sprint 5   | En curso  |
@@ -183,11 +183,11 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | FT1-126 | Protección de main con checks obligatorios y colaboradora de solo lectura para la cátedra | Martín Zanandrea | Sprint 7   | Por hacer |
 | FT1-127 | README: roles, declaración de IA y bibliotecas, credenciales del seed                     | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-128 | Actualizar documentación obsoleta (manual de instalación, informe histórico)              | Máximo Retamoso  | Sprint 7   | Listo     |
-| FT1-129 | Segunda ronda de auditoría contra el Anexo G                                              | Máximo Retamoso  | Sprint 7   | Por hacer |
+| FT1-129 | Segunda ronda de auditoría contra el Anexo G                                              | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-130 | Prueba de punta a punta del modo offline en producción y su evidencia                     | Martín Zanandrea | Sprint 7   | En curso  |
 | FT1-131 | Estructura del frontend frente al punto 4: verificar y documentar                         | Teo Ava          | Sprint 7   | Listo     |
 | FT1-132 | Lint: errores del frontend y saltos de línea del backend                                  | Teo Ava          | Sprint 7   | Listo     |
-| FT1-133 | Preparación de la defensa: demo, plan B y escenario de canchas de tenis                   | Martín Zanandrea | Sin sprint | Por hacer |
+| FT1-133 | Preparación de la defensa: demo, plan B y escenario de canchas de tenis                   | Martín Zanandrea | Sprint 7   | Por hacer |
 
 ### Historias sin épica asignada
 
@@ -229,18 +229,17 @@ Cantidad de tarjetas (historias y subtareas, sin épicas) por integrante y sprin
 
 | Integrante       | S1  | S2  | S3  | S4  | S5  | S6  | S7  | Sin sprint | Total |
 | ---------------- | --- | --- | --- | --- | --- | --- | --- | ---------- | ----- |
-| Martín Zanandrea | 1   | 11  | 4   | 12  | 9   | 3   | 19  | 1          | 60    |
-| Teo Ava          | 1   | 6   | 0   | 5   | 3   | 0   | 4   | 0          | 19    |
+| Martín Zanandrea | 1   | 11  | 4   | 12  | 9   | 3   | 20  | 0          | 60    |
+| Teo Ava          | 1   | 6   | 0   | 5   | 4   | 0   | 4   | 0          | 20    |
 | Máximo Retamoso  | 2   | 5   | 1   | 4   | 7   | 0   | 18  | 0          | 37    |
-| Sin asignar      | 0   | 0   | 0   | 0   | 0   | 0   | 0   | 1          | 1     |
 
-Desbalance visible: de 117 tarjetas sin contar épicas, Martín Zanandrea tiene 60, Máximo Retamoso 37, Teo Ava 19 y 1 no tienen responsable.
+Desbalance visible: de 117 tarjetas sin contar épicas, Martín Zanandrea tiene 60, Máximo Retamoso 37 y Teo Ava 20. Todas tienen responsable.
 
 | Integrante       | Listo | En curso | Por hacer |
 | ---------------- | ----- | -------- | --------- |
-| Martín Zanandrea | 46    | 2        | 12        |
-| Teo Ava          | 15    | 0        | 4         |
-| Máximo Retamoso  | 30    | 0        | 7         |
+| Martín Zanandrea | 55    | 2        | 3         |
+| Teo Ava          | 20    | 0        | 0         |
+| Máximo Retamoso  | 37    | 0        | 0         |
 
 ## 7. Matriz de trazabilidad
 
@@ -280,9 +279,9 @@ El tablero no registra estimaciones ni horas trabajadas, por lo que no puede cal
 | Sprint 2 | 22        | 22          | No registrado | Sin desvío                | Cerrado                                                                     |
 | Sprint 3 | 5         | 5           | No registrado | Sin desvío                | Cerrado                                                                     |
 | Sprint 4 | 21        | 21          | No registrado | Sin desvío                | Cerrado                                                                     |
-| Sprint 5 | 19        | 18          | No registrado | 1 tarjeta sin completar   | Activo; pendiente la prueba de seguridad (FT1-55)                           |
+| Sprint 5 | 20        | 19          | No registrado | 1 tarjeta sin completar   | Activo; pendiente la prueba de seguridad (FT1-55)                           |
 | Sprint 6 | 3         | 3           | No registrado | Sin desvío                | Alcance móvil sin conexión (PWA)                                            |
-| Sprint 7 | 41        | 37          | No registrado | 4 tarjetas sin completar  | Concentra la integración y el cierre; incluye las tarjetas creadas el 09/11 |
+| Sprint 7 | 42        | 38          | No registrado | 4 tarjetas sin completar  | Concentra la integración y el cierre; incluye las tarjetas creadas el 09/11. Sin completar: FT1-120, FT1-126, FT1-130 y FT1-133 |
 
 Velocidad: los sprints 2 y 4 concentran la mayor cantidad de tarjetas completadas; el sprint 7 acumula el trabajo de integración y documentación de cierre.
 

@@ -2,7 +2,7 @@
 
 Bitácora individual según la plantilla del Anexo C. Organizo las sesiones por el sprint cuya ventana contiene la fecha de cada una (ventanas de `docs/planificacion`). Cuando la actividad es de otra unidad que la del sprint, lo aclaro al inicio de la entrada. La fecha de cada entrada es la de la actividad registrada. Cuando el commit o el cierre de Jira ocurrió después, lo indico como evidencia posterior.
 
-Usuario de Git: `maxi` (maxiretamosotrotta@gmail.com).
+Usuario de Git: `maxi` y `maxiretamoso` (maxiretamosotrotta@gmail.com). Los commits figuran con los dos nombres; el correo es el mismo.
 
 Distingo mis implementaciones de las tareas en las que participé definiendo reglas, revisando o probando código integrado por otro integrante. Los commits del equipo permiten localizar ese resultado, pero no acreditan por sí solos la fecha ni las horas de mi participación. Conservo las horas de las sesiones ya registradas; no las calculo a partir de la cantidad de commits. Las ampliaciones de este documento explican esas sesiones y no representan sesiones adicionales.
 
@@ -362,7 +362,7 @@ En las migraciones, el script registra cada versión en `schema_migraciones` y e
 
 ### 2026-11-09 · 3 h
 
-Sesión aparte de las dos anteriores del mismo día.
+Sesión separada de las dos anteriores del mismo día.
 
 **Tarjeta(s) Jira:** FT1-116
 
@@ -381,6 +381,44 @@ Las relaciones se cruzaban en las vistas originales y el C4 de Acceso todavía m
 **Commits**
 
 - `17628fc` docs(diagramas): ordenar las vistas de FitZone
+
+---
+
+### 2026-11-13 · 4 h
+
+**Tarjeta(s) Jira:** FT1-115, FT1-116, FT1-127 y FT1-129
+
+**Actividad**
+
+Sincronicé esta bitácora con el [log del equipo](../LOG.md) (FT1-115), copié a la planificación los estados del tablero al 13/11 y ajusté el análisis de desvíos (FT1-129), y completé el README con los roles, la declaración de uso de IA y las credenciales del seed (FT1-127).
+
+Revisé los diagramas: quedaron las 18 fuentes Mermaid y su exportación en SVG. Eliminé los PNG porque repetían el mismo contenido y el SVG se ve mejor al ampliar; la consigna pide la fuente y una exportación (FT1-116).
+
+Escribí la segunda auditoría contra el Anexo G: 29 verificaciones, 17 que cumplen, 5 parciales, 1 que no cumple (el tag `v1.0-entrega`, que todavía no existe) y 6 que no pude verificar sin Node, Docker ni acceso al campus. El documento quedó en [docs/entregables/auditoria-anexo-g-2026-11-13.md](../entregables/auditoria-anexo-g-2026-11-13.md). La tarjeta está en Listo en Jira.
+
+En el tablero figuran a mi nombre, y en Listo, FT1-117 (`e6444d3`, Martín), FT1-118 (`f19d10b`, Teo), FT1-125 (`018ec89`, Martín) y FT1-128 (`5093e1a`, Martín). No las registro como sesión propia.
+
+Al recontar la sección 4 con el tablero encontré que Teo tiene 20 tarjetas, no 19: FT1-57 es una subtarea del sprint 5 y la planificación la tenía como «sin sprint». Corregí también el total de la sección 6 y el seguimiento del sprint 5.
+
+También dejé los `.env` locales de `backend/`, `frontend/` y la raíz, y comprobé que los tres estén ignorados por Git.
+
+**Decisión**
+
+Dejar una sola exportación de los diagramas (SVG) en lugar de dos (SVG y PNG), para no duplicar el mismo contenido y evitar que las vistas se desincronicen.
+
+**Problema o bloqueo**
+
+La planificación tenía una frase con la cantidad de tarjetas por integrante que el equipo pidió quitar; la saqué y dejé el resto del texto como estaba. La auditoría no pudo ejecutar `npm test`, `npm run test:integracion` ni `docker compose up --build` porque el entorno no tiene Node, npm ni Docker; las suites quedan como las declara el README y el CI.
+
+**Commits**
+
+- `3639e5f` docs(bitacora): sincronizar la bitácora individual con el log del equipo
+- `057fc91` docs(planificacion): copiar los estados del tablero al 13/11
+- `56f668d` docs(readme): completar roles, declaración de IA y credenciales del seed
+- `afba1a5` docs(diagramas): dejar la fuente Mermaid y la exportación SVG
+- `f8f75fb` docs(planificacion): copiar el estado de las tarjetas cerradas y ajustar el desvío
+
+La auditoría se versiona en el commit de esta entrada.
 
 ---
 
