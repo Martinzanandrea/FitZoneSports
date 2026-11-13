@@ -1,41 +1,41 @@
 # Diagramas de FitZone Sports
 
-Cada vista tiene una fuente Mermaid editable y dos exportaciones. El SVG conserva la nitidez al ampliar y el PNG sirve para insertar la lámina en el dossier. El encabezado de la fuente identifica al autor (según el historial de git), la fecha y la versión.
+Cada vista tiene una fuente Mermaid editable y su exportación en SVG. El SVG conserva la nitidez al ampliar y se abre en cualquier navegador. El encabezado de la fuente identifica al autor (según el historial de git), la fecha y la versión.
 
 Para ver el recorrido del QR sin conexión, empezá por el C4 de Acceso y seguí con la secuencia. El C4 muestra dónde viven los componentes. La secuencia muestra la preparación con red, el ingreso local y la conciliación al reconectar.
 
 ## Arquitectura
 
-| Vista | Fuente | Exportaciones |
+| Vista | Fuente | Exportación |
 |---|---|---|
-| C4-1 · Contexto | [Mermaid](c4-1-contexto.mmd) | [SVG](c4-1-contexto.svg) · [PNG](c4-1-contexto.png) |
-| C4-2 · Contenedores | [Mermaid](c4-2-contenedores.mmd) | [SVG](c4-2-contenedores.svg) · [PNG](c4-2-contenedores.png) |
-| C4-3 · Canchas | [Mermaid](c4-3-componentes-canchas.mmd) | [SVG](c4-3-componentes-canchas.svg) · [PNG](c4-3-componentes-canchas.png) |
-| C4-3 · Acceso | [Mermaid](c4-3-componentes-acceso.mmd) | [SVG](c4-3-componentes-acceso.svg) · [PNG](c4-3-componentes-acceso.png) |
-| Despliegue | [Mermaid](despliegue.mmd) | [SVG](despliegue.svg) · [PNG](despliegue.png) |
-| Pipeline de integración | [Mermaid](pipeline.mmd) | [SVG](pipeline.svg) · [PNG](pipeline.png) |
+| C4-1 · Contexto | [Mermaid](c4-1-contexto.mmd) | [SVG](c4-1-contexto.svg) |
+| C4-2 · Contenedores | [Mermaid](c4-2-contenedores.mmd) | [SVG](c4-2-contenedores.svg) |
+| C4-3 · Canchas | [Mermaid](c4-3-componentes-canchas.mmd) | [SVG](c4-3-componentes-canchas.svg) |
+| C4-3 · Acceso | [Mermaid](c4-3-componentes-acceso.mmd) | [SVG](c4-3-componentes-acceso.svg) |
+| Despliegue | [Mermaid](despliegue.mmd) | [SVG](despliegue.svg) |
+| Pipeline de integración | [Mermaid](pipeline.mmd) | [SVG](pipeline.svg) |
 
 ## Modelo físico
 
-| Vista | Fuente | Exportaciones |
+| Vista | Fuente | Exportación |
 |---|---|---|
-| DER · Mapa general | [Mermaid](der-fisico.mmd) | [SVG](der-fisico.svg) · [PNG](der-fisico.png) |
-| Sedes, socios y acceso | [Mermaid](der-acceso.mmd) | [SVG](der-acceso.svg) · [PNG](der-acceso.png) |
-| Canchas y pagos | [Mermaid](der-canchas-pagos.mmd) | [SVG](der-canchas-pagos.svg) · [PNG](der-canchas-pagos.png) |
-| Clases y reservas | [Mermaid](der-clases.mmd) | [SVG](der-clases.svg) · [PNG](der-clases.png) |
-| Auditoría y avisos | [Mermaid](der-auditoria-avisos.mmd) | [SVG](der-auditoria-avisos.svg) · [PNG](der-auditoria-avisos.png) |
+| DER · Mapa general | [Mermaid](der-fisico.mmd) | [SVG](der-fisico.svg) |
+| Sedes, socios y acceso | [Mermaid](der-acceso.mmd) | [SVG](der-acceso.svg) |
+| Canchas y pagos | [Mermaid](der-canchas-pagos.mmd) | [SVG](der-canchas-pagos.svg) |
+| Clases y reservas | [Mermaid](der-clases.mmd) | [SVG](der-clases.svg) |
+| Auditoría y avisos | [Mermaid](der-auditoria-avisos.mmd) | [SVG](der-auditoria-avisos.svg) |
 
 ## UML
 
-| Vista | Fuente | Exportaciones |
+| Vista | Fuente | Exportación |
 |---|---|---|
-| Clases del dominio | [Mermaid](uml-clases-dominio.mmd) | [SVG](uml-clases-dominio.svg) · [PNG](uml-clases-dominio.png) |
-| Secuencia · Reserva y pago | [Mermaid](uml-secuencia-reserva-pago.mmd) | [SVG](uml-secuencia-reserva-pago.svg) · [PNG](uml-secuencia-reserva-pago.png) |
-| Secuencia · Reserva concurrente (RN-02) | [Mermaid](uml-secuencia-reserva-concurrente.mmd) | [SVG](uml-secuencia-reserva-concurrente.svg) · [PNG](uml-secuencia-reserva-concurrente.png) |
-| Secuencia · QR offline (RNF-01) | [Mermaid](uml-secuencia-acceso-offline.mmd) | [SVG](uml-secuencia-acceso-offline.svg) · [PNG](uml-secuencia-acceso-offline.png) |
-| Estados · Membresía | [Mermaid](uml-estados-membresia.mmd) | [SVG](uml-estados-membresia.svg) · [PNG](uml-estados-membresia.png) |
-| Estados · Reserva | [Mermaid](uml-estados-reserva.mmd) | [SVG](uml-estados-reserva.svg) · [PNG](uml-estados-reserva.png) |
-| Actividad · Lista de espera | [Mermaid](uml-actividad-lista-espera.mmd) | [SVG](uml-actividad-lista-espera.svg) · [PNG](uml-actividad-lista-espera.png) |
+| Clases del dominio | [Mermaid](uml-clases-dominio.mmd) | [SVG](uml-clases-dominio.svg) |
+| Secuencia · Reserva y pago | [Mermaid](uml-secuencia-reserva-pago.mmd) | [SVG](uml-secuencia-reserva-pago.svg) |
+| Secuencia · Reserva concurrente (RN-02) | [Mermaid](uml-secuencia-reserva-concurrente.mmd) | [SVG](uml-secuencia-reserva-concurrente.svg) |
+| Secuencia · QR offline (RNF-01) | [Mermaid](uml-secuencia-acceso-offline.mmd) | [SVG](uml-secuencia-acceso-offline.svg) |
+| Estados · Membresía | [Mermaid](uml-estados-membresia.mmd) | [SVG](uml-estados-membresia.svg) |
+| Estados · Reserva | [Mermaid](uml-estados-reserva.mmd) | [SVG](uml-estados-reserva.svg) |
+| Actividad · Lista de espera | [Mermaid](uml-actividad-lista-espera.mmd) | [SVG](uml-actividad-lista-espera.svg) |
 
 ## Correspondencia con el código
 
