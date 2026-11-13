@@ -102,13 +102,13 @@ La correspondencia entre la estructura del frontend y la del punto 4 de los line
 
 ## Declaración de uso de asistentes de IA y de bibliotecas de terceros
 
-**Asistentes de IA.** El equipo usó asistentes de inteligencia artificial como apoyo durante el desarrollo, las pruebas y la redacción de documentación. Se usó Claude Code (Anthropic) en este repositorio. Cada integrante declara lo que usó:
+**Asistentes de IA.** El equipo usó asistentes de inteligencia artificial como apoyo durante el desarrollo, las pruebas y la redacción de documentación. Se usaron Claude y Claude Code (Anthropic), OpenCode y ChatGPT Plus (OpenAI). Cada integrante declara lo que usó:
 
 | Integrante       | Asistentes usados                          | Tareas                                                                                                            | Confirmación                                 |
 | ---------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | Martín Zanandrea | Claude (Anthropic)                         | Apoyo en arquitectura, redacción de documentación, redacción de prompts para agentes de código y revisión de bugs | Todo el código y los documentos se revisaron |
 | Teo Ava          | Claude Code (Anthropic) y OpenCode         | Revisión de código, implementación de funciones y redacción de documentos | Parte del código y de los documentos se revisó con detalle y parte con una revisión más general |
-| Máximo Retamoso  | <!-- CONFIRMAR: completa el integrante --> | <!-- CONFIRMAR: completa el integrante -->                                                                        | <!-- CONFIRMAR: completa el integrante -->   |
+| Máximo Retamoso  | Claude (Anthropic) y ChatGPT Plus (OpenAI) | Implementación de funciones de backend y frontend, pruebas manuales y redacción de ADR, manuales y bitácora | Revisé y probé lo generado antes de integrarlo |
 
 Todo el código y la documentación entregados fueron revisados por los integrantes.
 
