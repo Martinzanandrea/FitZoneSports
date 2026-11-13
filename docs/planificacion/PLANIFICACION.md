@@ -47,7 +47,7 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 
 ## 4. Estructura de desglose del trabajo
 
-Épica, historia y subtarea según el tablero de Jira. El tablero no registra estimaciones ni criterios de aceptación para las historias creadas antes del 09/11/2026; las tarjetas FT1-122 a FT1-132, creadas el 09/11/2026 a las 23:44, sí incluyen criterios de aceptación. Las estimaciones faltantes se analizan en la sección 8.
+Épica, historia y subtarea según el tablero de Jira. Copiamos los estados del tablero el 13/11/2026. El tablero no registra estimaciones ni criterios de aceptación para las historias creadas antes del 09/11/2026; las tarjetas FT1-122 a FT1-132, creadas el 09/11/2026 a las 23:44, sí incluyen criterios de aceptación. Las estimaciones faltantes se analizan en la sección 8.
 
 ### FT1-1 — Unidad I — Arquitectura (Listo)
 
@@ -126,7 +126,7 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | Clave  | Historia o subtarea                                                        | Responsable      | Sprint     | Estado    |
 | ------ | -------------------------------------------------------------------------- | ---------------- | ---------- | --------- |
 | FT1-30 | Testing y TDD (pruebas unitarias e integración)                            | Máximo Retamoso  | Sprint 5   | Listo     |
-| FT1-57 | Subtarea: Pruebas unitarias del acceso por QR y RN01 (duplicada de FT1-58) | Sin asignar      | Sin sprint | Por hacer |
+| FT1-57 | Subtarea: Pruebas unitarias del acceso por QR y RN01 (duplicada de FT1-58) | Teo Ava          | Sin sprint | Listo     |
 | FT1-31 | Pipeline CI/CD                                                             | Martín Zanandrea | Sprint 5   | Listo     |
 | FT1-54 | Pruebas de uso                                                             | Teo Ava          | Sprint 5   | Listo     |
 | FT1-55 | Pruebas de seguridad                                                       | Martín Zanandrea | Sprint 5   | En curso  |
@@ -134,21 +134,21 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | FT1-86 | Escaneo de secretos del historial y gitleaks en el CI                      | Máximo Retamoso  | Sprint 5   | Listo     |
 | FT1-87 | CI con Node 22                                                             | Martín Zanandrea | Sprint 5   | Listo     |
 
-### FT1-6 — Unidad VI — Móvil (Por hacer)
+### FT1-6 — Unidad VI — Móvil (Listo)
 
 | Clave   | Historia o subtarea                                                             | Responsable      | Sprint   | Estado    |
 | ------- | ------------------------------------------------------------------------------- | ---------------- | -------- | --------- |
 | FT1-88  | Portal como PWA instalable (ADR-011)                                            | Martín Zanandrea | Sprint 6 | Listo     |
 | FT1-89  | Notificaciones push con VAPID                                                   | Martín Zanandrea | Sprint 6 | Listo     |
 | FT1-90  | Estados sin conexión en el cliente                                              | Martín Zanandrea | Sprint 6 | Listo     |
-| FT1-91  | Validación del QR sin conexión en el terminal de sede (RNF-01)                  | Martín Zanandrea | Sprint 7 | En curso  |
+| FT1-91  | Validación del QR sin conexión en el terminal de sede (RNF-01)                  | Martín Zanandrea | Sprint 7 | Listo     |
 | FT1-105 | Subtarea: Claves ES256 del QR y verificación dual (HS256/ES256)                 | Martín Zanandrea | Sprint 7 | Listo     |
 | FT1-106 | Subtarea: Migración 012: columnas de acceso offline y tabla de eventos          | Martín Zanandrea | Sprint 7 | Listo     |
 | FT1-107 | Subtarea: Endpoints de clave pública y snapshot de la sede                      | Martín Zanandrea | Sprint 7 | Listo     |
 | FT1-108 | Subtarea: Endpoint de sincronización de ingresos offline                        | Martín Zanandrea | Sprint 7 | Listo     |
 | FT1-109 | Subtarea: Terminal: réplica local, verificación del QR y cola de ingresos       | Martín Zanandrea | Sprint 7 | Listo     |
 | FT1-110 | Subtarea: Terminal: integración en la pantalla de control de acceso             | Martín Zanandrea | Sprint 7 | Listo     |
-| FT1-111 | Subtarea: Documentación del modo offline (ADR-003, ADR-007, secuencia y manual) | Martín Zanandrea | Sprint 7 | Por hacer |
+| FT1-111 | Subtarea: Documentación del modo offline (ADR-003, ADR-007, secuencia y manual) | Martín Zanandrea | Sprint 7 | Listo     |
 
 ### FT1-7 — Cierre — Demo Day (Por hacer)
 
@@ -167,26 +167,26 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | FT1-102 | Manuales de usuario, de instalación y técnico                                             | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-103 | README con los seis puntos de la cátedra                                                  | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-104 | Integración con la reestructura                                                           | Máximo Retamoso  | Sprint 7   | Listo     |
-| FT1-112 | Planificación del proyecto: exportar Jira y armar Planificacion.pdf                       | Martín Zanandrea | Sprint 7   | Por hacer |
-| FT1-113 | Bitácora individual de Martín Zanandrea                                                   | Martín Zanandrea | Sprint 7   | Por hacer |
-| FT1-114 | Bitácora individual de Teo Ava                                                            | Teo Ava          | Sprint 7   | Por hacer |
+| FT1-112 | Planificación del proyecto: exportar Jira y armar Planificacion.pdf                       | Martín Zanandrea | Sprint 7   | Listo     |
+| FT1-113 | Bitácora individual de Martín Zanandrea                                                   | Martín Zanandrea | Sprint 7   | Listo     |
+| FT1-114 | Bitácora individual de Teo Ava                                                            | Teo Ava          | Sprint 7   | Listo     |
 | FT1-115 | Bitácora individual de Máximo Retamoso: completar y verificar hashes                      | Máximo Retamoso  | Sprint 7   | Listo     |
-| FT1-116 | Diagramas faltantes: clases, secuencia, estados y actividad                               | Máximo Retamoso  | Sprint 7   | Por hacer |
+| FT1-116 | Diagramas faltantes: clases, secuencia, estados y actividad                               | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-117 | Evidencia de requisitos no funcionales en docs/rnf                                        | Máximo Retamoso  | Sprint 7   | Por hacer |
-| FT1-118 | Verificar docker compose up desde cero y agregar smoke test en el CI                      | Máximo Retamoso  | Sprint 7   | Por hacer |
+| FT1-118 | Verificar docker compose up desde cero y agregar smoke test en el CI                      | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-120 | Cierre de entrega: checklist del Anexo G, tag v1.0-entrega y subida a Moodle              | Martín Zanandrea | Sprint 7   | Por hacer |
-| FT1-121 | Restaurar Supabase, verificar el backend en Render y monitor de actividad                 | Martín Zanandrea | Sprint 7   | Por hacer |
-| FT1-122 | Auditoría (@Auditable) de acciones sensibles                                              | Martín Zanandrea | Sprint 7   | Por hacer |
-| FT1-123 | Actualizar dependencias vulnerables del backend (npm audit)                               | Martín Zanandrea | Sprint 7   | Por hacer |
-| FT1-124 | Actualizar dependencias vulnerables del frontend (npm audit)                              | Teo Ava          | Sprint 7   | Por hacer |
-| FT1-125 | CI: ejecutar las pruebas del frontend (Vitest)                                            | Máximo Retamoso  | Sprint 7   | Por hacer |
+| FT1-121 | Restaurar Supabase, verificar el backend en Render y monitor de actividad                 | Martín Zanandrea | Sprint 7   | Listo     |
+| FT1-122 | Auditoría (@Auditable) de acciones sensibles                                              | Martín Zanandrea | Sprint 7   | Listo     |
+| FT1-123 | Actualizar dependencias vulnerables del backend (npm audit)                               | Martín Zanandrea | Sprint 7   | Listo     |
+| FT1-124 | Actualizar dependencias vulnerables del frontend (npm audit)                              | Teo Ava          | Sprint 7   | Listo     |
+| FT1-125 | CI: ejecutar las pruebas del frontend (Vitest)                                            | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-126 | Protección de main con checks obligatorios y colaboradora de solo lectura para la cátedra | Martín Zanandrea | Sprint 7   | Por hacer |
 | FT1-127 | README: roles, declaración de IA y bibliotecas, credenciales del seed                     | Máximo Retamoso  | Sprint 7   | Por hacer |
-| FT1-128 | Actualizar documentación obsoleta (manual de instalación, informe histórico)              | Máximo Retamoso  | Sprint 7   | Por hacer |
+| FT1-128 | Actualizar documentación obsoleta (manual de instalación, informe histórico)              | Máximo Retamoso  | Sprint 7   | Listo     |
 | FT1-129 | Segunda ronda de auditoría contra el Anexo G                                              | Máximo Retamoso  | Sprint 7   | Por hacer |
-| FT1-130 | Prueba de punta a punta del modo offline en producción y su evidencia                     | Martín Zanandrea | Sprint 7   | Por hacer |
-| FT1-131 | Estructura del frontend frente al punto 4: verificar y documentar                         | Teo Ava          | Sprint 7   | Por hacer |
-| FT1-132 | Lint: errores del frontend y saltos de línea del backend                                  | Teo Ava          | Sprint 7   | Por hacer |
+| FT1-130 | Prueba de punta a punta del modo offline en producción y su evidencia                     | Martín Zanandrea | Sprint 7   | En curso  |
+| FT1-131 | Estructura del frontend frente al punto 4: verificar y documentar                         | Teo Ava          | Sprint 7   | Listo     |
+| FT1-132 | Lint: errores del frontend y saltos de línea del backend                                  | Teo Ava          | Sprint 7   | Listo     |
 | FT1-133 | Preparación de la defensa: demo, plan B y escenario de canchas de tenis                   | Martín Zanandrea | Sin sprint | Por hacer |
 
 ### Historias sin épica asignada
@@ -195,7 +195,7 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | ------ | ------------------------------------------------------------ | ---------------- | -------- | --------- |
 | FT1-58 | Pruebas unitarias del acceso por QR y RN01                   | Teo Ava          | Sprint 5 | Listo     |
 | FT1-59 | Pruebas de integración contra PostgreSQL real (RN01 y RN02)  | Máximo Retamoso  | Sprint 5 | Listo     |
-| FT1-60 | Pruebas de autenticación y estrategia JWT                    | Martín Zanandrea | Sprint 5 | Por hacer |
+| FT1-60 | Pruebas de autenticación y estrategia JWT                    | Martín Zanandrea | Sprint 5 | Listo     |
 | FT1-61 | Checklist de pruebas en producción por rol                   | Máximo Retamoso  | Sprint 5 | Listo     |
 | FT1-62 | Reporte de QA y corrección de hallazgos                      | Máximo Retamoso  | Sprint 5 | Listo     |
 | FT1-63 | Auditoría de roles y alcance por sede (prueba automática)    | Martín Zanandrea | Sprint 5 | Listo     |
@@ -204,7 +204,7 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | FT1-66 | Informe de cobertura generado en cada ejecución del CI       | Martín Zanandrea | Sprint 5 | Listo     |
 | FT1-67 | Workflow de GitHub Actions (tsc, pruebas, build)             | Martín Zanandrea | Sprint 5 | Listo     |
 | FT1-68 | Despliegue del backend condicionado al CI (Render)           | Martín Zanandrea | Sprint 5 | Listo     |
-| FT1-69 | Pruebas unitarias con Vitest                                 | Martín Zanandrea | Sprint 5 | Por hacer |
+| FT1-69 | Pruebas unitarias con Vitest                                 | Martín Zanandrea | Sprint 5 | Listo     |
 
 ## 5. Cronograma
 
@@ -280,9 +280,9 @@ El tablero no registra estimaciones ni horas trabajadas, por lo que no puede cal
 | Sprint 2 | 22        | 22          | No registrado | Sin desvío                | Cerrado                                                                     |
 | Sprint 3 | 5         | 5           | No registrado | Sin desvío                | Cerrado                                                                     |
 | Sprint 4 | 21        | 21          | No registrado | Sin desvío                | Cerrado                                                                     |
-| Sprint 5 | 19        | 16          | No registrado | 3 tarjetas sin completar  | Activo; pendientes de pruebas de seguridad, de autenticación y de Vitest    |
+| Sprint 5 | 19        | 18          | No registrado | 1 tarjeta sin completar   | Activo; pendiente la prueba de seguridad (FT1-55)                           |
 | Sprint 6 | 3         | 3           | No registrado | Sin desvío                | Alcance móvil sin conexión (PWA)                                            |
-| Sprint 7 | 41        | 20          | No registrado | 21 tarjetas sin completar | Concentra la integración y el cierre; incluye las tarjetas creadas el 09/11 |
+| Sprint 7 | 41        | 35          | No registrado | 6 tarjetas sin completar  | Concentra la integración y el cierre; incluye las tarjetas creadas el 09/11 |
 
 Velocidad: los sprints 2 y 4 concentran la mayor cantidad de tarjetas completadas; el sprint 7 acumula el trabajo de integración y documentación de cierre.
 
@@ -303,11 +303,11 @@ Registro elaborado el 09/11/2026 a partir de lo ocurrido; no se llevó actualiza
 
 ## 10. Análisis de desvíos
 
-1. ¿Dónde se estimó mal y por qué? No se registraron estimaciones, de modo que el desvío no puede medirse en horas; ese es el primer desvío. Los datos del tablero muestran qué no se había visto: la carga documental (ADR, diagramas, manuales, bitácoras y planificación) quedó para el sprint de cierre, en lugar de producirse sprint a sprint; el sprint 7 acumula 42 tarjetas frente a 3 del sprint 6; y la carga no estuvo balanceada: de 117 tarjetas, 60 son de Martín Zanandrea, 37 de Máximo Retamoso y 19 de Teo Ava.
+1. ¿Dónde se estimó mal y por qué? No se registraron estimaciones, de modo que el desvío no puede medirse en horas; ese es el primer desvío. Los datos del tablero muestran qué no se había visto: la carga documental (ADR, diagramas, manuales, bitácoras y planificación) quedó para el sprint de cierre, en lugar de producirse sprint a sprint, y el sprint 7 acumula 41 tarjetas frente a 3 del sprint 6.
 
-2. ¿Qué riesgo se materializó y cómo se absorbió? Se materializaron la concentración de carga y la planificación no sostenida, esta última sin absorber: el tablero se completó al cierre y su estado se declara en este documento. Se absorbieron el fallo del CI por la versión de Node (se subió a Node 22), la pérdida de conexión del backend con la base (se verificó el proyecto y se abrió un monitor) y las fallas del acceso por QR (se endureció y se reescribió la validación con firma ES256 para el modo sin conexión).
+2. ¿Qué riesgo se materializó y cómo se absorbió? Se materializó la planificación no sostenida, sin absorber: el tablero se completó al cierre y su estado se declara en este documento. Se absorbieron el fallo del CI por la versión de Node (se subió a Node 22), la pérdida de conexión del backend con la base (se verificó el proyecto y se abrió un monitor) y las fallas del acceso por QR (se endureció y se reescribió la validación con firma ES256 para el modo sin conexión).
 
-3. ¿Qué se replanificaría si el proyecto empezara de nuevo el lunes? Se mantendría el tablero vivo desde el sprint 1, con estimación en puntos y horas registradas por tarjeta y fecha de cierre. Se escribirían los ADR, los diagramas y las bitácoras al cierre de cada sprint y no al final. Se repartiría la carga con un tope visible por integrante y revisión en cada sprint,. Se priorizaría el acceso sin conexión (RNF-01) y su prueba de punta a punta antes del sprint de integración, y se instalaría desde el principio un monitor y un respaldo de la infraestructura.
+3. ¿Qué se replanificaría si el proyecto empezara de nuevo el lunes? Se mantendría el tablero vivo desde el sprint 1, con estimación en puntos y horas registradas por tarjeta y fecha de cierre. Se escribirían los ADR, los diagramas y las bitácoras al cierre de cada sprint y no al final. Se repartiría la carga con un tope visible por integrante y revisión en cada sprint. Se priorizaría el acceso sin conexión (RNF-01) y su prueba de punta a punta antes del sprint de integración, y se instalaría desde el principio un monitor y un respaldo de la infraestructura.
 
 ## 11. Referencias
 
