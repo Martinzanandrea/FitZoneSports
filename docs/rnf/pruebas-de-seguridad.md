@@ -30,7 +30,7 @@ Leyenda: **cumple**, **parcial**, **no verificado**.
 | Control de repetición sin conexión | Cumple | `client_event_id` es la clave primaria de `eventos_acceso_offline` (`backend/db/sql/012-acceso-offline.sql:26`), por lo que la base impide duplicarlo. La sincronización es idempotente (pruebas «reenviar el mismo evento devuelve lo guardado y no toca nada» y «(a) reenviar el mismo lote no duplica ingresos») y el `jti` reutilizado en otro evento da `CONFLICTO` (`(c) el mismo jti en dos lotes con distinto clientEventId: CREADO y CONFLICTO / QR_REUSADO`) |
 | Control de repetición en línea | Parcial | El registro de QR ya usados (`qrUsados`) está en memoria del proceso: es válido con una sola instancia del backend (ver sección 3) |
 | Dependencias de producción | Cumple | `npm audit --omit=dev`: 0 vulnerabilidades en `backend/` y en `frontend/` (ejecutado el 16/11/2026 sobre el commit `91e6c8d`) |
-| Protección de la rama `main` | Parcial | El equipo informa que está activa. La configuración no se puede comprobar desde el repositorio ni desde esta revisión. <!-- CONFIRMAR: Martín agrega la captura o la regla (checks obligatorios) y confirma la fecha de activación --> |
+| Protección de la rama `main` | No aplicada | La rama `main` no tiene una regla de protección configurada. El repositorio es público y los cambios se verifican con el CI, que corre en cada push (job secretos, servidor, integración, docker y cliente). |
 | Pruebas dinámicas (fuerza bruta, inyección, escalada de privilegios, fuzzing) | No verificado | No se ejecutaron en esta revisión |
 
 ## 2. Qué falta para cerrar FT1-55

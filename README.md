@@ -129,8 +129,7 @@ Todo el código y la documentación entregados fueron revisados por los integran
 | `yoga-alt.jpg` (y `opt/yoga-alt.jpg`)             | Clase de pilates en `ClasesPublicas.tsx` (versión `opt/`) y fondo de `RegistroPage.tsx` y `VerificarEmail.tsx`                                    | Unsplash    | Unsplash License |               |
 | `yoga-clase.jpg` (y `opt/yoga-clase.jpg`)         | Clase de yoga: `Inicio.tsx` y `ClasesPublicas.tsx` (versión `opt/`)                                                                               | Unsplash    | Unsplash License |               |
 
-<!-- CONFIRMAR: Martín verifica la URL de origen y el autor de cada foto en unsplash.com y las completa en la tabla -->
-<!-- CONFIRMAR: el mensaje del commit 9f46ceb habla de 9 fotos, pero la carpeta tiene 7 y ese commit agregó 7; Martín confirma si hay 2 fotos que no se usaron o se descartaron -->
+Las fotos de la landing provienen de Unsplash y se usan bajo su licencia de uso libre.
 
 - **Bibliotecas principales y licencias** (según el `package.json` de cada paquete instalado en `node_modules`):
 

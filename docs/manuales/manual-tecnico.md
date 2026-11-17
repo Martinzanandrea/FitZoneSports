@@ -315,7 +315,7 @@ Archivo: `.github/workflows/ci.yml`. Se ejecuta en cada push y pull request a `m
 | `docker` | `docker compose up --build --wait`, chequeo de portal, API, Swagger y 25 sedes | El sistema no levanta desde cero |
 | `cliente` | `npm ci`, `npm test` (vitest), `tsc -b`, `vite build` | Falla una prueba del portal o el portal no compila |
 
-Con la protección de la rama `main` configurada para exigir estos checks, un pull request no se puede mergear con el pipeline en rojo. Después del merge, Render y Vercel despliegan automáticamente. Ver el [diagrama](../diagramas/pipeline.svg).
+La rama `main` no tiene una regla de protección configurada: el CI corre en cada push y pull request, pero no bloquea el merge. Después del merge, Render y Vercel despliegan automáticamente. Ver el [diagrama](../diagramas/pipeline.svg).
 
 **Contrato OpenAPI:** si se cambia un endpoint, regenerar `backend/swagger.json` con `npm run swagger:export` y versionarlo junto con el cambio.
 
@@ -331,7 +331,7 @@ Con la protección de la rama `main` configurada para exigir estos checks, un pu
 
 **Ramas:**
 
-- `main` siempre desplegable y protegida.
+- `main` siempre desplegable; no tiene una regla de protección configurada.
 - Una rama por tarjeta: `feat/…`, `fix/…`, `docs/…`, `chore/…`, `test/…`.
 - Se integra por pull request con el CI en verde.
 

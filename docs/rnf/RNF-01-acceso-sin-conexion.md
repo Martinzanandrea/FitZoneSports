@@ -63,8 +63,8 @@ Estas pruebas verifican las piezas por separado. El manual técnico (sección 6.
 | Dispositivo | Teléfono (captura de 1206 x 2622 px); el terminal de recepción se usó desde el teléfono |
 | Sede | FitZone Central (aforo máximo 30, según la captura) |
 | Quién ejecutó | Martín Zanandrea |
-| Commit probado | <!-- CONFIRMAR: dato de Martín --> |
-| Navegador, versión y sistema operativo | <!-- CONFIRMAR: dato de Martín --> |
+| Commit probado | No identificado (no se registró el commit al realizar la prueba) |
+| Navegador, versión y sistema operativo | Safari en iOS 26.6.2 |
 
 Pasos ejecutados (según las capturas, en este orden):
 
@@ -97,11 +97,7 @@ Estos casos **no se ejecutaron manualmente** en el dispositivo el 11/11/2026. Es
 
 **Membresía suspendida.** No se lista como caso aparte. Para decidir un ingreso (QR en línea, snapshot y sincronización sin conexión) el sistema solo distingue si la membresía está vigente o no (`esVigente` en `backend/src/membresias/vigencia.ts`: estado `ACTIVO` y fecha actual dentro del período). Una membresía suspendida no cumple esa condición y se trata como no vigente, es decir, queda cubierta por el caso anterior.
 
-**QR de otra sede.** <!-- CONFIRMAR: Martín confirma si por diseño un socio puede ingresar a cualquier sede --> Lo que dicen las fuentes, sin concluir:
-
-- El README (sección 1) y el manual de usuario (sección 3.3) dicen que el socio entra a cualquier sede.
-- En el código, el payload del QR contiene `usuarioId`, `jti`, `iat` y `exp`, sin identificador de sede (`QrOfflineVerificado` en `backend/src/acceso/acceso.service.ts`). El snapshot de una sede (`obtenerSnapshot`) incluye a los socios con membresía vigente sin filtrar por sede, y la sede entra por el terminal que valida (`assertSedeScope`).
-- No hay una prueba automatizada que ejercite un QR «de otra sede». Las pruebas «sede ajena: 403» se refieren al terminal de un recepcionista que opera una sede que no es la suya.
+**QR de otra sede.** No aplica por diseño. La membresía no está atada a una sede: el payload del QR no incluye sede y el snapshot no filtra socios por sede (README y manual de usuario, sección 3.3). Comprobado manualmente el 17/11/2026 por Martín Zanandrea: el QR de un socio sirve para ingresar en cualquier sede.
 
 **Resultado global:** ☐ Aprobada  ☐ Fallida  ☑ Aprobada con observaciones.
 
