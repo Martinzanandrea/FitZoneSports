@@ -191,7 +191,7 @@ El código de rol P1 a P3 de cada integrante se consigna en el README del reposi
 | FT1-123 | Actualizar dependencias vulnerables del backend (npm audit) | Martín Zanandrea | Sprint 7 | Listo |
 | FT1-124 | Actualizar dependencias vulnerables del frontend (npm audit) | Teo Ava | Sprint 7 | Listo |
 | FT1-125 | CI: ejecutar las pruebas del frontend (Vitest) en el job del cliente | Máximo Retamoso | Sprint 7 | Listo |
-| FT1-126 | Protección de la rama main con checks obligatorios del CI y repositorio público para la cátedra | Martín Zanandrea | Sprint 7 | Listo |
+| FT1-126 | Repositorio público para la cátedra y CI en cada push a main (sin regla de protección de rama) | Martín Zanandrea | Sprint 7 | Listo |
 | FT1-127 | README: roles, declaración de IA y bibliotecas, credenciales del seed | Máximo Retamoso | Sprint 7 | Listo |
 | FT1-128 | Actualizar documentación obsoleta: manual de instalación (Node 22, QR_PRIVATE_KEY, migración 012) e informe histórico de auditoría | Máximo Retamoso | Sprint 7 | Listo |
 | FT1-129 | Segunda ronda de auditoría contra el Anexo G: estructura del repo, seed de 25 sedes, ADR-001 a 010, bitácoras y manuales | Máximo Retamoso | Sprint 7 | Listo |
