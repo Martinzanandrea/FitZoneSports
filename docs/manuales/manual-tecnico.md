@@ -344,3 +344,12 @@ Cuerpo opcional: qué cambia y por qué.
 ```
 
 Tipos: `feat`, `fix`, `refactor`, `test`, `docs`, `ci`, `build`, `chore`. Ámbito: el módulo (`acceso`, `canchas`, `cliente`, `db`…). La referencia a la tarjeta del tablero va entre corchetes. No se aceptan mensajes genéricos como «cambios» o «fix».
+
+## 11. Limitaciones conocidas
+
+Se registran aquí, de forma neutra, aspectos del sistema entregado que conviene conocer al operarlo o extenderlo.
+
+- **Reutilización del QR en línea.** El control de reutilización de un QR validado con conexión (`qrUsados`, en `AccesoService`) es un mapa en memoria del proceso. Solo es válido con una única instancia del backend: con varias instancias, o tras un reinicio, cada una tiene su propio registro. El modo sin conexión no depende de ese mapa: la sincronización usa el identificador `client_event_id` de cada evento, que se guarda en la tabla `eventos_acceso_offline` y es su clave primaria (`backend/db/sql/012-acceso-offline.sql`).
+- **Intentos de inicio de sesión.** El límite del login es de 5 intentos por minuto por dirección IP (`@Throttle` en `auth.controller.ts`). No existe bloqueo por cuenta.
+- **Validación de entrada.** La `ValidationPipe` global (`main.ts`) usa `whitelist: true` y `transform: true`, sin `forbidNonWhitelisted`: los campos no declarados en los DTO se descartan en silencio y no producen error. Los endpoints de alta y edición de tipos de cancha declaran `forbidNonWhitelisted: true` de forma local.
+- **Análisis estático.** El CI (`.github/workflows/ci.yml`) no ejecuta `npm run lint` en ningún proyecto. El lint del frontend pasa sin errores; el del backend informa errores y advertencias pendientes, en su mayoría de formato (Prettier).

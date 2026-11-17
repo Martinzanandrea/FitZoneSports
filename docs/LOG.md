@@ -1,5 +1,7 @@
 # Bitácora individual del equipo — FitZone Sports
 
+Log interno del equipo. Las bitácoras individuales que se entregan están en docs/bitacoras/.
+
 Cada integrante documenta sus actividades, decisiones y problemas encontrados por unidad,
 vinculado por registro a los commits del repositorio. Los hashes y fechas provienen de
 `git log` real; donde no se encontró un commit que calce, se indica explícitamente.
@@ -129,7 +131,7 @@ vinculado por registro a los commits del repositorio. Los hashes y fechas provie
 
 ### Teo Ava
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+Ver la bitácora individual: docs/bitacoras/LOG-ava.md
 
 ### Máximo Retamoso
 
@@ -199,11 +201,11 @@ Esta fecha cae en el Sprint 5, pero la actividad corresponde a la Unidad IV y la
 
 ### Martín Zanandrea
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+Ver la bitácora individual: docs/bitacoras/LOG-zanandrea.md
 
 ### Teo Ava
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+Ver la bitácora individual: docs/bitacoras/LOG-ava.md
 
 ### Máximo Retamoso
 
@@ -227,11 +229,11 @@ _Pendiente — completar con actividades, decisiones y problemas encontrados pro
 
 ### Martín Zanandrea
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+Ver la bitácora individual: docs/bitacoras/LOG-zanandrea.md
 
 ### Teo Ava
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+Ver la bitácora individual: docs/bitacoras/LOG-ava.md
 
 ### Máximo Retamoso
 
@@ -243,11 +245,11 @@ En Jira figuro como informador de FT1-88 (PWA), FT1-89 (notificaciones push) y F
 
 ### Martín Zanandrea
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+Ver la bitácora individual: docs/bitacoras/LOG-zanandrea.md
 
 ### Teo Ava
 
-_Pendiente — completar con actividades, decisiones y problemas encontrados propios, con referencia a sus commits reales._
+Ver la bitácora individual: docs/bitacoras/LOG-ava.md
 
 ### Máximo Retamoso
 

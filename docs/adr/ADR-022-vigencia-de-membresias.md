@@ -88,8 +88,12 @@ RF-02, RN-03
 - El "vencimiento" del listado de clientes es la `fecha_fin` (exclusiva) de la
   vigente, o de la más reciente no próxima.
 - Hay que correr 009, limpiar datos superpuestos y recién entonces 010.
-- Pendiente en el cliente: mostrar vigente y próxima, y tratar `fecha_fin` como
-  exclusiva en textos y cuenta de días.
+- Implementado en el cliente: el portal muestra la membresía vigente y la
+  próxima (`frontend/src/modules/membresias/pages/MiMembresia.tsx` con
+  `components/TarjetaProxima.tsx`, y el bloqueo de una segunda compra en
+  `pages/CompletarMembresia.tsx`), y trata `fecha_fin` como exclusiva con
+  `fechaValidaHasta` (`frontend/src/shared/utils/fechasMembresia.ts`), usada en
+  los textos de fecha de las pantallas de membresía y de acceso.
 
 ## Alternativas descartadas
 
