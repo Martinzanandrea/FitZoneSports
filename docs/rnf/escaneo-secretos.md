@@ -1,6 +1,6 @@
 # Escaneo de secretos en el historial completo
 
-**Fecha:** 2026-11-09 · **Alcance:** las 112 versiones de todas las ramas (`git log --all -p`), no solo el estado actual.
+**Fecha del escaneo manual:** 2026-11-09 · **Alcance:** los 112 commits de todas las ramas existentes a esa fecha (`git log --all -p`), no solo el estado actual.
 
 Condición de admisibilidad: *no hay credenciales, claves ni tokens reales en el repositorio; solo `.env.example`*.
 
@@ -37,8 +37,10 @@ Coincidencias revisadas una por una, todas falsos positivos:
 | `docker-compose.yml` | Valores por defecto solo de desarrollo local (`fitzone-local`, `solo-para-desarrollo-local-cambiar`), reemplazables con `.env`. |
 | `backend/db/seed/datos-prueba.sql` | Hash bcrypt de la contraseña de los usuarios de prueba, documentada en el README. |
 
+**Actualización 2026-11-17:** los commits posteriores al escaneo manual están cubiertos por el job `secretos` del CI (gitleaks sobre el historial completo), que se ejecuta en cada push y pull request.
+
 ## Prevención
 
-- `.env` está en los `.gitignore` de `backend/` y `frontend/`, y en los `.dockerignore`.
+- `.env` está en los `.gitignore` de la raíz, de `backend/` y de `frontend/`, y en los `.dockerignore` de `backend/` y `frontend/`.
 - El job `secretos` del CI corre [gitleaks](https://github.com/gitleaks/gitleaks) sobre todo el historial en cada push y pull request; si encuentra algo, el pipeline falla.
 - Si alguna vez se versiona una clave real, borrarla del archivo no alcanza: hay que **rotarla** en el proveedor (Supabase, Brevo, Gmail) porque queda en el historial.
