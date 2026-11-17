@@ -2,7 +2,7 @@
 sequenceDiagram
   actor A as Socio A
   actor B as Socio B
-  participant API as BookingCanchaRepository
+  participant API as Repositorio de reservas<br/>(TypeORM)
   participant DB as PostgreSQL
   A->>API: Reserva la cancha a las 19
   B->>API: Solicita el mismo turno

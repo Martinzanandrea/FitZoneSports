@@ -30,8 +30,8 @@ const TAG = 'v1.0-entrega';
 const PRUEBAS = {
   backend: 848,
   suitesBackend: 42,
-  frontend: 153,
-  archivosFrontend: 7,
+  frontend: 170,
+  archivosFrontend: 10,
   integracion: 18,
   suitesIntegracion: 5,
   cobertura: { sentencias: '73,65', ramas: '64,30', funciones: '58,99', lineas: '73,88' },
@@ -70,16 +70,16 @@ const PDFTOTEXT =
 
 // ---------------------------------------------------------------- figuras
 function figuraDiagrama(ctx, archivo, titulo, comentario = '') {
-  const png = path.join(DOCS, 'diagramas', `${archivo}.png`);
-  if (!fs.existsSync(png)) throw new Error(`Falta la imagen ${png}`);
+  const svg = path.join(DOCS, 'diagramas', `${archivo}.svg`);
+  if (!fs.existsSync(svg)) throw new Error(`Falta la imagen ${svg}`);
   const mmd = fs.readFileSync(path.join(DOCS, 'diagramas', `${archivo}.mmd`), 'utf8');
   const enc = mmd.match(/^%% FitZone Sports · (.+?) · (\d{4}-\d{2}-\d{2}) · (v[\d.]+)/m);
   const autor = enc ? `${enc[1]}, ${enc[2].split('-').reverse().join('/')}, ${enc[3]}` : 'Equipo 08';
   const nota =
     `Elaboración del Equipo 08 (${esc(autor)}) con Mermaid. Fuente editable: <code>docs/diagramas/${archivo}.mmd</code>. ` +
-    `La imagen se incluye en su resolución original y puede ampliarse en el visor del PDF.` +
+    `Es una imagen vectorial: puede ampliarse en el visor del PDF sin pérdida de calidad.` +
     (comentario ? ' ' + comentario : '');
-  return ctx.figura(titulo, pathToFileURL(png).href, nota);
+  return ctx.figura(titulo, pathToFileURL(svg).href, nota);
 }
 const P = (t) => `<p>${t}</p>\n`;
 

@@ -2,6 +2,8 @@
 
 Cada vista tiene una fuente Mermaid editable y su exportación en SVG. El SVG conserva la nitidez al ampliar y se abre en cualquier navegador. El encabezado de la fuente identifica al autor (según el historial de git), la fecha y la versión.
 
+Para regenerar un SVG a partir de su fuente: `npx -p @mermaid-js/mermaid-cli@11.12.0 mmdc -i docs/diagramas/<nombre>.mmd -o docs/diagramas/<nombre>.svg`. La generación del Dossier (`scripts/build-dossier`) usa estos SVG, no imágenes rasterizadas. La paleta y la tipografía de las exportaciones provienen de una configuración de Mermaid (tema base, Arial de 17 px) que no está versionada: con la configuración por defecto el aspecto es otro.
+
 Para ver el recorrido del QR sin conexión, empezá por el C4 de Acceso y seguí con la secuencia. El C4 muestra dónde viven los componentes. La secuencia muestra la preparación con red, el ingreso local y la conciliación al reconectar.
 
 ## Arquitectura
