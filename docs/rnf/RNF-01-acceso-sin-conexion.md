@@ -2,7 +2,7 @@
 
 **Requisito (ADR-003):** el control de acceso funciona aunque se caiga la conexión principal a internet (disponibilidad de 99,5 %).
 
-**Estado de la evidencia:** parte automatizada existente y **una ejecución manual en producción el 11/11/2026** (sección 3), que cubre el camino feliz: ingreso sin conexión, rechazo por socio ya dentro, cola y sincronización. **No se probaron** socio vencido, QR alterado ni QR de otra sede, y no se verificó la base de datos (paso 8). Las casillas se marcan solo con lo que se ejecutó y consta en las capturas.
+**Estado de la evidencia:** parte automatizada existente y **una ejecución manual en producción el 11/11/2026** (sección 3), que cubre el camino feliz: ingreso sin conexión, rechazo por socio ya dentro, cola y sincronización. **No se probaron manualmente** los casos negativos (QR alterado, QR vencido, membresía no vigente, conflicto de sesión abierta), que sí tienen cobertura automatizada (sección 3), ni se verificó la base de datos (paso 8). Las casillas se marcan solo con lo que se ejecutó y consta en las capturas.
 
 ## 1. Evidencia automatizada que ya existe
 
@@ -62,9 +62,9 @@ Estas pruebas verifican las piezas por separado. El manual técnico (sección 6.
 | Entorno | Producción (la aplicación desplegada, no el entorno local con Docker de las precondiciones) |
 | Dispositivo | Teléfono (captura de 1206 x 2622 px); el terminal de recepción se usó desde el teléfono |
 | Sede | FitZone Central (aforo máximo 30, según la captura) |
-| Quién ejecutó | Sin registrar |
-| Commit probado | Sin registrar |
-| Navegador, versión y sistema operativo | Sin registrar |
+| Quién ejecutó | Martín Zanandrea |
+| Commit probado | <!-- CONFIRMAR: dato de Martín --> |
+| Navegador, versión y sistema operativo | <!-- CONFIRMAR: dato de Martín --> |
 
 Pasos ejecutados (según las capturas, en este orden):
 
@@ -84,15 +84,34 @@ Pasos ejecutados (según las capturas, en este orden):
 | 7 | Sincronización: pendientes = 0, evento creado | ☑ | ☐ | ☐ | «Creados: 1. Observados: 0. Conflictos: 0. Rechazados: 0.» (captura 22) |
 | 8 | Fila `CREADO`/`OK` y `validado_offline = true` en la base | ☐ | ☐ | ☑ | No se consultó la base de producción |
 
-Variantes y casos no probados (sin marcar):
+#### Casos negativos: cobertura
 
-- ☐ Socio con membresía vencida o suspendida sin conexión
-- ☐ QR alterado (firma inválida)
-- ☐ QR de otra sede
-- ☐ QR vencido (más de 60 segundos)
-- ☐ Conflicto (`CONFLICTO` / `SESION_ABIERTA`) al sincronizar
+Estos casos **no se ejecutaron manualmente** en el dispositivo el 11/11/2026. Están cubiertos por pruebas automatizadas existentes; la columna «Cobertura» lo aclara y no equivale a una prueba manual.
 
-**Resultado global:** ☐ Aprobada  ☐ Fallida  ☑ Aprobada con observaciones (camino feliz verificado; casos negativos, paso 6 completo y paso 8 sin ejecutar; faltan quién, commit y navegador).
+| Caso | Cobertura | Evidencia (archivo y nombre exacto de la prueba) |
+|---|---|---|
+| QR alterado | Pruebas automatizadas (no prueba manual en dispositivo) | `frontend/src/modules/acceso/offline/verificarQr.test.ts`: «firma alterada: FIRMA», «payload alterado con la firma original: FIRMA», «firmado con otra clave: FIRMA», «firma de largo incorrecto: FIRMA», «kid distinto: KID», `it.each` «alg %s: ALGORITMO» (HS256, none, ES384). `frontend/src/modules/acceso/offline/colaIngresos.test.ts`: «firma de otra clave: QR_INVALIDO». `backend/src/acceso/acceso-offline.spec.ts`: «rechaza un token con alg 'none'», «rechaza otros algoritmos (HS384)», «rechaza un QR ES256 firmado con otra clave» |
+| QR vencido | Pruebas automatizadas (no prueba manual en dispositivo) | `verificarQr.test.ts`: «pasados exp + 5 s: VENCIDO». `colaIngresos.test.ts`: «QR firmado pero vencido: rechaza como QR_VENCIDO». `acceso-offline.spec.ts`: «rechaza basura y QR vencidos» |
+| Membresía vencida o no vigente | Pruebas automatizadas (no prueba manual en dispositivo) | `colaIngresos.test.ts`: «socio con membresía no vigente: rechaza con su nombre». `frontend/src/modules/acceso/offline/snapshot.test.ts`: «un socio con la membresía vencida». `backend/src/acceso/acceso-sincronizacion.spec.ts`: «membresía vencida al sincronizar: se registra igual, OBSERVADO», «usuario inactivo al sincronizar: OBSERVADO / MEMBRESIA_NO_VIGENTE». `backend/test/integracion/acceso-sincronizacion.int-spec.ts`: «(d) membresía vencida al sincronizar: OBSERVADO con observacion» (contra PostgreSQL, en el CI) |
+| Conflicto `CONFLICTO` / `SESION_ABIERTA` al sincronizar | Pruebas automatizadas (no prueba manual en dispositivo) | `acceso-sincronizacion.spec.ts`: «sesión abierta: CONFLICTO / SESION_ABIERTA, sin fila en control_acceso y con evento registrado», «dos eventos del mismo usuario: el primero CREADO y el segundo SESION_ABIERTA». `acceso-sincronizacion.int-spec.ts`: «(b) dos eventos del mismo usuario en un lote: CREADO y luego CONFLICTO / SESION_ABIERTA» |
+
+**Membresía suspendida.** No se lista como caso aparte. Para decidir un ingreso (QR en línea, snapshot y sincronización sin conexión) el sistema solo distingue si la membresía está vigente o no (`esVigente` en `backend/src/membresias/vigencia.ts`: estado `ACTIVO` y fecha actual dentro del período). Una membresía suspendida no cumple esa condición y se trata como no vigente, es decir, queda cubierta por el caso anterior.
+
+**QR de otra sede.** <!-- CONFIRMAR: Martín confirma si por diseño un socio puede ingresar a cualquier sede --> Lo que dicen las fuentes, sin concluir:
+
+- El README (sección 1) y el manual de usuario (sección 3.3) dicen que el socio entra a cualquier sede.
+- En el código, el payload del QR contiene `usuarioId`, `jti`, `iat` y `exp`, sin identificador de sede (`QrOfflineVerificado` en `backend/src/acceso/acceso.service.ts`). El snapshot de una sede (`obtenerSnapshot`) incluye a los socios con membresía vigente sin filtrar por sede, y la sede entra por el terminal que valida (`assertSedeScope`).
+- No hay una prueba automatizada que ejercite un QR «de otra sede». Las pruebas «sede ajena: 403» se refieren al terminal de un recepcionista que opera una sede que no es la suya.
+
+**Resultado global:** ☐ Aprobada  ☐ Fallida  ☑ Aprobada con observaciones.
+
+Observaciones, es decir, lo que no tiene evidencia manual:
+
+- Paso 6: solo se observó la leyenda del modo Código; **DNI y egreso sin conexión no se registraron**.
+- Paso 8: **no se consultó la base de producción**; no hay evidencia manual de la fila `CREADO`/`OK` ni de `validado_offline = true`.
+- Los casos negativos de la tabla anterior (QR alterado, QR vencido, membresía no vigente, conflicto `SESION_ABIERTA`) tienen cobertura automatizada, pero **no se ejecutaron manualmente en un dispositivo**.
+- El caso «QR de otra sede» queda a la espera de la confirmación de Martín sobre el diseño.
+- Quedan por completar el commit probado y el navegador, versión y sistema operativo.
 
 ### Capturas
 
