@@ -106,8 +106,8 @@ Observaciones, es decir, lo que no tiene evidencia manual:
 - Paso 6: solo se observó la leyenda del modo Código; **DNI y egreso sin conexión no se registraron**.
 - Paso 8: **no se consultó la base de producción**; no hay evidencia manual de la fila `CREADO`/`OK` ni de `validado_offline = true`.
 - Los casos negativos de la tabla anterior (QR alterado, QR vencido, membresía no vigente, conflicto `SESION_ABIERTA`) tienen cobertura automatizada, pero **no se ejecutaron manualmente en un dispositivo**.
-- El caso «QR de otra sede» queda a la espera de la confirmación de Martín sobre el diseño.
-- Quedan por completar el commit probado y el navegador, versión y sistema operativo.
+- El caso «QR de otra sede» no aplica por diseño (la membresía no está atada a una sede) y se comprobó manualmente el 17/11/2026.
+- El commit probado no se identificó: no se registró al realizar la prueba. El navegador fue Safari en iOS 26.6.2.
 
 ### Capturas
 
