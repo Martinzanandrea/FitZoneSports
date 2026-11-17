@@ -98,7 +98,7 @@ async function validar(sedeId: string, qrToken: string, ahora: number): Promise<
   return { permitido: true, nombre, apellido, mensaje: `Ingreso permitido: ${nombre} ${apellido}`.trim() };
 }
 
-// ---------------------------------------------------------------- sincronización
+// Sincronización con el servidor.
 
 export interface DetalleSincronizacion {
   clientEventId: string;

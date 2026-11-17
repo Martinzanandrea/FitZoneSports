@@ -148,8 +148,8 @@ export class CanchasService {
   }
 
   // El filtro por sede se aplica SOLO cuando quien llama es GERENTE_SEDE.
-  // Socios, externos, recepcionistas y GG ven lo mismo que antes (lo usan
-  // la reserva de canchas y los selectores). Un GS sin sedeId ve vacío.
+  // Los demás roles ven el listado completo (lo usan la reserva de
+  // canchas y los selectores). Un GS sin sedeId ve vacío.
   async findAll(
     query: PaginationQueryDto,
     currentUser?: UsuarioAutenticado,

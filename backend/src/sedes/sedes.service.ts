@@ -36,8 +36,8 @@ export class SedesService {
   }
 
   // El filtro por sede se aplica SOLO cuando quien llama es GERENTE_SEDE.
-  // Socios, externos, recepcionistas y GG ven lo mismo que antes. Un GS
-  // sin sedeId es fail-closed: ve vacío.
+  // Los demás roles ven el listado completo. Un GS sin sedeId es
+  // fail-closed: ve vacío.
   async findAll(
     query: PaginationQueryDto,
     currentUser?: UsuarioAutenticado,

@@ -36,7 +36,6 @@ import { CobrarCanchaPresencialDto } from './dto/cobrar-cancha-presencial.dto';
 const AHORA = new Date('2026-10-09T18:00:00Z');
 const FECHA = '2026-10-10';
 
-// ───────────────────────── Base simulada ─────────────────────────
 // NO es una base real: simula una transacción (lo escrito dentro solo se
 // confirma si el callback termina bien) y el lock de la fila de la cancha
 // con una cola por cancha. Sirve para probar la lógica de atomicidad y de
@@ -167,7 +166,6 @@ class BookingSimulado implements IBookingCanchaRepository {
   }
 }
 
-// ───────────────────────── Armado ─────────────────────────
 const SEDE_A = 'sedeA';
 const recepcionista: UsuarioAutenticado = {
   id: 'rec1',

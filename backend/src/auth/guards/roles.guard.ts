@@ -17,6 +17,8 @@ export class RolesGuard implements CanActivate {
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );
+    // Sin @Roles el guard deja pasar a cualquier usuario autenticado; el spec
+    // auditoria-endpoints exige @Roles en todo endpoint no público.
     if (!rolesRequeridos) return true;
 
     const { user } = context.switchToHttp().getRequest();

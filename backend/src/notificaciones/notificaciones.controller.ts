@@ -30,7 +30,7 @@ import { NotificacionesQueryDto } from './dto/notificaciones-query.dto';
 export class NotificacionesController {
   constructor(private readonly service: NotificacionesService) {}
 
-  // ───────── Solo SOCIO, sobre sus propias notificaciones ─────────
+  // Solo SOCIO, sobre sus propias notificaciones.
 
   @Roles(TipoActor.SOCIO)
   @Get()
@@ -66,7 +66,7 @@ export class NotificacionesController {
     return this.service.marcarLeida(id, user.id);
   }
 
-  // ───────── Solo GERENTE_GENERAL: avisos a Socios ─────────
+  // Solo GERENTE_GENERAL: avisos a Socios.
 
   @Roles(TipoActor.GERENTE_GENERAL)
   @Throttle({ default: { limit: 5, ttl: 60000 } })

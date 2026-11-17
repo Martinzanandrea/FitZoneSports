@@ -17,6 +17,9 @@ export class PricingCalculatorService {
     precioBase: number,
     context: PricingContext,
   ): { precioFinal: number; estrategia: TipoEstrategiaPrecio } {
+    // Las estrategias se componen en el orden del arreglo PRICING_STRATEGIES
+    // (descuento de socio, luego recargo pico); cada una parte del precio que
+    // dejó la anterior. Agregar una regla es sumarla a esa lista (Strategy).
     let precio = precioBase;
     const aplicadas: string[] = [];
     for (const strategy of this.strategies) {

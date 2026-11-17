@@ -233,7 +233,7 @@ export class ReservasCanchaService {
     return { cancha, usuario, precioFinal, estrategia };
   }
 
-  // Paso 2: la inserción con el lock de la cancha, dentro de la transacción
+  // Inserción con el lock de la cancha, dentro de la transacción
   // de quien llama (comparte disponibilidad, mantenimiento y sobreventa con
   // la reserva online).
   crearReservaEnTransaccion(

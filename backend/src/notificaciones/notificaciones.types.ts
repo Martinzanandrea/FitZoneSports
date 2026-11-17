@@ -72,10 +72,8 @@ export interface ResultadoNotificacion {
   porCanal: Partial<Record<CanalNotificacion, ResultadoCanal>>;
 }
 
-// ── Política declarativa (única excepción a "ningún canal nombrado fuera de
-// los notificadores y del módulo") ──
-
-// Qué canales usa cada evento de dominio. Cambiar los canales de un evento es
+// Política declarativa: única excepción a "ningún canal nombrado fuera de los
+// notificadores y del módulo". Qué canales usa cada evento de dominio. Cambiar los canales de un evento es
 // editar esta tabla, sin tocar la lógica de los listeners.
 export const CANALES_POR_EVENTO: Record<
   TipoNotificacion.CLASE_CANCELADA | TipoNotificacion.LISTA_ESPERA_PROMOVIDA,

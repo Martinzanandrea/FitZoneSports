@@ -400,8 +400,6 @@ export class ClasesService {
     return clase;
   }
 
-  // ───────────── Ocurrencias futuras (hora de Argentina) ─────────────
-
   // Ocurrencias de la clase que todavía no empezaron, bloqueadas FOR UPDATE:
   // las reservas nuevas (que bloquean la misma fila) esperan a que termine
   // esta transacción y recién ahí ven el estado final.

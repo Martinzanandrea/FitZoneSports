@@ -8,8 +8,8 @@ import '../../../styles/auth.css';
 const inputClass =
   'field-input auth-input-has-right';
 
-// Sección reutilizable (misma lógica que la pantalla standalone original,
-// ahora montada dentro de Configuración). Sin chrome de página propio.
+// Sección reutilizable montada dentro de Configuración, sin encabezado de
+// página propio.
 export function CambiarPasswordForm() {
   useTitulo('Cambiar contraseña');
   const { user } = useAuth();

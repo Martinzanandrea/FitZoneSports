@@ -73,7 +73,7 @@ export class NotificacionesService {
     private readonly sedesRepo: Repository<Sede>,
   ) {}
 
-  // ───────────── Envío por canales (nunca lanza) ─────────────
+  // Envío por canales (nunca lanza).
 
   async notificar(
     destinatarios: Destinatario[],
@@ -173,8 +173,6 @@ export class NotificacionesService {
     };
   }
 
-  // ───────────── Audiencias ─────────────
-
   // Solo SOCIOS activos. "De una sede": con esa sede asignada o dada de alta
   // en ella por la membresía (mismo criterio que el listado de clientes del
   // cobro en efectivo, sin el criterio de "tuvo una reserva de cancha").
@@ -233,8 +231,6 @@ export class NotificacionesService {
       conEmailVerificado: elegibles.filter(Boolean).length,
     };
   }
-
-  // ───────────── Envíos del Gerente General ─────────────
 
   // Registra el envío y responde enseguida; los canales se procesan en segundo
   // plano (los mails llevan una pausa entre uno y otro).
@@ -353,7 +349,7 @@ export class NotificacionesService {
     };
   }
 
-  // ───────────── Campanita del Socio (siempre con el id del JWT) ─────────────
+  // Campanita del Socio: siempre con el id del JWT.
 
   private vista(n: Notificacion): NotificacionVista {
     return {

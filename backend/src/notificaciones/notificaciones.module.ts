@@ -37,7 +37,7 @@ import { PushSuscripcionesService } from './push/push-suscripciones.service';
     // Soporte del canal PUSH: configuración VAPID y gestión de suscripciones.
     PushConfig,
     PushSuscripcionesService,
-    // ── Canales de notificación ──
+    // Canales de notificación.
     // Único lugar donde se "enchufa" un canal: registrar su clase como provider
     // y sumarla a la lista de NOTIFICADORES. La fábrica y los consumidores no
     // se editan.

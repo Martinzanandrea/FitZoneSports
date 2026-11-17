@@ -670,8 +670,8 @@ export class AccesoService {
     return this.aResultado(fila);
   }
 
-  // RN01 + RF04/RF05: valida el QR, chequea aforo, y ahora también
-  // que el recepcionista que valida pertenezca a ESA sede (o sea Gerente).
+  // RN01 + RF04/RF05: valida el QR, chequea aforo y que el recepcionista que
+  // valida pertenezca a ESA sede (o sea Gerente).
   async validarIngreso(
     qrToken: string,
     sedeId: string,
@@ -860,9 +860,9 @@ export class AccesoService {
     );
   }
 
-  // Ahora recibe currentUser para validar que el recepcionista que cierra
-  // la sesión pertenezca a la sede donde el usuario está registrado como
-  // "dentro". Un Gerente puede hacerlo desde cualquier sede.
+  // Con currentUser se valida que el recepcionista que cierra la sesión
+  // pertenezca a la sede donde el usuario figura como "dentro" (alcance por
+  // sede). Un Gerente puede hacerlo desde cualquier sede.
   async registrarEgreso(
     usuarioId: string,
     currentUser: UsuarioAutenticado,
