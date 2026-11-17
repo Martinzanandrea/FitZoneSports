@@ -30,6 +30,9 @@ Cuando termina de levantar, abrir **http://localhost:8080**. La API queda en htt
 
 La primera vez la API crea la base y carga los datos de prueba (25 sedes con canchas, clases y usuarios de todos los roles). No hace falta ninguna cuenta externa. Para empezar de cero: `docker compose down -v`.
 
+Al registrar un usuario nuevo, o al pedir el reenvío desde la pantalla de ingreso, no llega ningún mail porque no hay una cuenta de correo configurada: el link de verificación se imprime en el log de la API. Para verlo: `docker compose logs api | grep "Link de verificación"` (en PowerShell: `docker compose logs api | Select-String "Link de verificación"`).
+Copiar el link que figura después de `[DEV] Link de verificación:` y abrirlo en el navegador. Los usuarios de la tabla siguiente ya están verificados.
+
 Instalación sin Docker, producción y variables de entorno: [manual de instalación y operación](docs/manuales/manual-de-instalacion-y-operacion.md).
 
 ## 4. Usuarios de prueba

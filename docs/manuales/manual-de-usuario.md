@@ -46,7 +46,7 @@ Hay dos puertas de ingreso:
 - **Socios y clientes externos:** botón *Ingresar* de la página pública (`/login`).
 - **Personal (recepción y gerencia):** `/admin/login`.
 
-Se ingresa con email y contraseña. Si la cuenta todavía no confirmó su email, el sistema lo pide antes de dejar entrar.
+Se ingresa con email y contraseña. Si la cuenta todavía no confirmó su email, el sistema no deja entrar y lo avisa. Después de ese intento de ingreso aparece el botón **Reenviar email de verificación**, que envía un link nuevo.
 
 ![Pantalla de ingreso](img/02-login.png)
 *Figura 2. Ingreso de socios y clientes.*
@@ -58,7 +58,7 @@ Se ingresa con email y contraseña. Si la cuenta todavía no confirmó su email,
 ### 3.1 Registro y carga del perfil
 
 1. En la página pública, elegí **Registrarme**.
-2. Completá nombre, apellido, DNI, email, teléfono y contraseña (mínimo 8 caracteres). La foto es opcional.
+2. Completá nombre, apellido, DNI, email y contraseña (mínimo 8 caracteres), y repetí la contraseña en **Confirmar contraseña**. El teléfono (*Teléfono (opcional)*) y la foto son opcionales.
 3. Aceptá los términos y condiciones y confirmá.
 4. Vas a recibir un **mail de verificación**. Abrí el link (vale 24 horas) para activar la cuenta.
 5. Ingresá con tu email y contraseña.
@@ -122,10 +122,10 @@ Instalada, se abre a pantalla completa y puede recibir notificaciones.
 | *Necesitás una membresía activa* | La membresía venció o está suspendida | Renová desde *Mi membresía* o en el mostrador |
 | *Ya tiene un ingreso abierto en otra sede* | Figura dentro de otra sede | Pedí que registren tu egreso en la sede anterior |
 | *El socio ya figura dentro de una sede.* | Con la sede sin conexión, el terminal ya registró un ingreso tuyo que todavía no se envió al servidor | No hace falta repetir el ingreso: el primero queda pendiente y se envía al volver la conexión |
+| *La sede alcanzó su aforo máximo* | La sede está llena | Esperá a que salga alguien |
 
 ![Rechazo sin conexión por socio que ya figura dentro](img/23-recepcionista-ingreso-de-una-misma-persona-ya-dentro-rechazo-sin-conexion.png)
 *Figura 6. Terminal de recepción sin conexión: segundo intento de ingreso de un socio que ya figura dentro, rechazado con la insignia Sin conexión (captura en un teléfono, 11/11/2026).*
-| *La sede alcanzó su aforo máximo* | La sede está llena | Esperá a que salga alguien |
 
 **Si no podés mostrar el QR** (sin batería o sin datos), el recepcionista puede registrar tu ingreso con tu **DNI**, después de verificar tu documento.
 
@@ -133,7 +133,7 @@ Instalada, se abre a pantalla completa y puede recibir notificaciones.
 
 - El resultado aparece con la insignia **Sin conexión**: el ingreso quedó guardado en el equipo de recepción y se envía al sistema cuando vuelve internet. No tenés que hacer nada más.
 - Sin conexión **no funcionan** el ingreso por código de 6 dígitos ni por DNI, y tampoco se pueden registrar egresos hasta que vuelva la red. Por eso conviene mostrar el QR.
-- Si ya habías ingresado a otra sede y no marcaste la salida, al volver la conexión el sistema puede informar un conflicto y el recepcionista tendrá que resolverlo con vos (ver 4.4).
+- Si ya habías ingresado a otra sede y no marcaste la salida, al volver la conexión el sistema puede informar un conflicto y el recepcionista tendrá que resolverlo con vos (ver 4.5).
 - Si el equipo de recepción no tiene datos descargados vigentes, el aviso lo indica y el ingreso se registra a mano hasta que vuelva internet.
 
 **Si es tu teléfono el que no tiene conexión**, el portal no puede mostrar ni renovar tu QR (el código se genera con conexión y cambia cada 60 segundos). En ese caso pedile al recepcionista que registre tu ingreso con tu **DNI**, que requiere que la sede tenga internet.
@@ -226,7 +226,7 @@ El sistema rechaza el ingreso, con el motivo, si la membresía no está vigente,
 
 **Sin conexión.** Si se cae internet, aparece el aviso *Modo sin conexión* y el botón **Sincronizar ahora**. Mientras haya datos descargados vigentes, solo los modos **Cámara** y **Pegado** siguen funcionando: validan el QR con la copia local y el resultado lleva la insignia **Sin conexión**. Los modos **Código** y **DNI** y el registro de egresos quedan deshabilitados, con una leyenda que lo explica, y el aforo no se puede consultar. El aviso muestra cuántos ingresos esperan ser enviados. Si el aviso indica que no hay datos descargados vigentes, no se puede validar: registrá los ingresos en una planilla y cargalos por **DNI** cuando vuelva la conexión.
 
-Al volver internet, la pantalla envía sola los ingresos pendientes y muestra el **Resultado de la última sincronización**, con los ingresos creados, observados, en conflicto y rechazados. Cada uno que no salió creado se detalla en una línea. Qué hacer con cada resultado está en 4.4.
+Al volver internet, la pantalla envía sola los ingresos pendientes y muestra el **Resultado de la última sincronización**, con los ingresos creados, observados, en conflicto y rechazados. Cada uno que no salió creado se detalla en una línea. Qué hacer con cada resultado está en 4.5.
 
 Secuencia completa en un teléfono, con la sede sin conexión y luego con la conexión restablecida (capturas tomadas en producción el 11/11/2026):
 
@@ -247,7 +247,7 @@ Secuencia completa en un teléfono, con la sede sin conexión y luego con la con
 ![Cobrar en efectivo](img/12-recepcion-cobrar.png)
 *Figura 16. Cobro en efectivo en el mostrador.*
 
-**Aforo.** El círculo de la derecha muestra cuántas personas hay dentro y el porcentaje sobre el aforo máximo. **Quién está dentro** lista a las personas con su hora de ingreso. Para registrar una salida, tocá **Egreso** en la fila de la persona.
+**Aforo.** El círculo de la derecha muestra cuántas personas hay dentro y el porcentaje sobre el aforo máximo. **Quién está dentro** lista a las personas con su hora de ingreso. Para registrar una salida, tocá **Egreso** en la fila de la persona. El botón **Egreso** solo está habilitado para el recepcionista: el gerente de sede ve la lista pero no puede registrar salidas.
 
 ### 4.2 Gestión de la agenda de clases
 
@@ -260,14 +260,18 @@ La creación y modificación de clases (horarios, instructor, cupo) la hace el g
 
 ### 4.3 Inhabilitación de una cancha por mantenimiento
 
-La puesta en mantenimiento la hace el **gerente de sede** desde **Canchas**:
+La puesta en mantenimiento la hace el **gerente de sede** desde **Canchas**: al cambiar el estado de la cancha a **Mantenimiento**, deja de aceptar reservas nuevas. Las reservas ya tomadas se mantienen. Para volver a habilitarla, se cambia el estado a **Activa**.
 
-- **Mantenimiento**: la cancha deja de aceptar reservas nuevas. Las reservas ya tomadas se mantienen.
-- **Bloqueo por franja**: se bloquea un rango de fechas y horas (por ejemplo, una mañana por arreglos), sin sacar la cancha de servicio.
+El recepcionista ve esa cancha como no disponible.
 
-El recepcionista ve esas canchas y turnos como no disponibles.
+### 4.4 Otras pantallas de recepción
 
-### 4.4 Problemas frecuentes del mostrador
+Estas pantallas están en el menú de recepción. No tienen captura en este manual.
+
+- **Pagos**: historial de pagos de la sede, con los mismos filtros que en gerencia (ver 5.5). Sirve para encontrar un pago cobrado en el mostrador o un comprobante.
+- **Reservas de canchas**: grilla de horarios de las canchas de la sede por día y cancha. Con **Reservar** se anota a un cliente buscándolo por nombre o DNI, y la lista *Reservas del día* permite **Cancelar** una reserva. Muestra las reservas de hoy, la ocupación y el ingreso estimado.
+
+### 4.5 Problemas frecuentes del mostrador
 
 | Problema | Solución |
 |---|---|
@@ -341,6 +345,15 @@ Otras lecturas que no están en Reportes:
 | Catálogo de tipos de cancha (por ejemplo, agregar *Tenis*) | Canchas → Tipos | Gerente general |
 | Enviar avisos a socios | Notificaciones | Gerente general |
 | Ver la auditoría de operaciones | Panel → Actividad reciente | Gerentes |
+
+### 5.5 Otras pantallas de la consola
+
+Estas pantallas están en el menú de gerencia. No tienen captura en este manual.
+
+- **Clientes** (gerente general): listado de socios, clientes externos e instructores con su tipo, DNI, contacto, sede o membresía y estado. Se filtra por tipo y por estado (*Activos* o *De baja*) y se busca por nombre, apellido, DNI o email.
+- **Membresías**: indicadores de total, activas, por vencer (en 7 días o menos) y vencidas, y el listado con el plan y la fecha *Válida hasta* de cada una. Se filtra por estado y se busca por nombre o DNI; el gerente general también filtra por sede. El gerente de sede ve solo su sede.
+- **Reservas**: reservas de clases y de canchas en una sola lista, con las pestañas *Todas*, *Clases* y *Canchas*. Se filtra por sede y fecha y se busca por usuario o actividad. Incluye las que están en lista de espera.
+- **Pagos**: historial de pagos con indicadores de cantidad, total cobrado (aprobados), efectivo y online. Se filtra por sede, fechas, método (*Efectivo* u *Online*), concepto (*Membresía* o *Cancha*) y estado (*Aprobado*, *Rechazado* o *Pendiente*), y se busca por nombre o DNI (mínimo 3 letras). Esta pantalla también está en el menú de recepción.
 
 ---
 
